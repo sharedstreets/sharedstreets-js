@@ -1,0 +1,25 @@
+{
+  "name": "sharedstreets",
+  "version": "0.1.0",
+  "description": "SharedStreets, a 'digital commons' for the street",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sharedstreets/sharedstreets.js.git"
+  },
+  "keywords": [
+    "sharedstreets",
+    "streets",
+    "highway",
+    "reference"
+  ],
+  "author": "SharedStreets",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/sharedstreets/sharedstreets.js/issues"
+  },
+  "homepage": "https://github.com/sharedstreets/sharedstreets.js#readme"
+}
