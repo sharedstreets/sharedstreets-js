@@ -2,9 +2,19 @@
   "name": "sharedstreets",
   "version": "0.1.0",
   "description": "SharedStreets, a 'digital commons' for the street",
-  "main": "index.js",
+  "main": "dist/sharedstreets.js",
+  "module": "dist/sharedstreets.mjs",
+  "browser": "dist/sharedstreets.min.js",
+  "files": [
+    "index.ts",
+    "index.js",
+    "src",
+    "dist"
+  ],
   "scripts": {
-    "test": "node test.js"
+    "prepublish": "rollup -c",
+    "pretest": "tsc && tslint",
+    "test": "nyc ava --verbose"
   },
   "repository": {
     "type": "git",
@@ -21,5 +31,24 @@
   "bugs": {
     "url": "https://github.com/sharedstreets/sharedstreets.js/issues"
   },
-  "homepage": "https://github.com/sharedstreets/sharedstreets.js#readme"
+  "homepage": "https://github.com/sharedstreets/sharedstreets.js#readme",
+  "devDependencies": {
+    "@std/esm": "*",
+    "ava": "*",
+    "documentation": "*",
+    "jsdoctest": "*",
+    "mocha": "*",
+    "nyc": "*",
+    "rollup": "*",
+    "rollup-plugin-typescript2": "*",
+    "rollup-plugin-uglify": "*",
+    "standard": "*",
+    "tap": "*",
+    "tslint": "*",
+    "typescript": "*"
+  },
+  "@std/esm": "js",
+  "dependencies": {
+    "@turf/helpers": "*"
+  }
 }

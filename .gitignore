@@ -5,6 +5,15 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+// Published bundle
+.rpt2_cache
+dist
+
+// Typescript compiled files
+src/*.js
+test/*.js
+index.js
+
 # Runtime data
 pids
 *.pid
