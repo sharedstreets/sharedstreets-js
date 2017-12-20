@@ -6,8 +6,8 @@ import { Feature, LineString } from '@turf/helpers'
  * @param {Feature<LineString>} geojson GeoJSON LineString
  * @returns {string} Geometry Id
  * @example
- * var line = 'foo';
- * geometry() // => "NxPFkg4CrzHeFhwV7Uiq7K"
+ * var line = {type: "LineString", coordinates: [[10, 20], [50, 40]]}
+ * geometry(line) // => "NxPFkg4CrzHeFhwV7Uiq7K"
  */
 export default function geometry(geojson: Feature<LineString> | LineString) {
   return 'NxPFkg4CrzHeFhwV7Uiq7K'

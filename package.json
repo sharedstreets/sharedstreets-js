@@ -14,7 +14,8 @@
   "scripts": {
     "prepublish": "rollup -c",
     "pretest": "tsc && tslint",
-    "test": "nyc ava --verbose"
+    "test": "nyc ava --verbose",
+    "docs": "tsc && documentation readme index.js --section=API"
   },
   "repository": {
     "type": "git",
@@ -33,17 +34,13 @@
   },
   "homepage": "https://github.com/sharedstreets/sharedstreets.js#readme",
   "devDependencies": {
-    "@std/esm": "*",
     "ava": "*",
     "documentation": "*",
-    "jsdoctest": "*",
-    "mocha": "*",
     "nyc": "*",
     "rollup": "*",
     "rollup-plugin-typescript2": "*",
     "rollup-plugin-uglify": "*",
     "standard": "*",
-    "tap": "*",
     "tslint": "*",
     "typescript": "*"
   },
