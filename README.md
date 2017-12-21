@@ -49,11 +49,13 @@ $ npm install sharedstreets
 
 Download the [minified file](https://unpkg.com/sharedstreets/sharedstreets.min.js), and include it in a script tag. This will expose a global variable named **sharedstreets**.
 
+```html
 <script src="sharedstreets.min.js" charset="utf-8"></script>
+```
 
 **In browser ES Modules support**
 
-```js
+```html
 <script type='module'>
 import * as sharedstreets from "https://unpkg.com/sharedstreets@1.0.0?module"
 </script>
@@ -79,7 +81,7 @@ Geometry
 
 ```javascript
 var line = {type: "LineString", coordinates: [[10, 20], [50, 40]]}
-geometry(line) // => "NxPFkg4CrzHeFhwV7Uiq7K"
+sharedstreets.geometry(line) // => "NxPFkg4CrzHeFhwV7Uiq7K"
 ```
 
 Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Geometry Id
