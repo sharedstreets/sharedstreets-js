@@ -73,9 +73,15 @@ import * as sharedstreets from "https://unpkg.com/sharedstreets@1.0.0?module"
 
 Geometry
 
+SharedStreets Geometries are street centerline data derived from the basemap used to
+produce SharedStreets References. A single geometry is shared by each set of forward and back references.
+
+SharedStreets is premised on the idea that there's no one correct geometry for a given street.
+Just as street references can be generated from any basemap, street geometries can be derived from any data source.
+
 **Parameters**
 
--   `geojson` **Feature&lt;LineString>** GeoJSON LineString
+-   `geojson` **LineString** GeoJSON LineString
 
 **Examples**
 
