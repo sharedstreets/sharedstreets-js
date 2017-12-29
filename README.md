@@ -107,16 +107,22 @@ Just as street references can be generated from any basemap, street geometries c
 
 **Parameters**
 
--   `geojson` **LineString** GeoJSON LineString
+-   `start` **(Point | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>)** Start location reference as a GeoJSON Point or an Array of numbers &lt;longitude, latitude>.
+-   `end` **(Point | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>)** End location reference as a GeoJSON Point or an Array of numbers &lt;longitude, latitude>.
+-   `bearing` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** Compass bearing of the street geometry for the 20 meters immediately following the location reference.
 
 **Examples**
 
 ```javascript
-var line = {type: "LineString", coordinates: [[10, 20], [50, 40]]}
-sharedstreets.geometry(line) // => "NxPFkg4CrzHeFhwV7Uiq7K"
+var start = [-74.003388, 40.634538];
+var end = [-74.004107, 40.63406];
+var bearing = 228.890377;
+
+var geom = sharedstreets.geometry(start, end, bearing);
+geom.id // => "NxPFkg4CrzHeFhwV7Uiq7K"
 ```
 
-Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Geometry Id
+Returns **Feature&lt;LineString>** Geometry
 
 ### intersection
 

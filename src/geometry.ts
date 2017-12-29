@@ -1,4 +1,5 @@
-import { Feature, LineString, Position } from '@turf/helpers'
+import { lineString, Feature, Point, Position } from '@turf/helpers'
+import { getCoord } from '@turf/invariant'
 
 /**
  * Geometry
@@ -9,12 +10,21 @@ import { Feature, LineString, Position } from '@turf/helpers'
  * SharedStreets is premised on the idea that there's no one correct geometry for a given street.
  * Just as street references can be generated from any basemap, street geometries can be derived from any data source.
  *
- * @param {LineString} geojson GeoJSON LineString
- * @returns {string} Geometry Id
+ * @param {Point|Array<number>} start Start location reference as a GeoJSON Point or an Array of numbers <longitude, latitude>.
+ * @param {Point|Array<number>} end End location reference as a GeoJSON Point or an Array of numbers <longitude, latitude>.
+ * @param {number} bearing Compass bearing of the street geometry for the 20 meters immediately following the location reference.
+ * @returns {Feature<LineString>} Geometry
  * @example
- * var line = {type: "LineString", coordinates: [[10, 20], [50, 40]]}
- * sharedstreets.geometry(line) // => "NxPFkg4CrzHeFhwV7Uiq7K"
+ * var start = [-74.003388, 40.634538];
+ * var end = [-74.004107, 40.63406];
+ * var bearing = 228.890377;
+ *
+ * var geom = sharedstreets.geometry(start, end, bearing);
+ * geom.id // => "NxPFkg4CrzHeFhwV7Uiq7K"
  */
-export default function geometry(geojson: Feature<LineString> | LineString) {
-  return 'NxPFkg4CrzHeFhwV7Uiq7K'
+export default function geometry(start: Feature<Point> | Point | Position, end: Feature<Point> | Point | Position, bearing: number) {
+  const id = 'NxPFkg4CrzHeFhwV7Uiq7K'
+  const coords = [getCoord(start), getCoord(end)]
+  const properties = {}
+  return lineString(coords, properties, {id})
 }
