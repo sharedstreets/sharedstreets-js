@@ -1,0 +1,39 @@
+{
+  "type": "FeatureCollection",
+  "generator": "overpass-ide",
+  "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL.",
+  "timestamp": "2017-12-29T18:35:02Z",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/420584817",
+        "highway": "secondary",
+        "name": "Fort Hamilton Parkway",
+        "oneway": "no",
+        "tiger:cfcc": "A41",
+        "tiger:county": "Kings, NY",
+        "tiger:name_base": "Fort Hamilton",
+        "tiger:name_type": "Pky"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -74.003621,
+            40.6343831
+          ],
+          [
+            -74.004107,
+            40.63406
+          ],
+          [
+            -74.0048381,
+            40.6335703
+          ]
+        ]
+      },
+      "id": "way/420584817"
+    }
+  ]
+}
