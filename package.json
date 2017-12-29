@@ -13,7 +13,7 @@
   ],
   "scripts": {
     "prepublish": "rollup -c",
-    "pretest": "tsc && tslint",
+    "pretest": "tsc && tslint .",
     "test": "nyc ava --verbose",
     "docs": "tsc && documentation readme index.js --section=API"
   },
@@ -47,6 +47,7 @@
   "@std/esm": "js",
   "dependencies": {
     "@turf/helpers": "*",
+    "@turf/invariant": "5.x",
     "@turf/meta": "5.2.x"
   }
 }
