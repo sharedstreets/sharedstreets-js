@@ -46,6 +46,7 @@
   },
   "@std/esm": "js",
   "dependencies": {
-    "@turf/helpers": "*"
+    "@turf/helpers": "*",
+    "@turf/meta": "5.2.x"
   }
 }

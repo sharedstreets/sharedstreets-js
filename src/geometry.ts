@@ -1,4 +1,4 @@
-import { Feature, LineString } from '@turf/helpers'
+import { Feature, LineString, Position } from '@turf/helpers'
 
 /**
  * Geometry
