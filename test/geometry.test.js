@@ -1,5 +1,5 @@
-import test from 'ava'
-import * as sharedstreets from '../index'
+const test = require('ava')
+const sharedstreets = require('../index')
 
 test('sharedstreets -- geometry', t => {
   const start = [-74.003388, 40.634538]
