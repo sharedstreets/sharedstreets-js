@@ -1,6 +1,6 @@
 {
   "name": "sharedstreets",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "SharedStreets, a 'digital commons' for the street",
   "main": "dist/sharedstreets.js",
   "module": "dist/sharedstreets.mjs",
