@@ -1,5 +1,3 @@
-import { Feature, Point, LineString } from '@turf/helpers'
-
 export const roadClass = {
   Motorway: 0,
   Trunk: 1,

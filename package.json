@@ -28,6 +28,10 @@
     "reference"
   ],
   "author": "SharedStreets",
+  "contributors": [
+    "Denis Carriere <@DenisCarriere>",
+    "Kevin Webb <@kpwebb>"
+  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/sharedstreets/sharedstreets.js/issues"
@@ -36,9 +40,10 @@
   "devDependencies": {
     "@types/node": "*",
     "ava": "*",
+    "babel-core": "*",
     "documentation": "*",
     "nyc": "*",
-    "rollup": "*",
+    "rollup": "0.50",
     "rollup-plugin-node-resolve": "*",
     "rollup-plugin-typescript2": "*",
     "rollup-plugin-uglify": "*",
@@ -46,10 +51,9 @@
     "tslint": "*",
     "typescript": "*"
   },
-  "@std/esm": "js",
   "dependencies": {
-    "@turf/helpers": "5.1.x",
-    "@turf/invariant": "5.2.x",
-    "@turf/meta": "5.2.x"
+    "@turf/helpers": "5.1",
+    "@turf/invariant": "5.2",
+    "@turf/meta": "5.2"
   }
 }
