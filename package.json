@@ -12,7 +12,7 @@
     "dist"
   ],
   "scripts": {
-    "prepublish": "rollup -c",
+    "build": "rollup -c",
     "pretest": "tsc && tslint .",
     "test": "nyc ava --verbose",
     "docs": "tsc && documentation readme index.js --section=API"
@@ -34,10 +34,12 @@
   },
   "homepage": "https://github.com/sharedstreets/sharedstreets.js#readme",
   "devDependencies": {
+    "@types/node": "*",
     "ava": "*",
     "documentation": "*",
     "nyc": "*",
     "rollup": "*",
+    "rollup-plugin-node-resolve": "*",
     "rollup-plugin-typescript2": "*",
     "rollup-plugin-uglify": "*",
     "standard": "*",
@@ -46,8 +48,8 @@
   },
   "@std/esm": "js",
   "dependencies": {
-    "@turf/helpers": "*",
-    "@turf/invariant": "5.x",
+    "@turf/helpers": "5.1.x",
+    "@turf/invariant": "5.2.x",
     "@turf/meta": "5.2.x"
   }
 }

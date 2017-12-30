@@ -1,5 +1,6 @@
 import uglify from 'rollup-plugin-uglify'
 import typescript from 'rollup-plugin-typescript2'
+import node from 'rollup-plugin-node-resolve'
 
 const input = 'index.ts'
 const name = 'sharedstreets'
@@ -12,7 +13,7 @@ export default [{
     format: 'es',
     sourcemap
   },
-  plugins: [typescript()]
+  plugins: [typescript(), node()]
 }, {
   input,
   output: {
@@ -21,7 +22,7 @@ export default [{
     name,
     sourcemap
   },
-  plugins: [typescript()]
+  plugins: [typescript(), node()]
 },
 {
   input,
@@ -31,5 +32,5 @@ export default [{
     name,
     sourcemap
   },
-  plugins: [typescript(), uglify()]
+  plugins: [typescript(), node(), uglify()]
 }]
