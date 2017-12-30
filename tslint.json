@@ -11,7 +11,8 @@
         "max-line-length": [true, 150],
         "ordered-imports": [false],
         "arrow-parens": [false],
-        "no-console": [false]
+        "no-console": [false],
+        "interface-name": [false]
     },
     "rulesDirectory": []
 }

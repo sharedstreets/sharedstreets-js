@@ -1,6 +1,6 @@
 import { getCoord } from '@turf/invariant'
 import { point, Feature, Point, Position } from '@turf/helpers'
-import { Intersection } from '../'
+import { Intersection, Location } from '../'
 
 /**
  * Intersection
@@ -22,7 +22,7 @@ import { Intersection } from '../'
  * var intersection = sharedstreets.intersection(pt);
  * intersection.id // => '5gRJyF2MT5BBErTyEesQLC'
  */
-export default function intersection(pt: Feature<Point> | Point | Position): Intersection {
+export default function intersection(pt: Location): Intersection {
   const coord = getCoord(pt)
   const id = '5gRJyF2MT5BBErTyEesQLC'
   const properties = {

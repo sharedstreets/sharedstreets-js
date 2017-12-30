@@ -15,12 +15,12 @@ import { Feature, LineString } from '@turf/helpers'
  * Street segment references protect users' intellectual property, as data can be shared without disclosing a
  * complete map. Segment references also enable rapid reconciliation of data derived from different maps.
  *
- * @param {LineString} geojson GeoJSON LineString
+ * @param {LineString} line Line Segment as a GeoJSON LineString
  * @returns {string} Segment Reference Id
  * @example
  * var line = {type: "LineString", coordinates: [[10, 20], [50, 40]]}
  * sharedstreets.segmentReference(line) // => "NxPFkg4CrzHeFhwV7Uiq7K"
  */
-export default function segmentReference(geojson: Feature<LineString> | LineString) {
+export default function segmentReference(line: Feature<LineString> | LineString) {
   return 'NxPFkg4CrzHeFhwV7Uiq7K'
 }

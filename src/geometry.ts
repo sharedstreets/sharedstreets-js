@@ -1,6 +1,6 @@
-import { lineString, Feature, Point, Position } from '@turf/helpers'
+import { lineString } from '@turf/helpers'
 import { getCoord } from '@turf/invariant'
-import { Geometry } from '../'
+import { Geometry, Location } from '../'
 
 /**
  * Geometry
@@ -23,11 +23,7 @@ import { Geometry } from '../'
  * var geom = sharedstreets.geometry(start, end, bearing);
  * geom.id // => 'NxPFkg4CrzHeFhwV7Uiq7K'
  */
-export default function geometry(
-  start: Feature<Point> | Point | Position,
-  end: Feature<Point> | Point | Position,
-  bearing: number,
-): Geometry {
+export default function geometry(start: Location, end: Location, bearing: number): Geometry {
   const id = 'NxPFkg4CrzHeFhwV7Uiq7K'
   const coords = [getCoord(start), getCoord(end)]
   const properties = {
