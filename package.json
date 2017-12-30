@@ -13,8 +13,8 @@
   ],
   "scripts": {
     "build": "rollup -c",
-    "pretest": "tsc && tslint .",
-    "test": "nyc ava --verbose",
+    "pretest": "tslint .",
+    "test": "tsc && nyc ava --verbose",
     "docs": "tsc && documentation readme index.js --section=API"
   },
   "repository": {

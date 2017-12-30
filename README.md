@@ -90,7 +90,7 @@ var end = [-74.004107, 40.63406];
 var bearing = 228.890377;
 
 var geom = sharedstreets.geometry(start, end, bearing);
-geom.id // => "NxPFkg4CrzHeFhwV7Uiq7K"
+geom.id // => 'NxPFkg4CrzHeFhwV7Uiq7K'
 ```
 
 Returns **Feature&lt;LineString>** Geometry
@@ -111,13 +111,14 @@ In the draft specification the 128-bit IDs are encoded as base-58 strings.
 
 **Parameters**
 
--   `geojson` **(Point | Position)** GeoJSON Point
+-   `pt` **(Point | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>)** Point location reference as a GeoJSON Point or an Array of numbers &lt;longitude, latitude>.
 
 **Examples**
 
 ```javascript
-var pt = {type: "Point", coordinates: [10, 20]};
-sharedstreets.intersection(pt) // => "5gRJyF2MT5BBErTyEesQLC"
+var pt = [10, 20];
+var intersection = sharedstreets.intersection(pt);
+intersection.id // => '5gRJyF2MT5BBErTyEesQLC'
 ```
 
-Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Intersection Id
+Returns **Feature&lt;Point>** Intersection
