@@ -1,5 +1,6 @@
-import { lineString, Feature, Point, Position } from '@turf/helpers'
+import { lineString, Feature, Point, Position, LineString } from '@turf/helpers'
 import { getCoord } from '@turf/invariant'
+import { Geometry } from '../'
 
 /**
  * Geometry
@@ -20,11 +21,18 @@ import { getCoord } from '@turf/invariant'
  * var bearing = 228.890377;
  *
  * var geom = sharedstreets.geometry(start, end, bearing);
- * geom.id // => "NxPFkg4CrzHeFhwV7Uiq7K"
+ * geom.id // => 'NxPFkg4CrzHeFhwV7Uiq7K'
  */
-export default function geometry(start: Feature<Point> | Point | Position, end: Feature<Point> | Point | Position, bearing: number) {
+export default function geometry(start: Feature<Point> | Point | Position, end: Feature<Point> | Point | Position, bearing: number): Geometry {
   const id = 'NxPFkg4CrzHeFhwV7Uiq7K'
   const coords = [getCoord(start), getCoord(end)]
-  const properties = {}
+  const properties = {
+    id,
+    startIntersectionId: '5gRJyF2MT5BBErTyEesQLC',
+    endIntersectionId: 'N38a21UGykpnqxwez7NGS3',
+    forwardReferenceId: '2Vw2XzW4cs7r32RLhQnqwA',
+    backReferenceId: 'VXKSEokmvBJ81XHYhUronG',
+    roadClass: 3,
+  }
   return lineString(coords, properties, {id})
 }

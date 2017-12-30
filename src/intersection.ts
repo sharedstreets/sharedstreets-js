@@ -1,4 +1,6 @@
-import { Feature, Point, Position } from '@turf/helpers'
+import { getCoord } from '@turf/invariant'
+import { point, Feature, Point, Position } from '@turf/helpers'
+import { Intersection } from '../'
 
 /**
  * Intersection
@@ -13,12 +15,22 @@ import { Feature, Point, Position } from '@turf/helpers'
  *
  * In the draft specification the 128-bit IDs are encoded as base-58 strings.
  *
- * @param {Point|Position} geojson GeoJSON Point
- * @returns {string} Intersection Id
+ * @param {Point|Array<number>} pt Point location reference as a GeoJSON Point or an Array of numbers <longitude, latitude>.
+ * @returns {Feature<Point>} Intersection
  * @example
- * var pt = {type: "Point", coordinates: [10, 20]};
- * sharedstreets.intersection(pt) // => "5gRJyF2MT5BBErTyEesQLC"
+ * var pt = [10, 20];
+ * var intersection = sharedstreets.intersection(pt);
+ * intersection.id // => '5gRJyF2MT5BBErTyEesQLC'
  */
-export default function intersection(geojson: Feature<Point> | Point | Position) {
-  return '5gRJyF2MT5BBErTyEesQLC'
+export default function intersection(pt: Feature<Point> | Point | Position): Intersection {
+  const coord = getCoord(pt)
+  const id = '5gRJyF2MT5BBErTyEesQLC'
+  const properties = {
+    id,
+    osmNodeId: 42460951,
+    outboundSegmentIds: ['6mjqqv7YNsp4541DmrrRbV', 'jwwKcUvHuCw6GJJAT3mDQ', '2Vw2XzW4cs7r32RLhQnqwA'],
+    inboundSegmentIds: ['VmSkhzGKoEc767w98x35La', 'VXKSEokmvBJ81XHYhUronG', 'B7RPzs3hb1cSXqYcAKmUhE'],
+  }
+
+  return point(coord, properties, {id})
 }
