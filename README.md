@@ -24,15 +24,11 @@ system for describig streets.
 
 [Learn more about SharedStreets Data Standards »](https://github.com/sharedstreets/sharedstreets-referencing)
 
-<img src="https://static1.squarespace.com/static/597792cab8a79b7b91090988/t/59e6021dd7bdce19ad96d7f3/1508246288078/Screen+Shot+2017-10-17+at+9.13.50+AM.png?format=1000w"
-         alt="Universal Data Standards"
-         width="400">
+![image](https://github.com/sharedstreets/sharedstreets-ref-system/raw/master/img/gis_vs_sharedstreets.png)
 
 ### Trusted Third Party Data Exchange
 
-<img src="https://static1.squarespace.com/static/597792cab8a79b7b91090988/t/59e601b57131a52beea6a24d/1508245949960/Screen+Shot+2017-10-17+at+8.27.35+AM.png?format=1000w"
-         alt="Trusted Third Party Data Exchange"
-         width="400">
+![image](https://github.com/sharedstreets/sharedstreets-ref-system/raw/master/img/sharedstreets_references.png)
 
 Shared digital infrastructure lets cities use standardized practices to ensure user and business privacy.
 It also uses best-in-practice reusable licensing models to support public and commercial data sharing agreements.
@@ -57,33 +53,8 @@ Download the [minified file](https://unpkg.com/sharedstreets/sharedstreets.min.j
 
 ```html
 <script type='module'>
-import * as sharedstreets from "https://unpkg.com/sharedstreets@1.0.0?module"
+import * as sharedstreets from "https://unpkg.com/sharedstreets?module"
 </script>
-```
-
-## Examples
-
-![image](https://user-images.githubusercontent.com/550895/34187481-95e5e1e8-e4ff-11e7-8d23-cd6991a0d81d.png)
-
-**Red line** = Road LineString
-
-## Forward Reference
-
-```js
-import * as sharedstreet from 'sharedstreet'
-
-const road = {
-  'type': 'LineString',
-  'coordinates': [
-    [-75.667519, 45.378588],
-    [-75.664386, 45.372649],
-    [-75.663270, 45.370388]
-  ]
-}
-
-const ref = sharedstreet.forwardReference(road)
-//= ref.id => '2Vw2XzW4cs7r32RLhQnqwA'
-//= ref.geometryId => 'NxPFkg4CrzHeFhwV7Uiq7K'
 ```
 
 ## API
