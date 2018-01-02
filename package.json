@@ -38,6 +38,7 @@
   },
   "homepage": "https://github.com/sharedstreets/sharedstreets.js#readme",
   "devDependencies": {
+    "@types/node": "*",
     "documentation": "*",
     "glob": "*",
     "load-json-file": "*",

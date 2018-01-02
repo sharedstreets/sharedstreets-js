@@ -1,17 +1,28 @@
 import { Feature, Point, LineString } from '@turf/helpers'
 
-// Main
-export { default as geometry } from './src/geometry'
-export { default as intersection } from './src/intersection'
+/**
+ * SharedStreets - Main
+ */
+export * from './src/geometry'
+export * from './src/intersection'
 
-// Types
-export interface IntersectionProps {
+/**
+ * Types - GeoJSON
+ */
+export type SharedStreetsIntersection = Feature<Point, SharedStreetsIntersectionProps>
+export type SharedStreetsGeometry = Feature<LineString, SharedStreetsGeometryProps>
+
+/**
+ * Types - GeoJSON Properties
+ */
+export interface SharedStreetsIntersectionProps {
   id: string,
   osmNodeId?: number,
   outboundSegmentIds?: string[],
   inboundSegmentIds?: string[],
 }
-export interface GeometryProps {
+
+export interface SharedStreetsGeometryProps {
   id: string,
   startIntersectionId: string,
   endIntersectionId: string,
@@ -19,6 +30,20 @@ export interface GeometryProps {
   backReferenceId: string,
   roadClass?: number,
 }
-export type Intersection = Feature<Point, IntersectionProps>
-export type Geometry = Feature<LineString, GeometryProps>
+
+/**
+ * Types - Pbf
+ */
+export interface SharedStreetsIntersectionPbf {
+  id: string
+  osmNodeId: number
+  lat: number
+  lon: number
+  inboundReferenceIds: string[]
+  outboundReferenceIds: string[]
+}
+
+/**
+ * Types - Helpers
+ */
 export type Location = Feature<Point, any> | Point | number[]

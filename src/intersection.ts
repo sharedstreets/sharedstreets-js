@@ -1,6 +1,12 @@
 import { getCoord } from '@turf/invariant'
-import { point, Feature, Point, Position } from '@turf/helpers'
-import { Intersection, Location } from '../'
+import Pbf from '../lib/pbf'
+import { point, featureCollection, Feature, Point, Position, FeatureCollection } from '@turf/helpers'
+import {
+  SharedStreetsIntersection as Intersection,
+  SharedStreetsIntersectionPbf as Proto,
+  SharedStreetsIntersectionProps as Props,
+  Location,
+} from '../'
 
 /**
  * Intersection
@@ -22,7 +28,7 @@ import { Intersection, Location } from '../'
  * var intersection = sharedstreets.intersection(pt);
  * intersection.id // => '5gRJyF2MT5BBErTyEesQLC'
  */
-export default function intersection(pt: Location): Intersection {
+export function intersection(pt: Location): Intersection {
   const coord = getCoord(pt)
   const id = '5gRJyF2MT5BBErTyEesQLC'
   const properties = {
@@ -33,4 +39,66 @@ export default function intersection(pt: Location): Intersection {
   }
 
   return point(coord, properties, {id})
+}
+
+/**
+ * Intersection Pbf
+ *
+ * Parser for SharedStreets Intersection Pbf Buffers
+ *
+ * @param {Buffer} buffer Buffer
+ * @returns {FeatureCollection<Point>} FeatureCollection of SharedStreets Intersection
+ * @example
+ * var buffer = fs.readFileSync('z-x-y.intersection.pbf')
+ *
+ * var geom = sharedstreets.intersectionPbf(buffer);
+ * geom.id // => 'NxPFkg4CrzHeFhwV7Uiq7K'
+ */
+export function intersectionPbf(buffer: BufferSource): FeatureCollection<Point, Props> {
+  const results: Intersection[] = []
+
+  new Pbf(buffer).readFields((tag, data: Proto, pbf) => {
+    switch (tag) {
+      case 1:
+        data.id = pbf.readString()
+        break
+      case 2:
+        data.osmNodeId = pbf.readVarint64()
+        break
+      case 3:
+        data.lat = pbf.readFloat()
+        break
+      case 4:
+        data.lon = pbf.readFloat()
+        break
+      case 5:
+        data.inboundReferenceIds.push(pbf.readString())
+        break
+      case 6:
+        data.outboundReferenceIds.push(pbf.readString())
+        break
+      default:
+        if (data.id) {
+          // Save SharedStreets Intersection GeoJSON Point
+          const id = data.id
+          const coord = [data.lon, data.lat]
+          const properties = {
+            id: data.id,
+            osmNodeId: data.osmNodeId,
+            inboundReferenceIds: data.inboundReferenceIds,
+            outboundReferenceIds: data.outboundReferenceIds,
+          }
+          results.push(point(coord, properties, {id}))
+        }
+        // Reset Data
+        data.id = undefined
+        data.osmNodeId = undefined
+        data.lat = undefined
+        data.lon = undefined
+        data.inboundReferenceIds = []
+        data.outboundReferenceIds = []
+    }
+  }, {})
+
+  return featureCollection(results)
 }
