@@ -11,6 +11,7 @@ dist
 
 // Typescript compiled files
 src/*.js
+lib/ieee754.js
 index.js
 
 # Runtime data

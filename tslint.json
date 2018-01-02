@@ -13,7 +13,9 @@
         "arrow-parens": [false],
         "no-console": [false],
         "interface-name": [false],
-        "curly": [false]
+        "curly": [false],
+        "no-bitwise": [false],
+        "no-empty": [false]
     },
     "rulesDirectory": []
 }
