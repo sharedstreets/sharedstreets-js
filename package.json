@@ -47,6 +47,7 @@
     "rollup-plugin-node-resolve": "*",
     "rollup-plugin-typescript2": "*",
     "rollup-plugin-uglify": "*",
+    "standard": "*",
     "tap": "*",
     "tape": "*",
     "tslint": "*",
