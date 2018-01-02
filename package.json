@@ -14,7 +14,7 @@
   "scripts": {
     "build": "rollup -c",
     "pretest": "tslint .",
-    "test": "tsc && nyc ava --verbose",
+    "test": "tsc && nyc tap test/*.test.js",
     "docs": "tsc && documentation readme index.js --section=API"
   },
   "repository": {
@@ -38,25 +38,23 @@
   },
   "homepage": "https://github.com/sharedstreets/sharedstreets.js#readme",
   "devDependencies": {
-    "@types/node": "*",
-    "ava": "*",
-    "babel-core": "*",
     "documentation": "*",
     "glob": "*",
+    "load-json-file": "*",
     "nyc": "*",
     "rollup": "0.50",
     "rollup-plugin-node-resolve": "*",
     "rollup-plugin-typescript2": "*",
     "rollup-plugin-uglify": "*",
-    "standard": "*",
+    "tap": "*",
+    "tape": "*",
     "tslint": "*",
-    "typescript": "*"
+    "typescript": "*",
+    "write-json-file": "*"
   },
   "dependencies": {
-    "@mapbox/vector-tile": "1.x",
     "@turf/helpers": "5.1",
     "@turf/invariant": "5.2",
-    "@turf/meta": "5.2",
-    "pbf": "3.x"
+    "@turf/meta": "5.2"
   }
 }
