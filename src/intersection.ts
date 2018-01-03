@@ -47,13 +47,13 @@ export function intersection(pt: Location): Intersection {
  *
  * Parser for SharedStreets Intersection Pbf Buffers
  *
- * @param {Buffer} buffer Buffer
- * @returns {FeatureCollection<Point>} FeatureCollection of SharedStreets Intersection
+ * @param {Buffer} buffer Pbf Buffer
+ * @returns {FeatureCollection<Point>} FeatureCollection of SharedStreets Intersections
  * @example
  * var buffer = fs.readFileSync('z-x-y.intersection.pbf')
  *
- * var geom = sharedstreets.intersectionPbf(buffer);
- * geom.id // => 'NxPFkg4CrzHeFhwV7Uiq7K'
+ * var collection = sharedstreets.intersectionPbf(buffer);
+ * collection.features[0].id // => 'NxPFkg4CrzHeFhwV7Uiq7K'
  */
 export function intersectionPbf(buffer: Buffer | Uint8Array): FeatureCollection<Point, Props> {
   const results: Intersection[] = []
@@ -92,19 +92,19 @@ export function intersectionPbf(buffer: Buffer | Uint8Array): FeatureCollection<
           results.push(point(coord, properties, {id}))
         }
         // Reset Data
-        data.id = undefined
-        data.osmNodeId = undefined
-        data.lat = undefined
-        data.lon = undefined
+        data.id = null
+        data.osmNodeId = null
+        data.lat = null
+        data.lon = null
         data.inboundReferenceIds = []
         data.outboundReferenceIds = []
         return data
     }
   }, {
-    id: undefined,
-    osmNodeId: undefined,
-    lat: undefined,
-    lon: undefined,
+    id: null,
+    osmNodeId: null,
+    lat: null,
+    lon: null,
     inboundReferenceIds: [],
     outboundReferenceIds: [],
   })

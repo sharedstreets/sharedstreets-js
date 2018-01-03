@@ -1,10 +1,14 @@
 # Changelog
 
-## 0.1.0 - 2018-01-02
+## 2018-01-03
 
-- Implement Intersection Pbf
+- Implement Geometry Pbf parser
 
-## 0.1.0 - 2018-01-01
+## 2018-01-02
+
+- Implement Intersection Pbf parser
+
+## 2018-01-01
 
 - Setup boilerplate
 - Add PBF test fixtures

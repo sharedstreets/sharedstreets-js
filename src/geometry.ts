@@ -1,8 +1,10 @@
+import Pbf from '../lib/pbf'
 import { lineString, featureCollection, LineString, FeatureCollection } from '@turf/helpers'
 import { getCoord } from '@turf/invariant'
+import { getRoadClass } from './helpers'
 import {
   SharedStreetsGeometry as Geometry,
-  // SharedStreetsGeometryPbf as Proto,
+  SharedStreetsGeometryPbf as Proto,
   SharedStreetsGeometryProps as Props,
   Location,
 } from '../'
@@ -33,11 +35,11 @@ export function geometry(start: Location, end: Location, bearing: number): Geome
   const coords = [getCoord(start), getCoord(end)]
   const properties = {
     id,
-    startIntersectionId: '5gRJyF2MT5BBErTyEesQLC',
-    endIntersectionId: 'N38a21UGykpnqxwez7NGS3',
+    fromIntersectionId: '5gRJyF2MT5BBErTyEesQLC',
+    toIntersectionId: 'N38a21UGykpnqxwez7NGS3',
     forwardReferenceId: '2Vw2XzW4cs7r32RLhQnqwA',
     backReferenceId: 'VXKSEokmvBJ81XHYhUronG',
-    roadClass: 3,
+    roadClass: getRoadClass(3),
   }
   return lineString(coords, properties, {id})
 }
@@ -47,26 +49,84 @@ export function geometry(start: Location, end: Location, bearing: number): Geome
  *
  * Parser for SharedStreets Geometry Pbf Buffers
  *
- * @param {Buffer} buffer Buffer
- * @returns {FeatureCollection<Point>} FeatureCollection of SharedStreets Geometry
+ * @param {Buffer} buffer Pbf Buffer
+ * @returns {FeatureCollection<LineString>} FeatureCollection of SharedStreets Geometries
  * @example
  * var buffer = fs.readFileSync('z-x-y.geometry.pbf')
  *
- * var geom = sharedstreets.geometryPbf(buffer);
- * geom.id // => 'NxPFkg4CrzHeFhwV7Uiq7K'
+ * var collection = sharedstreets.geometryPbf(buffer);
+ * collection.features[0].id // => 'NxPFkg4CrzHeFhwV7Uiq7K'
  */
 export function geometryPbf(buffer: Buffer | Uint8Array): FeatureCollection<LineString, Props> {
-  const start = [-74.003388, 40.634538]
-  const end = [-74.004107, 40.63406]
-  const id = 'NxPFkg4CrzHeFhwV7Uiq7K'
-  const coords = [start, end]
-  const properties = {
-    id,
-    startIntersectionId: '5gRJyF2MT5BBErTyEesQLC',
-    endIntersectionId: 'N38a21UGykpnqxwez7NGS3',
-    forwardReferenceId: '2Vw2XzW4cs7r32RLhQnqwA',
-    backReferenceId: 'VXKSEokmvBJ81XHYhUronG',
-    roadClass: 3,
-  }
-  return featureCollection([lineString(coords, properties, {id})])
+  const results: Geometry[] = []
+
+  new Pbf(buffer).readFields<Proto>((tag, data, pbf) => {
+    switch (tag) {
+      case 1:
+        data.id = pbf.readString()
+        break
+      case 2:
+        data.fromIntersectionId = pbf.readString()
+        break
+      case 3:
+        data.toIntersectionId = pbf.readString()
+        break
+      case 4:
+        data.forwardReferenceId = pbf.readString()
+        break
+      case 5:
+        data.backReferenceId = pbf.readString()
+        break
+      case 6:
+        data.roadClass = getRoadClass(pbf.readVarint())
+        break
+      case 7:
+        data.latlons = pbf.readPackedFloat()
+        break
+      default:
+        if (data.id) {
+          // Save SharedStreets Intersection GeoJSON Point
+          const id = data.id
+          const coords = latlonsToCoords(data.latlons)
+          const properties = {
+            id: data.id,
+            fromIntersectionId: data.fromIntersectionId,
+            toIntersectionId: data.toIntersectionId,
+            forwardReferenceId: data.forwardReferenceId,
+            backReferenceId: data.backReferenceId,
+            roadClass: data.roadClass,
+          }
+          // console.log(data.latlons)
+          results.push(lineString(coords, properties, {id}))
+        }
+        // Reset Data
+        data.id = null
+        data.fromIntersectionId = null
+        data.toIntersectionId = null
+        data.forwardReferenceId = null
+        data.backReferenceId = null
+        data.roadClass = null
+        data.latlons = []
+        return data
+    }
+  }, {
+    id: null,
+    fromIntersectionId: null,
+    toIntersectionId: null,
+    forwardReferenceId: null,
+    backReferenceId: null,
+    roadClass: null,
+    latlons: [],
+  })
+
+  return featureCollection(results)
+}
+
+export function latlonsToCoords(latlons: number[]) {
+  const coords: Array<[number, number]> = []
+  latlons.reduce((lat, deg, index) => {
+    if (index % 2 === 0) return deg // Latitude
+    coords.push([deg, lat])
+  })
+  return coords
 }

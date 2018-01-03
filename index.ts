@@ -18,32 +18,52 @@ export type SharedStreetsGeometry = Feature<LineString, SharedStreetsGeometryPro
 export interface SharedStreetsIntersectionProps {
   id: string,
   osmNodeId?: number,
-  outboundSegmentIds?: string[],
-  inboundSegmentIds?: string[],
+  inboundReferenceIds?: string[],
+  outboundReferenceIds?: string[],
 }
 
 export interface SharedStreetsGeometryProps {
   id: string,
-  startIntersectionId: string,
-  endIntersectionId: string,
-  forwardReferenceId: string,
-  backReferenceId: string,
-  roadClass?: number,
+  fromIntersectionId: string,
+  toIntersectionId: string,
+  forwardReferenceId?: string,
+  backReferenceId?: string,
+  roadClass: SharedStreetsRoadClass,
 }
 
 /**
  * Types - Pbf
  */
-export interface SharedStreetsIntersectionPbf {
-  id: string
-  osmNodeId: number
+export interface SharedStreetsIntersectionPbf extends SharedStreetsIntersectionProps {
   lat: number
   lon: number
-  inboundReferenceIds: string[]
-  outboundReferenceIds: string[]
+}
+
+export interface SharedStreetsGeometryPbf extends SharedStreetsGeometryProps {
+  latlons: number[]
 }
 
 /**
  * Types - Helpers
  */
 export type Location = Feature<Point, any> | Point | number[]
+export type SharedStreetsRoadClass =
+  'Motorway' |
+  'Trunk' |
+  'Primary' |
+  'Secondary' |
+  'Tertiary' |
+  'Residential' |
+  'Unclassified' |
+  'Service' |
+  'Other'
+
+export type SharedStreetsFormOfWay =
+  'Undefined' |
+  'Motorway' |
+  'MultipleCarriageway' |
+  'SingleCarriageway' |
+  'Roundabout' |
+  'TrafficSquare' |
+  'SlipRoad' |
+  'Other'
