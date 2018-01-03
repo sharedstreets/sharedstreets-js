@@ -1,8 +1,8 @@
 {
 	"compilerOptions": {
-		"module": "commonjs",
+		"module": "es6",
 		"target": "es5",
-		"noUnusedParameters": false,
-		"noUnusedLocals": false
+		"pretty": true,
+		"noImplicitAny": true
 	}
 }

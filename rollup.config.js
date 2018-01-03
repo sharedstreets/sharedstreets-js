@@ -5,6 +5,7 @@ import node from 'rollup-plugin-node-resolve'
 const input = 'index.ts'
 const name = 'sharedstreets'
 const sourcemap = true
+const tsconfigOverride = { compilerOptions: { target: 'es5' } }
 
 export default [{
   input,
@@ -22,7 +23,7 @@ export default [{
     name,
     sourcemap
   },
-  plugins: [typescript(), node()]
+  plugins: [typescript({tsconfigOverride}), node()]
 },
 {
   input,
@@ -32,5 +33,5 @@ export default [{
     name,
     sourcemap
   },
-  plugins: [typescript(), node(), uglify()]
+  plugins: [typescript({tsconfigOverride}), node(), uglify()]
 }]

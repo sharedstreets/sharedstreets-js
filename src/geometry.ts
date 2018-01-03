@@ -55,7 +55,7 @@ export function geometry(start: Location, end: Location, bearing: number): Geome
  * var geom = sharedstreets.geometryPbf(buffer);
  * geom.id // => 'NxPFkg4CrzHeFhwV7Uiq7K'
  */
-export function geometryPbf(buffer: BufferSource): FeatureCollection<LineString, Props> {
+export function geometryPbf(buffer: Buffer | Uint8Array): FeatureCollection<LineString, Props> {
   const start = [-74.003388, 40.634538]
   const end = [-74.004107, 40.63406]
   const id = 'NxPFkg4CrzHeFhwV7Uiq7K'

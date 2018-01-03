@@ -1,6 +1,6 @@
 /* istanbul ignore file */
 
-export function read(buffer, offset, isLE, mLen, nBytes) {
+export function read(buffer: Buffer | Uint8Array, offset: number, isLE: boolean, mLen: number, nBytes: number) {
   let e
   let m
   const eLen = (nBytes * 8) - mLen - 1
@@ -34,7 +34,7 @@ export function read(buffer, offset, isLE, mLen, nBytes) {
   return (s ? -1 : 1) * m * Math.pow(2, e - mLen)
 }
 
-export function write(buffer, value, offset, isLE, mLen, nBytes) {
+export function write(buffer: Buffer | Uint8Array, value: number, offset: number, isLE: boolean, mLen: number, nBytes: number) {
   let e
   let m
   let c

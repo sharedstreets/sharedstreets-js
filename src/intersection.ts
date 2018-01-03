@@ -1,3 +1,4 @@
+import * as fs from 'fs'
 import { getCoord } from '@turf/invariant'
 import Pbf from '../lib/pbf'
 import { point, featureCollection, Feature, Point, Position, FeatureCollection } from '@turf/helpers'
@@ -54,10 +55,10 @@ export function intersection(pt: Location): Intersection {
  * var geom = sharedstreets.intersectionPbf(buffer);
  * geom.id // => 'NxPFkg4CrzHeFhwV7Uiq7K'
  */
-export function intersectionPbf(buffer: BufferSource): FeatureCollection<Point, Props> {
+export function intersectionPbf(buffer: Buffer | Uint8Array): FeatureCollection<Point, Props> {
   const results: Intersection[] = []
 
-  new Pbf(buffer).readFields((tag, data: Proto, pbf) => {
+  new Pbf(buffer).readFields<Proto>((tag, data, pbf) => {
     switch (tag) {
       case 1:
         data.id = pbf.readString()
@@ -97,8 +98,16 @@ export function intersectionPbf(buffer: BufferSource): FeatureCollection<Point, 
         data.lon = undefined
         data.inboundReferenceIds = []
         data.outboundReferenceIds = []
+        return data
     }
-  }, {})
+  }, {
+    id: undefined,
+    osmNodeId: undefined,
+    lat: undefined,
+    lon: undefined,
+    inboundReferenceIds: [],
+    outboundReferenceIds: [],
+  })
 
   return featureCollection(results)
 }
