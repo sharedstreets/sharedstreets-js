@@ -39,6 +39,8 @@
   "homepage": "https://github.com/sharedstreets/sharedstreets.js#readme",
   "devDependencies": {
     "@types/node": "*",
+    "babel-core": "*",
+    "documentation": "*",
     "load-json-file": "*",
     "rollup": "0.50",
     "rollup-plugin-node-resolve": "*",

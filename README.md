@@ -64,7 +64,9 @@ import * as sharedstreets from "https://unpkg.com/sharedstreets?module"
 #### Table of Contents
 
 -   [geometry](#geometry)
+-   [geometryPbf](#geometrypbf)
 -   [intersection](#intersection)
+-   [intersectionPbf](#intersectionpbf)
 
 ### geometry
 
@@ -93,7 +95,28 @@ var geom = sharedstreets.geometry(start, end, bearing);
 geom.id // => 'NxPFkg4CrzHeFhwV7Uiq7K'
 ```
 
-Returns **Feature&lt;LineString>** Geometry
+Returns **Feature&lt;LineString>** SharedStreets Geometry
+
+### geometryPbf
+
+Geometry Pbf
+
+Parser for SharedStreets Geometry Pbf Buffers
+
+**Parameters**
+
+-   `buffer` **[Buffer](https://nodejs.org/api/buffer.html)** Pbf Buffer
+
+**Examples**
+
+```javascript
+var buffer = fs.readFileSync('z-x-y.geometry.pbf')
+
+var collection = sharedstreets.geometryPbf(buffer);
+collection.features[0].id // => 'NxPFkg4CrzHeFhwV7Uiq7K'
+```
+
+Returns **FeatureCollection&lt;LineString>** FeatureCollection of SharedStreets Geometries
 
 ### intersection
 
@@ -122,3 +145,24 @@ intersection.id // => '5gRJyF2MT5BBErTyEesQLC'
 ```
 
 Returns **Feature&lt;Point>** Intersection
+
+### intersectionPbf
+
+Intersection Pbf
+
+Parser for SharedStreets Intersection Pbf Buffers
+
+**Parameters**
+
+-   `buffer` **[Buffer](https://nodejs.org/api/buffer.html)** Pbf Buffer
+
+**Examples**
+
+```javascript
+var buffer = fs.readFileSync('z-x-y.intersection.pbf')
+
+var collection = sharedstreets.intersectionPbf(buffer);
+collection.features[0].id // => 'NxPFkg4CrzHeFhwV7Uiq7K'
+```
+
+Returns **FeatureCollection&lt;Point>** FeatureCollection of SharedStreets Intersections

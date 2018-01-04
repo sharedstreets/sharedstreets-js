@@ -1,20 +1,14 @@
 import { Feature, Point, LineString } from '@turf/helpers'
 
-/**
- * SharedStreets - Main
- */
+// SharedStreets - Main
 export * from './src/geometry'
 export * from './src/intersection'
 
-/**
- * Types - GeoJSON
- */
+// Types - GeoJSON
 export type SharedStreetsIntersection = Feature<Point, SharedStreetsIntersectionProps>
 export type SharedStreetsGeometry = Feature<LineString, SharedStreetsGeometryProps>
 
-/**
- * Types - GeoJSON Properties
- */
+// Types - GeoJSON Properties
 export interface SharedStreetsIntersectionProps {
   id: string,
   osmNodeId?: number,
@@ -31,9 +25,7 @@ export interface SharedStreetsGeometryProps {
   roadClass: SharedStreetsRoadClass,
 }
 
-/**
- * Types - Pbf
- */
+// Types - Pbf
 export interface SharedStreetsIntersectionPbf extends SharedStreetsIntersectionProps {
   lat: number
   lon: number
@@ -43,9 +35,7 @@ export interface SharedStreetsGeometryPbf extends SharedStreetsGeometryProps {
   latlons: number[]
 }
 
-/**
- * Types - Helpers
- */
+// Types - Helpers
 export type Location = Feature<Point, any> | Point | number[]
 export type SharedStreetsRoadClass =
   'Motorway' |
