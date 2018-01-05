@@ -2,20 +2,21 @@
   "name": "sharedstreets",
   "version": "0.1.1",
   "description": "SharedStreets, a 'digital commons' for the street",
-  "main": "dist/sharedstreets.js",
+  "main": "dist/sharedstreets",
   "module": "dist/sharedstreets.mjs",
   "browser": "dist/sharedstreets.min.js",
   "files": [
-    "index.ts",
     "index.js",
+    "index.d.ts",
     "src",
     "dist"
   ],
   "scripts": {
     "build": "rollup -c",
-    "pretest": "tslint .",
-    "test": "tsc && nyc tap test/*.test.js",
-    "docs": "tsc && documentation readme index.js --section=API"
+    "pretest": "rollup -f cjs -i index.mjs -o index.js",
+    "test": "node test.js",
+    "postest": "standard index.mjs",
+    "docs": "documentation readme index.js --section=API"
   },
   "repository": {
     "type": "git",
@@ -38,24 +39,16 @@
   },
   "homepage": "https://github.com/sharedstreets/sharedstreets.js#readme",
   "devDependencies": {
-    "@types/node": "*",
-    "babel-core": "*",
-    "documentation": "*",
-    "load-json-file": "*",
-    "rollup": "0.50",
+    "rollup": "*",
     "rollup-plugin-node-resolve": "*",
-    "rollup-plugin-typescript2": "*",
     "rollup-plugin-uglify": "*",
-    "tap": "*",
-    "tape": "*",
-    "tslint": "*",
-    "typescript": "*",
-    "write-json-file": "*"
+    "standard": "^10.0.3",
+    "tape": "*"
   },
   "dependencies": {
-    "@turf/helpers": "5.1",
-    "@turf/invariant": "5.2",
-    "@turf/meta": "5.2",
+    "@turf/helpers": "6.0.0-beta.3",
+    "@turf/invariant": "6.0.0-beta.3",
+    "@turf/meta": "6.0.0-beta.3",
     "sharedstreets-types": "*"
   }
 }

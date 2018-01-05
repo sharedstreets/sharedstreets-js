@@ -1,5 +1,9 @@
 # Changelog
 
+## 2018-01-05
+
+- Drop PBF & Typescript definition from core library
+
 ## 2018-01-03
 
 - Implement Geometry Pbf parser

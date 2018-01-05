@@ -1,11 +1,9 @@
 import uglify from 'rollup-plugin-uglify'
-import typescript from 'rollup-plugin-typescript2'
 import node from 'rollup-plugin-node-resolve'
 
-const input = 'index.ts'
+const input = 'index.mjs'
 const name = 'sharedstreets'
 const sourcemap = true
-const tsconfigOverride = { compilerOptions: { target: 'es5' } }
 
 export default [{
   input,
@@ -14,7 +12,7 @@ export default [{
     format: 'es',
     sourcemap
   },
-  plugins: [typescript(), node()]
+  plugins: [node()]
 }, {
   input,
   output: {
@@ -23,7 +21,7 @@ export default [{
     name,
     sourcemap
   },
-  plugins: [typescript({tsconfigOverride}), node()]
+  plugins: [node()]
 },
 {
   input,
@@ -33,5 +31,5 @@ export default [{
     name,
     sourcemap
   },
-  plugins: [typescript({tsconfigOverride}), node(), uglify()]
+  plugins: [node(), uglify()]
 }]
