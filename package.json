@@ -55,6 +55,7 @@
   "dependencies": {
     "@turf/helpers": "5.1",
     "@turf/invariant": "5.2",
-    "@turf/meta": "5.2"
+    "@turf/meta": "5.2",
+    "sharedstreets-types": "*"
   }
 }

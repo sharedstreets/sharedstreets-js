@@ -1,4 +1,10 @@
-import { SharedStreetsRoadClass, SharedStreetsFormOfWay } from '../index'
+import { Point, Feature } from '@turf/helpers'
+import {
+  SharedStreetsIntersectionProperties,
+  SharedStreetsGeometryProperties,
+  SharedStreetsRoadClass,
+  SharedStreetsFormOfWay,
+} from 'sharedstreets-types'
 
 export function getRoadClass(value: number): SharedStreetsRoadClass {
   switch (value) {
@@ -28,3 +34,16 @@ export function getFormOfWay(value: number): SharedStreetsFormOfWay {
     default: throw new Error(`[${value}] unknown FormOfWay value`)
   }
 }
+
+// SharedStreets - Pbf
+export interface SharedStreetsIntersectionPbf extends SharedStreetsIntersectionProperties {
+  lat: number
+  lon: number
+}
+
+export interface SharedStreetsGeometryPbf extends SharedStreetsGeometryProperties {
+  latlons: number[]
+}
+
+// SharedStreets - Helpers
+export type Location = Feature<Point, any> | Point | number[]
