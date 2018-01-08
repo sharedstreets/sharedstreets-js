@@ -12,6 +12,7 @@ dist
 // Typescript compiled files
 src/*.js
 lib/**/*.js
+*.d.ts
 index.js
 
 # Runtime data

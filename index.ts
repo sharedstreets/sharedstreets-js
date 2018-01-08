@@ -137,6 +137,15 @@ export function generateHash (hashInput: string): string {
   return Base58.encode(bytes)
 }
 
+/**
+ * getRoadClass
+ *
+ * @param {number} value Number value [between 0-8]
+ * @returns {string} Road Class
+ * @example
+ * sharedstreets.getRoadClass(0) // => 'Motorway'
+ * sharedstreets.getRoadClass(5) // => 'Residential'
+ */
 export function getRoadClass (value: number) {
   switch (value) {
     case 0: { return 'Motorway' }
@@ -152,6 +161,15 @@ export function getRoadClass (value: number) {
   }
 }
 
+/**
+ * getFormOfWay
+ *
+ * @param {number} value Number value [between 0-8]
+ * @returns {string} Form of Way
+ * @example
+ * sharedstreets.getFormOfWay(0) // => 'Undefined'
+ * sharedstreets.getFormOfWay(5) // => 'TrafficSquare'
+ */
 export function getFormOfWay (value: number) {
   switch (value) {
     case 0: { return 'Undefined' }
