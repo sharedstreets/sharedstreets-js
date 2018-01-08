@@ -7,8 +7,8 @@
   "browser": "dist/sharedstreets.min.js",
   "files": [
     "index.js",
+    "index.mjs",
     "index.d.ts",
-    "src",
     "dist"
   ],
   "scripts": {
@@ -39,16 +39,23 @@
   },
   "homepage": "https://github.com/sharedstreets/sharedstreets.js#readme",
   "devDependencies": {
+    "benchmark": "*",
     "rollup": "*",
+    "rollup-plugin-commonjs": "^8.2.6",
+    "rollup-plugin-json": "^2.3.0",
+    "rollup-plugin-node-builtins": "^2.1.2",
     "rollup-plugin-node-resolve": "*",
     "rollup-plugin-uglify": "*",
-    "standard": "^10.0.3",
+    "standard": "*",
     "tape": "*"
   },
   "dependencies": {
     "@turf/helpers": "6.0.0-beta.3",
     "@turf/invariant": "6.0.0-beta.3",
     "@turf/meta": "6.0.0-beta.3",
+    "bs58": "^4.0.1",
+    "create-hash": "^1.1.3",
+    "crypto-browserify": "^3.12.0",
     "sharedstreets-types": "*"
   }
 }

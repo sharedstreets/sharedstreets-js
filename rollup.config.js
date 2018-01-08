@@ -1,5 +1,8 @@
 import uglify from 'rollup-plugin-uglify'
 import node from 'rollup-plugin-node-resolve'
+import builtins from 'rollup-plugin-node-builtins'
+import commonjs from 'rollup-plugin-commonjs'
+import json from 'rollup-plugin-json'
 
 const input = 'index.mjs'
 const name = 'sharedstreets'
@@ -12,7 +15,7 @@ export default [{
     format: 'es',
     sourcemap
   },
-  plugins: [node()]
+  plugins: [commonjs(), json(), builtins({crypto: true}), node()]
 }, {
   input,
   output: {
@@ -21,7 +24,7 @@ export default [{
     name,
     sourcemap
   },
-  plugins: [node()]
+  plugins: [commonjs(), json(), builtins({crypto: true}), node()]
 },
 {
   input,
@@ -31,5 +34,5 @@ export default [{
     name,
     sourcemap
   },
-  plugins: [node(), uglify()]
+  plugins: [commonjs(), json(), builtins({crypto: true}), node(), uglify()]
 }]
