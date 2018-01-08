@@ -7,15 +7,15 @@
   "browser": "dist/sharedstreets.min.js",
   "files": [
     "index.js",
-    "index.mjs",
-    "index.d.ts",
+    "index.ts",
+    "lib",
     "dist"
   ],
   "scripts": {
     "build": "rollup -c",
-    "pretest": "rollup -f cjs -i index.mjs -o index.js",
+    "pretest": "tsc",
     "test": "node test.js",
-    "postest": "standard index.mjs",
+    "postest": "tslint index.ts",
     "docs": "documentation readme index.js --section=API"
   },
   "repository": {
@@ -39,23 +39,21 @@
   },
   "homepage": "https://github.com/sharedstreets/sharedstreets.js#readme",
   "devDependencies": {
+    "@types/node": "*",
     "benchmark": "*",
-    "rollup": "*",
-    "rollup-plugin-commonjs": "^8.2.6",
-    "rollup-plugin-json": "^2.3.0",
-    "rollup-plugin-node-builtins": "^2.1.2",
+    "rollup": "0.50.0",
+    "rollup-plugin-cleanup": "^2.0.0",
     "rollup-plugin-node-resolve": "*",
+    "rollup-plugin-typescript2": "*",
     "rollup-plugin-uglify": "*",
-    "standard": "*",
-    "tape": "*"
+    "tape": "*",
+    "tslint": "*",
+    "typescript": "*"
   },
   "dependencies": {
     "@turf/helpers": "6.0.0-beta.3",
     "@turf/invariant": "6.0.0-beta.3",
     "@turf/meta": "6.0.0-beta.3",
-    "bs58": "^4.0.1",
-    "create-hash": "^1.1.3",
-    "crypto-browserify": "^3.12.0",
     "sharedstreets-types": "*"
   }
 }

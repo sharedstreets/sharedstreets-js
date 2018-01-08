@@ -1,38 +1,28 @@
-import uglify from 'rollup-plugin-uglify'
 import node from 'rollup-plugin-node-resolve'
-import builtins from 'rollup-plugin-node-builtins'
-import commonjs from 'rollup-plugin-commonjs'
-import json from 'rollup-plugin-json'
+import typescript from 'rollup-plugin-typescript2'
 
-const input = 'index.mjs'
+const input = 'index.ts'
 const name = 'sharedstreets'
-const sourcemap = true
+const sourcemap = false
 
-export default [{
+export default [
+{
   input,
   output: {
     file: 'dist/sharedstreets.mjs',
     format: 'es',
     sourcemap
   },
-  plugins: [commonjs(), json(), builtins({crypto: true}), node()]
-}, {
-  input,
-  output: {
-    file: 'dist/sharedstreets.js',
-    format: 'umd',
-    name,
-    sourcemap
-  },
-  plugins: [commonjs(), json(), builtins({crypto: true}), node()]
+  plugins: [node(), typescript()]
 },
 {
   input,
   output: {
-    file: 'dist/sharedstreets.min.js',
-    format: 'umd',
+    file: 'dist/sharedstreets.js',
+    format: 'cjs',
     name,
     sourcemap
   },
-  plugins: [commonjs(), json(), builtins({crypto: true}), node(), uglify()]
-}]
+  plugins: [node(), typescript()]
+}
+]

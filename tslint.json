@@ -17,7 +17,8 @@
         "no-bitwise": [false],
         "no-empty": [false],
         "space-before-function-paren": [false],
-        "no-conditional-assignment": [false]
+        "no-conditional-assignment": [false],
+        "variable-name": [false]
     },
     "rulesDirectory": []
 }

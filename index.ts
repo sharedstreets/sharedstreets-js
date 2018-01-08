@@ -1,7 +1,14 @@
-import * as Base58 from 'bs58'
+import * as Base58 from './lib/bs58'
 import { createHash } from 'crypto'
 import { getCoord } from '@turf/invariant'
-import { point, lineString, round } from '@turf/helpers'
+import { point, lineString, round, Point, Feature } from '@turf/helpers'
+import {
+  SharedStreetsGeometry,
+  SharedStreetsGeometryProperties,
+  SharedStreetsIntersection,
+  SharedStreetsIntersectionProperties,
+  Location,
+} from 'sharedstreets-types'
 
 /**
  * Geometry
@@ -17,26 +24,26 @@ import { point, lineString, round } from '@turf/helpers'
  * @param {number} bearing Compass bearing of the street geometry for the 20 meters immediately following the location reference.
  * @returns {Feature<LineString>} SharedStreets Geometry
  * @example
- * var start = [-74.003388, 40.634538];
- * var end = [-74.004107, 40.63406];
- * var bearing = 228.890377;
+ * const start = [-74.003388, 40.634538];
+ * const end = [-74.004107, 40.63406];
+ * const bearing = 228.890377;
  *
- * var geom = sharedstreets.geometry(start, end, bearing);
+ * const geom = sharedstreets.geometry(start, end, bearing);
  * geom.id // => 'NxPFkg4CrzHeFhwV7Uiq7K'
  */
-export function geometry (start, end, bearing) {
-  var message = 'Geometry 110.543 45.123'
-  var id = generateHash(message)
-  var coords = [getCoord(start), getCoord(end)]
-  var properties = {
-    id: id,
+export function geometry (start: Location, end: Location, bearing: number): SharedStreetsGeometry {
+  const message = 'Geometry 110.543 45.123'
+  const id = generateHash(message)
+  const coords = [getCoord(start), getCoord(end)]
+  const properties: SharedStreetsGeometryProperties = {
+    id,
     fromIntersectionId: '5gRJyF2MT5BBErTyEesQLC',
     toIntersectionId: 'N38a21UGykpnqxwez7NGS3',
     forwardReferenceId: '2Vw2XzW4cs7r32RLhQnqwA',
     backReferenceId: 'VXKSEokmvBJ81XHYhUronG',
-    roadClass: getRoadClass(3)
+    roadClass: getRoadClass(3),
   }
-  return lineString(coords, properties, {id: id})
+  return lineString(coords, properties, {id})
 }
 
 /**
@@ -47,15 +54,15 @@ export function geometry (start, end, bearing) {
  * @param {number} bearing Compass bearing of the street geometry for the 20 meters immediately following the location reference.
  * @returns {Feature<LineString>} SharedStreets Location Reference
  * @example
- * var start = [-74.003388, 40.634538];
- * var end = [-74.004107, 40.63406];
- * var bearing = 228.890377;
+ * const start = [-74.003388, 40.634538];
+ * const end = [-74.004107, 40.63406];
+ * const bearing = 228.890377;
  *
- * var locRef = sharedstreets.locationReference(start, end, bearing);
+ * const locRef = sharedstreets.locationReference(start, end, bearing);
  * locRef.id // => 'NxPFkg4CrzHeFhwV7Uiq7K'
  */
-export function locationReference (start, end, bearing) {
-  var message = 'Geometry 110.543 45.123'
+export function locationReference (start: Location, end: Location, bearing: number) {
+  const message = 'Geometry 110.543 45.123'
   return generateHash(message)
 }
 
@@ -75,32 +82,35 @@ export function locationReference (start, end, bearing) {
  * @param {Point|Array<number>} pt Point location reference as a GeoJSON Point or an Array of numbers <longitude, latitude>.
  * @param {Object} [options={}] Optional parameters
  * @param {number} [options.osmNodeId] OSM Node Id
- * @param {Array<string>} [options.outboundSegmentIds] Outbound Segment Ids
- * @param {Array<string>} [options.inboundSegmentIds] Inbound Segment Ids
+ * @param {Array<string>} [options.outboundReferenceIds] Outbound Reference Ids
+ * @param {Array<string>} [options.inboundReferenceIds] Inbound Reference Ids
  * @returns {Feature<Point>} SharedStreets Intersection
  * @example
- * var pt = [10, 20];
- * var intersection = sharedstreets.intersection(pt);
+ * const pt = [10, 20];
+ * const intersection = sharedstreets.intersection(pt);
  * intersection.id // => '5gRJyF2MT5BBErTyEesQLC'
  */
-export function intersection (pt, options) {
-  options = options || {}
+export function intersection (pt: Location, options: {
+  osmNodeId?: number,
+  outboundReferenceIds?: string[],
+  inboundReferenceIds?: string[],
+} = {}): SharedStreetsIntersection {
 
   // Round decimal precision to 6
-  var coord = getCoord(pt)
-  var x = round(coord[0], 6)
-  var y = round(coord[1], 6)
+  const coord = getCoord(pt)
+  const x = round(coord[0], 6)
+  const y = round(coord[1], 6)
 
   // Generate SharedStreets Reference ID
-  var id = generateHash('Intersection ' + x + ' ' + y)
+  const id = generateHash(`Intersection ${x} ${y}`)
 
   // Add GeoJSON Properties
-  var properties = {id: id}
+  const properties: SharedStreetsIntersectionProperties = {id}
   if (options.osmNodeId) properties.osmNodeId = options.osmNodeId
-  if (options.outboundSegmentIds) properties.outboundSegmentIds = options.outboundSegmentIds
-  if (options.inboundSegmentIds) properties.inboundSegmentIds = options.inboundSegmentIds
+  if (options.outboundReferenceIds) properties.outboundReferenceIds = options.outboundReferenceIds
+  if (options.inboundReferenceIds) properties.inboundReferenceIds = options.inboundReferenceIds
 
-  return point(coord, properties, {id: id})
+  return point(coord, properties, {id})
 }
 
 /**
@@ -112,22 +122,22 @@ export function intersection (pt, options) {
  * sharedstreets.generateHash('Intersection 110 45')
  * // => 'NzUsPtY2FHmqaHuyaVzedp'
  */
-export function generateHash (hashInput) {
+export function generateHash (hashInput: string): string {
   // https://github.com/sharedstreets/sharedstreets-builder/issues/5
   // hashInput = encodeURI(hashInput)
 
   // Java => byte[] bytesOfMessage = hashInput.getBytes("UTF-8");
-  // var bytesOfMessage = getBytes(hashInput)
-  var bytesOfMessage = Buffer.from(hashInput)
+  // const bytesOfMessage = getBytes(hashInput)
+  const bytesOfMessage = Buffer.from(hashInput)
 
   // Java => MessageDigest md = MessageDigest.getInstance("MD5");
-  var bytes = createHash('md5').update(bytesOfMessage).digest()
+  const bytes = createHash('md5').update(bytesOfMessage).digest()
 
   // Java => String hash = Base58.encode(bytes);
   return Base58.encode(bytes)
 }
 
-export function getRoadClass (value) {
+export function getRoadClass (value: number) {
   switch (value) {
     case 0: { return 'Motorway' }
     case 1: { return 'Trunk' }
@@ -138,11 +148,11 @@ export function getRoadClass (value) {
     case 6: { return 'Unclassified' }
     case 7: { return 'Service' }
     case 8: { return 'Other' }
-    default: throw new Error('[' + value + '] unknown RoadClass value')
+    default: throw new Error(`[${value}] unknown RoadClass value`)
   }
 }
 
-export function getFormOfWay (value) {
+export function getFormOfWay (value: number) {
   switch (value) {
     case 0: { return 'Undefined' }
     case 1: { return 'Motorway' }
@@ -152,6 +162,6 @@ export function getFormOfWay (value) {
     case 5: { return 'TrafficSquare' }
     case 6: { return 'SlipRoad' }
     case 7: { return 'Other' }
-    default: throw new Error('[' + value + '] unknown FormOfWay value')
+    default: throw new Error(`[${value}] unknown FormOfWay value`)
   }
 }
