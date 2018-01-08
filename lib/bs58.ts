@@ -5,7 +5,6 @@
 // Ported to JavaScript by Stefan Thomas
 // Merged Buffer refactorings from base58-native by Stephen Pair
 // Copyright (c) 2013 BitPay Inc
-
 const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 const ALPHABET_MAP: any = {}
 const BASE = ALPHABET.length
@@ -45,41 +44,4 @@ export function encode (source: any) {
   for (let q = digits.length - 1; q >= 0; --q) str += ALPHABET[digits[q]]
 
   return str
-}
-
-export function decodeUnsafe (str: string) {
-  if (typeof str !== 'string') throw new TypeError('Expected String')
-  if (str.length === 0) return Buffer.allocUnsafe(0)
-
-  const bytes = [0]
-  for (const letter of str) {
-    const value = ALPHABET_MAP[letter]
-    let carry = value
-    if (value === undefined) return
-
-    for (let j = 0; j < bytes.length; ++j) {
-      carry += bytes[j] * BASE
-      bytes[j] = carry & 0xff
-      carry >>= 8
-    }
-
-    while (carry > 0) {
-      bytes.push(carry & 0xff)
-      carry >>= 8
-    }
-  }
-
-  // deal with leading zeros
-  for (let k = 0; str[k] === LEADER && k < str.length - 1; ++k) {
-    bytes.push(0)
-  }
-
-  return Buffer.from(bytes.reverse())
-}
-
-export function decode (str: string) {
-  const buffer = decodeUnsafe(str)
-  if (buffer) return buffer
-
-  throw new Error('Non-base' + BASE + ' character')
 }

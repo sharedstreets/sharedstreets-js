@@ -2,17 +2,14 @@
   "name": "sharedstreets",
   "version": "0.1.1",
   "description": "SharedStreets, a 'digital commons' for the street",
-  "main": "dist/sharedstreets",
-  "module": "dist/sharedstreets.mjs",
-  "browser": "dist/sharedstreets.min.js",
+  "main": "index",
+  "types": "index.d.ts",
   "files": [
     "index.js",
     "index.ts",
-    "lib",
-    "dist"
+    "lib"
   ],
   "scripts": {
-    "build": "rollup -c",
     "pretest": "tsc",
     "test": "node test.js",
     "postest": "tslint index.ts",
@@ -39,13 +36,7 @@
   },
   "homepage": "https://github.com/sharedstreets/sharedstreets.js#readme",
   "devDependencies": {
-    "@types/node": "*",
     "benchmark": "*",
-    "rollup": "0.50.0",
-    "rollup-plugin-cleanup": "^2.0.0",
-    "rollup-plugin-node-resolve": "*",
-    "rollup-plugin-typescript2": "*",
-    "rollup-plugin-uglify": "*",
     "tape": "*",
     "tslint": "*",
     "typescript": "*"
