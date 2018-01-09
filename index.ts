@@ -132,7 +132,7 @@ export function generateHash (hashInput: string): string {
   const bytes = createHash('md5').update(bytesOfMessage).digest()
 
   // Java => String hash = Base58.encode(bytes);
-  // Python => hash = Base58.b58encode(byte)
+  // Python => hash = base58.b58encode(byte)
   const hash = Base58.encode(bytes)
 
   return hash

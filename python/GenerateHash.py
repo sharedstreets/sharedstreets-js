@@ -1,5 +1,5 @@
 import hashlib
-import Base58
+import base58
 
 # # Reference
 # ''' https://github.com/sharedstreets/sharedstreets-builder/blob/e5dd30da787f/src/main/java/io/sharedstreets/data/SharedStreetsReference.java#L323-L340
@@ -34,7 +34,7 @@ import Base58
 def generateHash(hashInput):
     bytesOfMessage = hashInput.encode('utf8')
     byte = hashlib.md5(bytesOfMessage).digest()
-    hash = Base58.b58encode(byte)
+    hash = base58.b58encode(byte)
     return hash
 
 if __name__ == '__main__':
