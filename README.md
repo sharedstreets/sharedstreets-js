@@ -63,64 +63,10 @@ import * as sharedstreets from "https://unpkg.com/sharedstreets?module"
 
 #### Table of Contents
 
--   [geometry](#geometry)
--   [locationReference](#locationreference)
 -   [intersection](#intersection)
 -   [generateHash](#generatehash)
 -   [getRoadClass](#getroadclass)
 -   [getFormOfWay](#getformofway)
-
-### geometry
-
-Geometry
-
-SharedStreets Geometries are street centerline data derived from the basemap used to
-produce SharedStreets References. A single geometry is shared by each set of forward and back references.
-
-SharedStreets is premised on the idea that there's no one correct geometry for a given street.
-Just as street references can be generated from any basemap, street geometries can be derived from any data source.
-
-**Parameters**
-
--   `start` **(Point | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>)** Start location reference as a GeoJSON Point or an Array of numbers &lt;longitude, latitude>.
--   `end` **(Point | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>)** End location reference as a GeoJSON Point or an Array of numbers &lt;longitude, latitude>.
--   `bearing` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** Compass bearing of the street geometry for the 20 meters immediately following the location reference.
-
-**Examples**
-
-```javascript
-const start = [-74.003388, 40.634538];
-const end = [-74.004107, 40.63406];
-const bearing = 228.890377;
-
-const geom = sharedstreets.geometry(start, end, bearing);
-geom.id // => 'NxPFkg4CrzHeFhwV7Uiq7K'
-```
-
-Returns **Feature&lt;LineString>** SharedStreets Geometry
-
-### locationReference
-
-Location Reference
-
-**Parameters**
-
--   `start` **(Point | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>)** Start location reference as a GeoJSON Point or an Array of numbers &lt;longitude, latitude>.
--   `end` **(Point | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>)** End location reference as a GeoJSON Point or an Array of numbers &lt;longitude, latitude>.
--   `bearing` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** Compass bearing of the street geometry for the 20 meters immediately following the location reference.
-
-**Examples**
-
-```javascript
-const start = [-74.003388, 40.634538];
-const end = [-74.004107, 40.63406];
-const bearing = 228.890377;
-
-const locRef = sharedstreets.locationReference(start, end, bearing);
-locRef.id // => 'NxPFkg4CrzHeFhwV7Uiq7K'
-```
-
-Returns **Feature&lt;LineString>** SharedStreets Location Reference
 
 ### intersection
 

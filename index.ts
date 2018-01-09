@@ -11,7 +11,7 @@ import {
 } from 'sharedstreets-types'
 
 /**
- * Geometry
+ * Geometry (UNDER DEVELOPMENT)
  *
  * SharedStreets Geometries are street centerline data derived from the basemap used to
  * produce SharedStreets References. A single geometry is shared by each set of forward and back references.
@@ -19,6 +19,7 @@ import {
  * SharedStreets is premised on the idea that there's no one correct geometry for a given street.
  * Just as street references can be generated from any basemap, street geometries can be derived from any data source.
  *
+ * @private
  * @param {Point|Array<number>} start Start location reference as a GeoJSON Point or an Array of numbers <longitude, latitude>.
  * @param {Point|Array<number>} end End location reference as a GeoJSON Point or an Array of numbers <longitude, latitude>.
  * @param {number} bearing Compass bearing of the street geometry for the 20 meters immediately following the location reference.
@@ -47,8 +48,9 @@ export function geometry (start: Location, end: Location, bearing: number): Shar
 }
 
 /**
- * Location Reference
+ * Location Reference (UNDER DEVELOPMENT)
  *
+ * @private
  * @param {Point|Array<number>} start Start location reference as a GeoJSON Point or an Array of numbers <longitude, latitude>.
  * @param {Point|Array<number>} end End location reference as a GeoJSON Point or an Array of numbers <longitude, latitude>.
  * @param {number} bearing Compass bearing of the street geometry for the 20 meters immediately following the location reference.
