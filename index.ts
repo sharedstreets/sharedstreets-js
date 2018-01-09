@@ -123,18 +123,19 @@ export function intersection (pt: Location, options: {
  * // => 'NzUsPtY2FHmqaHuyaVzedp'
  */
 export function generateHash (hashInput: string): string {
-  // https://github.com/sharedstreets/sharedstreets-builder/issues/5
-  // hashInput = encodeURI(hashInput)
-
   // Java => byte[] bytesOfMessage = hashInput.getBytes("UTF-8");
-  // const bytesOfMessage = getBytes(hashInput)
-  const bytesOfMessage = Buffer.from(hashInput)
+  // Python => bytesOfMessage = hashInput.encode('utf8')
+  const bytesOfMessage = Buffer.from(hashInput, 'utf8')
 
-  // Java => MessageDigest md = MessageDigest.getInstance("MD5");
+  // Java => byte[] bytes = MessageDigest.getInstance("MD5").digest(bytesOfMessage);
+  // Python => byte = hashlib.md5(bytesOfMessage).digest()
   const bytes = createHash('md5').update(bytesOfMessage).digest()
 
   // Java => String hash = Base58.encode(bytes);
-  return Base58.encode(bytes)
+  // Python => hash = Base58.b58encode(byte)
+  const hash = Base58.encode(bytes)
+
+  return hash
 }
 
 /**

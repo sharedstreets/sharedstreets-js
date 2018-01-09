@@ -4,33 +4,20 @@ import java.security.MessageDigest;
 public class GenerateHash {
     public static void main(String[] args) {
         GenerateHash test = new GenerateHash();
-        test.generateHash("Intersection 110 45");
-        test.generateHash("Intersection -74.003388 40.634538");
-        test.generateHash("Intersection -74.004107 40.63406");
+        System.out.println(test.generateHash("Intersection 110 45")); // => 'NzUsPtY2FHmqaHuyaVzedp'
+        System.out.println(test.generateHash("Intersection -74.003388 40.634538")); // => '31H4rsFQijyBvkTSfoRYKP'
+        System.out.println(test.generateHash("Intersection -74.004107 40.63406")); // => 'Df9nXgEtuHrCb8XJCtsr99'
     }
-    public void generateHash(String hashInput) {
+    public String generateHash(String hashInput) {
         try {
             byte[] bytesOfMessage = hashInput.getBytes("UTF-8");
-            System.out.println(hashInput);
-            System.out.print("bytesOfMessage => ");
-            for (byte b: bytesOfMessage){
-                System.out.print(b + " ");
-            }
-            System.out.print('\n');
-            // System.out.println('bytesOfMessage');
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            byte[] bytes = md.digest(bytesOfMessage);
-            System.out.print("md.digest => ");
-            for (byte b: bytes){
-                System.out.print(b + " ");
-            }
-            System.out.print('\n');
-            // System.out.println('md digest');
+            byte[] bytes = MessageDigest.getInstance("MD5").digest(bytesOfMessage);
             String hash = Base58.encode(bytes);
-            System.out.println(hashInput + " => " + hash);
+            return hash;
         }
         catch (Exception e) {
             e.printStackTrace();
+            return null;
         }
     }
 }

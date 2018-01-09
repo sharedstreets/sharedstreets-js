@@ -8,6 +8,7 @@ yarn-error.log*
 // Published bundle
 .rpt2_cache
 dist
+*.pyc
 
 // Typescript compiled files
 src/*.js
