@@ -131,11 +131,9 @@ export function generateHash (hashInput: string): string {
   // Python => byte = hashlib.md5(bytesOfMessage).digest()
   const bytes = createHash('md5').update(bytesOfMessage).digest()
 
-  // Java => String hash = Base58.encode(bytes);
-  // Python => hash = base58.b58encode(byte)
-  const hash = Base58.encode(bytes)
-
-  return hash
+  // Java => return Base58.encode(bytes);
+  // Python => return base58.b58encode(byte)
+  return Base58.encode(bytes)
 }
 
 /**

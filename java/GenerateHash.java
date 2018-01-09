@@ -12,8 +12,7 @@ public class GenerateHash {
         try {
             byte[] bytesOfMessage = hashInput.getBytes("UTF-8");
             byte[] bytes = MessageDigest.getInstance("MD5").digest(bytesOfMessage);
-            String hash = Base58.encode(bytes);
-            return hash;
+            return Base58.encode(bytes);
         }
         catch (Exception e) {
             e.printStackTrace();

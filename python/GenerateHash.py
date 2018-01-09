@@ -4,8 +4,7 @@ import base58
 def generateHash(hashInput):
     bytesOfMessage = hashInput.encode('utf8')
     byte = hashlib.md5(bytesOfMessage).digest()
-    hash = base58.b58encode(byte)
-    return hash
+    return base58.b58encode(byte)
 
 if __name__ == '__main__':
     message1 = 'Intersection 110 45'
