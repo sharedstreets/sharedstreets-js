@@ -13,7 +13,8 @@
     "pretest": "tsc",
     "test": "node test.js",
     "postest": "tslint index.ts",
-    "docs": "documentation readme index.js --section=API"
+    "docs": "documentation readme index.js --section=API",
+    "benchmark": "benchmark bench.js"
   },
   "repository": {
     "type": "git",
@@ -36,15 +37,13 @@
   },
   "homepage": "https://github.com/sharedstreets/sharedstreets.js#readme",
   "devDependencies": {
-    "benchmark": "*",
-    "tape": "*",
+    "@types/node": "*",
     "tslint": "*",
     "typescript": "*"
   },
   "dependencies": {
     "@turf/helpers": "6.0.0-beta.3",
     "@turf/invariant": "6.0.0-beta.3",
-    "@turf/meta": "6.0.0-beta.3",
     "sharedstreets-types": "*"
   }
 }

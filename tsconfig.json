@@ -5,13 +5,12 @@
 		"pretty": true,
 		"moduleResolution": "node",
 		"noImplicitAny": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
 		"declaration": true
 	},
 	"include": [
 		"index.ts",
-		"lib"
-	],
-	"exclude": [
-		"node_modules"
+		"lib/Base58.ts"
 	]
 }

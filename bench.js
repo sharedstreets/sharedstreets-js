@@ -1,19 +1,23 @@
-const getBytes = require('utf8-bytes')
+const sharedstreets = require('./')
 const Benchmark = require('benchmark')
 
 // Fixtures
-const message = 'Intersection 110 45'
+const message = 'Intersection 110.000000 45.000000'
+const coord = [110, 45]
+const geom = [[110, 45], [115, 50], [120, 55]]
 
 /**
  * Benchmark Results
  *
- * Buffer.from(message).toJSON() x 1,497,473 ops/sec ±1.07% (89 runs sampled)
- * getBytes(message) x 4,546,383 ops/sec ±1.83% (87 runs sampled)
+ * generateHash x 172,742 ops/sec ±2.18% (88 runs sampled)
+ * intersection x 120,711 ops/sec ±1.79% (80 runs sampled)
+ * geometry x 60,542 ops/sec ±14.37% (68 runs sampled)
  */
 const suite = new Benchmark.Suite('sharedstreets')
 suite
-    .add('Buffer.from(message).toJSON()', () => Buffer.from(message).toJSON())
-    .add('getBytes(message)', () => getBytes(message))
+    .add('generateHash', () => sharedstreets.generateHash(message))
+    .add('intersection', () => sharedstreets.intersection(coord))
+    .add('geometry', () => sharedstreets.geometry(geom))
     .on('cycle', e => console.log(String(e.target)))
     .on('complete', () => {})
     .run()

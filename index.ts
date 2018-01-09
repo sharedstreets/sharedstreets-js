@@ -1,17 +1,17 @@
 import * as Base58 from './lib/base58'
 import { createHash } from 'crypto'
-import { getCoord } from '@turf/invariant'
-import { point, lineString, round, Point, Feature } from '@turf/helpers'
+import { getCoord, getCoords } from '@turf/invariant'
+import { point, lineString, Point, LineString, Feature } from '@turf/helpers'
 import {
   SharedStreetsGeometry,
   SharedStreetsGeometryProperties,
   SharedStreetsIntersection,
   SharedStreetsIntersectionProperties,
-  Location,
+  SharedStreetsRoadClass,
 } from 'sharedstreets-types'
 
 /**
- * Geometry (UNDER DEVELOPMENT)
+ * Geometry
  *
  * SharedStreets Geometries are street centerline data derived from the basemap used to
  * produce SharedStreets References. A single geometry is shared by each set of forward and back references.
@@ -19,10 +19,13 @@ import {
  * SharedStreets is premised on the idea that there's no one correct geometry for a given street.
  * Just as street references can be generated from any basemap, street geometries can be derived from any data source.
  *
- * @private
- * @param {Point|Array<number>} start Start location reference as a GeoJSON Point or an Array of numbers <longitude, latitude>.
- * @param {Point|Array<number>} end End location reference as a GeoJSON Point or an Array of numbers <longitude, latitude>.
- * @param {number} bearing Compass bearing of the street geometry for the 20 meters immediately following the location reference.
+ * @param {Feature<LineString>|Array<Array<number>>} line Line Geometry as a GeoJSON LineString or an Array of Positions Array<<longitude, latitude>>.
+ * @param {Object} [options={}] Optional parameters
+ * @param {string} [options.fromIntersectionId] From Intersection SharedStreets Reference ID
+ * @param {string} [options.toIntersectionId] To Intersection SharedStreets Reference ID
+ * @param {string} [options.forwardReferenceId] Forward SharedStreets Reference ID
+ * @param {string} [options.backwardReferenceId] Backward SharedStreets Reference ID
+ * @param {string|number} [options.roadClass] Road Class as number or full string name ('Motorway', 'Residential', etc...)
  * @returns {Feature<LineString>} SharedStreets Geometry
  * @example
  * const start = [-74.003388, 40.634538];
@@ -32,40 +35,35 @@ import {
  * const geom = sharedstreets.geometry(start, end, bearing);
  * geom.id // => 'NxPFkg4CrzHeFhwV7Uiq7K'
  */
-export function geometry (start: Location, end: Location, bearing: number): SharedStreetsGeometry {
-  const message = 'Geometry 110.543 45.123'
-  const id = generateHash(message)
-  const coords = [getCoord(start), getCoord(end)]
-  const properties: SharedStreetsGeometryProperties = {
-    id,
-    fromIntersectionId: '5gRJyF2MT5BBErTyEesQLC',
-    toIntersectionId: 'N38a21UGykpnqxwez7NGS3',
-    forwardReferenceId: '2Vw2XzW4cs7r32RLhQnqwA',
-    backReferenceId: 'VXKSEokmvBJ81XHYhUronG',
-    roadClass: getRoadClass(3),
-  }
-  return lineString(coords, properties, {id})
-}
+export function geometry (
+  line: Feature<LineString> | LineString | number[][],
+  options: {
+    fromIntersectionId?: string,
+    toIntersectionId?: string,
+    forwardReferenceId?: string,
+    backReferenceId?: string,
+    roadClass?: number | SharedStreetsRoadClass,
+  } = {},
+): SharedStreetsGeometry {
+  // SharedStreets Geometry Java Implementation
+  // https://github.com/sharedstreets/sharedstreets-builder/blob/e5dd30da787f/src/main/java/io/sharedstreets/data/SharedStreetsGeometry.java#L98-L108
 
-/**
- * Location Reference (UNDER DEVELOPMENT)
- *
- * @private
- * @param {Point|Array<number>} start Start location reference as a GeoJSON Point or an Array of numbers <longitude, latitude>.
- * @param {Point|Array<number>} end End location reference as a GeoJSON Point or an Array of numbers <longitude, latitude>.
- * @param {number} bearing Compass bearing of the street geometry for the 20 meters immediately following the location reference.
- * @returns {Feature<LineString>} SharedStreets Location Reference
- * @example
- * const start = [-74.003388, 40.634538];
- * const end = [-74.004107, 40.63406];
- * const bearing = 228.890377;
- *
- * const locRef = sharedstreets.locationReference(start, end, bearing);
- * locRef.id // => 'NxPFkg4CrzHeFhwV7Uiq7K'
- */
-export function locationReference (start: Location, end: Location, bearing: number) {
-  const message = 'Geometry 110.543 45.123'
-  return generateHash(message)
+  // Round decimal precision to 6
+  const coords = getCoords(line)
+
+  // Generate SharedStreets Reference ID from message
+  const message = 'Geometry ' + coords.map(([x, y]) => `${x.toFixed(6)} ${y.toFixed(6)}`).join(' ')
+  const id = generateHash(message)
+
+  // Include extra properties & Reference ID to GeoJSON Properties
+  const properties: SharedStreetsGeometryProperties = {id}
+  if (options.fromIntersectionId) properties.fromIntersectionId = options.fromIntersectionId
+  if (options.toIntersectionId) properties.toIntersectionId = options.toIntersectionId
+  if (options.forwardReferenceId) properties.forwardReferenceId = options.forwardReferenceId
+  if (options.backReferenceId) properties.backReferenceId = options.backReferenceId
+  if (options.roadClass) properties.roadClass = typeof options.roadClass === 'number' ? getRoadClass(options.roadClass) : options.roadClass
+
+  return lineString(coords, properties, {id})
 }
 
 /**
@@ -81,7 +79,7 @@ export function locationReference (start: Location, end: Location, bearing: numb
  *
  * In the draft specification the 128-bit IDs are encoded as base-58 strings.
  *
- * @param {Point|Array<number>} pt Point location reference as a GeoJSON Point or an Array of numbers <longitude, latitude>.
+ * @param {Feature<Point>|Array<number>} pt Point location reference as a GeoJSON Point or an Array of numbers <longitude, latitude>.
  * @param {Object} [options={}] Optional parameters
  * @param {number} [options.osmNodeId] OSM Node Id
  * @param {Array<string>} [options.outboundReferenceIds] Outbound Reference Ids
@@ -92,21 +90,27 @@ export function locationReference (start: Location, end: Location, bearing: numb
  * const intersection = sharedstreets.intersection(pt);
  * intersection.id // => '5gRJyF2MT5BBErTyEesQLC'
  */
-export function intersection (pt: Location, options: {
-  osmNodeId?: number,
-  outboundReferenceIds?: string[],
-  inboundReferenceIds?: string[],
-} = {}): SharedStreetsIntersection {
+export function intersection (
+  pt: number[] | Feature<Point> | Point,
+  options: {
+    osmNodeId?: number,
+    outboundReferenceIds?: string[],
+    inboundReferenceIds?: string[],
+  } = {},
+): SharedStreetsIntersection {
+  // SharedStreets Intersection Java Implementation
+  // https://github.com/sharedstreets/sharedstreets-builder/blob/master/src/main/java/io/sharedstreets/data/SharedStreetsIntersection.java
 
   // Round decimal precision to 6
   const coord = getCoord(pt)
-  const x = round(coord[0], 6)
-  const y = round(coord[1], 6)
+  const x = coord[0].toFixed(6)
+  const y = coord[1].toFixed(6)
 
-  // Generate SharedStreets Reference ID
-  const id = generateHash(`Intersection ${x} ${y}`)
+  // Generate SharedStreets Reference ID from message
+  const message = `Intersection ${x} ${y}`
+  const id = generateHash(message)
 
-  // Add GeoJSON Properties
+  // Include extra properties & Reference ID to GeoJSON Properties
   const properties: SharedStreetsIntersectionProperties = {id}
   if (options.osmNodeId) properties.osmNodeId = options.osmNodeId
   if (options.outboundReferenceIds) properties.outboundReferenceIds = options.outboundReferenceIds
@@ -118,16 +122,16 @@ export function intersection (pt: Location, options: {
 /**
  * Generates Hash for SharedStreets Reference ID
  *
- * @param {string} hashInput Message to hash
+ * @param {string} message Message to hash
  * @returns {string} SharedStreets Reference ID
  * @example
  * sharedstreets.generateHash('Intersection 110 45')
  * // => 'NzUsPtY2FHmqaHuyaVzedp'
  */
-export function generateHash (hashInput: string): string {
-  // Java => byte[] bytesOfMessage = hashInput.getBytes("UTF-8");
-  // Python => bytesOfMessage = hashInput.encode('utf8')
-  const bytesOfMessage = Buffer.from(hashInput, 'utf8')
+export function generateHash (message: string): string {
+  // Java => byte[] bytesOfMessage = message.getBytes("UTF-8");
+  // Python => bytesOfMessage = message.encode('utf8')
+  const bytesOfMessage = Buffer.from(message, 'utf8')
 
   // Java => byte[] bytes = MessageDigest.getInstance("MD5").digest(bytesOfMessage);
   // Python => byte = hashlib.md5(bytesOfMessage).digest()
@@ -184,3 +188,24 @@ export function getFormOfWay (value: number) {
     default: throw new Error(`[${value}] unknown FormOfWay value`)
   }
 }
+
+/**
+ * Location Reference (UNDER DEVELOPMENT)
+ *
+ * @private
+ * @param {Point|Array<number>} start Start location reference as a GeoJSON Point or an Array of numbers <longitude, latitude>.
+ * @param {Point|Array<number>} end End location reference as a GeoJSON Point or an Array of numbers <longitude, latitude>.
+ * @param {number} bearing Compass bearing of the street geometry for the 20 meters immediately following the location reference.
+ * @returns {Feature<LineString>} SharedStreets Location Reference
+ * @example
+ * const start = [-74.003388, 40.634538];
+ * const end = [-74.004107, 40.63406];
+ * const bearing = 228.890377;
+ *
+ * const locRef = sharedstreets.locationReference(start, end, bearing);
+ * locRef.id // => 'NxPFkg4CrzHeFhwV7Uiq7K'
+ */
+// export function locationReference (start: Location, end: Location, bearing: number) {
+//   const message = 'Geometry 110.543 45.123'
+//   return generateHash(message)
+// }
