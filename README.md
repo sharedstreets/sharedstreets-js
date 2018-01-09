@@ -63,10 +63,44 @@ import * as sharedstreets from "https://unpkg.com/sharedstreets?module"
 
 #### Table of Contents
 
+-   [geometry](#geometry)
 -   [intersection](#intersection)
 -   [generateHash](#generatehash)
 -   [getRoadClass](#getroadclass)
 -   [getFormOfWay](#getformofway)
+
+### geometry
+
+Geometry
+
+SharedStreets Geometries are street centerline data derived from the basemap used to
+produce SharedStreets References. A single geometry is shared by each set of forward and back references.
+
+SharedStreets is premised on the idea that there's no one correct geometry for a given street.
+Just as street references can be generated from any basemap, street geometries can be derived from any data source.
+
+**Parameters**
+
+-   `line` **(Feature&lt;LineString> | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>>)** Line Geometry as a GeoJSON LineString or an Array of Positions Array&lt;&lt;longitude, latitude>>.
+-   `options` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Optional parameters (optional, default `{}`)
+    -   `options.fromIntersectionId` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)?** From Intersection SharedStreets Reference ID
+    -   `options.toIntersectionId` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)?** To Intersection SharedStreets Reference ID
+    -   `options.forwardReferenceId` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)?** Forward SharedStreets Reference ID
+    -   `options.backwardReferenceId` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)?** Backward SharedStreets Reference ID
+    -   `options.roadClass` **([string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) \| [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number))?** Road Class as number or full string name ('Motorway', 'Residential', etc...)
+
+**Examples**
+
+```javascript
+const start = [-74.003388, 40.634538];
+const end = [-74.004107, 40.63406];
+const bearing = 228.890377;
+
+const geom = sharedstreets.geometry(start, end, bearing);
+geom.id // => 'NxPFkg4CrzHeFhwV7Uiq7K'
+```
+
+Returns **Feature&lt;LineString>** SharedStreets Geometry
 
 ### intersection
 
@@ -84,7 +118,7 @@ In the draft specification the 128-bit IDs are encoded as base-58 strings.
 
 **Parameters**
 
--   `pt` **(Point | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>)** Point location reference as a GeoJSON Point or an Array of numbers &lt;longitude, latitude>.
+-   `pt` **(Feature&lt;Point> | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>)** Point location reference as a GeoJSON Point or an Array of numbers &lt;longitude, latitude>.
 -   `options` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Optional parameters (optional, default `{}`)
     -   `options.osmNodeId` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)?** OSM Node Id
     -   `options.outboundReferenceIds` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>?** Outbound Reference Ids
@@ -106,7 +140,7 @@ Generates Hash for SharedStreets Reference ID
 
 **Parameters**
 
--   `hashInput` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Message to hash
+-   `message` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Message to hash
 
 **Examples**
 
