@@ -28,12 +28,9 @@ import {
  * @param {string|number} [options.roadClass] Road Class as number or full string name ('Motorway', 'Residential', etc...)
  * @returns {Feature<LineString>} SharedStreets Geometry
  * @example
- * const start = [-74.003388, 40.634538];
- * const end = [-74.004107, 40.63406];
- * const bearing = 228.890377;
- *
- * const geom = sharedstreets.geometry(start, end, bearing);
- * geom.id // => 'NxPFkg4CrzHeFhwV7Uiq7K'
+ * const line = [[110, 45], [115, 50], [120, 55]]
+ * const geom = sharedstreets.geometry(line)
+ * geom.id // => 'SWkr931VN89aHemb4L7MDS'
  */
 export function geometry (
   line: Feature<LineString> | LineString | number[][],
@@ -86,9 +83,9 @@ export function geometry (
  * @param {Array<string>} [options.inboundReferenceIds] Inbound Reference Ids
  * @returns {Feature<Point>} SharedStreets Intersection
  * @example
- * const pt = [10, 20];
+ * const pt = [110, 45];
  * const intersection = sharedstreets.intersection(pt);
- * intersection.id // => '5gRJyF2MT5BBErTyEesQLC'
+ * intersection.id // => 'F585H3jn72yicbJhf4791w'
  */
 export function intersection (
   pt: number[] | Feature<Point> | Point,
@@ -125,8 +122,8 @@ export function intersection (
  * @param {string} message Message to hash
  * @returns {string} SharedStreets Reference ID
  * @example
- * sharedstreets.generateHash('Intersection 110 45')
- * // => 'NzUsPtY2FHmqaHuyaVzedp'
+ * sharedstreets.generateHash('Intersection 110.000000 45.000000')
+ * // => 'F585H3jn72yicbJhf4791w'
  */
 export function generateHash (message: string): string {
   // Java => byte[] bytesOfMessage = message.getBytes("UTF-8");
