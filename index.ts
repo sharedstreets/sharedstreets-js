@@ -1,4 +1,4 @@
-import * as Base58 from './lib/bs58'
+import * as Base58 from './lib/base58'
 import { createHash } from 'crypto'
 import { getCoord } from '@turf/invariant'
 import { point, lineString, round, Point, Feature } from '@turf/helpers'

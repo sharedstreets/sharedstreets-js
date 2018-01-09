@@ -1,4 +1,4 @@
-import core.Base58;
+import base58.Base58;
 import java.security.MessageDigest;
 
 public class GenerateHash {

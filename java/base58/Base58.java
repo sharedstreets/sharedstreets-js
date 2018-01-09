@@ -1,4 +1,4 @@
-package core;
+package base58;
 
 public class Base58 {
 
