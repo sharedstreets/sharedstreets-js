@@ -7,7 +7,7 @@
   "files": [
     "index.js",
     "index.ts",
-    "lib"
+    "index.d.ts"
   ],
   "scripts": {
     "pretest": "tsc",
@@ -38,6 +38,7 @@
   "homepage": "https://github.com/sharedstreets/sharedstreets.js#readme",
   "devDependencies": {
     "@types/node": "*",
+    "tape": "*",
     "tslint": "*",
     "typescript": "*"
   },
