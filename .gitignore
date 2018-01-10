@@ -11,10 +11,10 @@ dist
 *.pyc
 
 // Typescript compiled files
-src/*.js
-lib/**/*.js
 *.d.ts
 index.js
+index.mjs
+index.min.js
 
 # Runtime data
 pids

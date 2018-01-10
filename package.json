@@ -3,18 +3,22 @@
   "version": "0.1.1",
   "description": "SharedStreets, a 'digital commons' for the street",
   "main": "index",
+  "browser": "dist/sharedstreets.min.js",
   "types": "index.d.ts",
   "files": [
     "index.js",
     "index.ts",
-    "index.d.ts"
+    "index.d.ts",
+    "dist"
   ],
   "scripts": {
     "pretest": "tsc",
     "test": "node test.js",
-    "postest": "tslint index.ts",
+    "posttest": "tslint index.ts --project tsconfig.json",
     "docs": "documentation readme index.js --section=API",
-    "benchmark": "benchmark bench.js"
+    "benchmark": "benchmark bench.js",
+    "build": "browserify index.js -s sharedstreets -o dist/sharedstreets.js",
+    "postbuild": "uglifyjs dist/sharedstreets.js -o dist/sharedstreets.min.js -cm"
   },
   "repository": {
     "type": "git",

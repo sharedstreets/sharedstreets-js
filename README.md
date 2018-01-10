@@ -1,4 +1,4 @@
-# SharedStreets
+# SharedStreets (Node.js & Web Browser)
 
 > Javascript library for using SharedStreets Reference data
 
@@ -43,18 +43,10 @@ $ npm install sharedstreets
 
 **In browser**
 
-Download the [minified file](https://unpkg.com/sharedstreets/sharedstreets.min.js), and include it in a script tag. This will expose a global variable named **sharedstreets**.
+Download the [CommonJS ES5 file **648KB**](https://unpkg.com/sharedstreets/dist/sharedstreets.min.js) or [UMD Minified file **328KB**](https://unpkg.com/sharedstreets/dist/sharedstreets.min.js), and include it in a script tag. This will expose a global variable named **sharedstreets**.
 
 ```html
 <script src="sharedstreets.min.js" charset="utf-8"></script>
-```
-
-**In browser ES Modules support**
-
-```html
-<script type='module'>
-import * as sharedstreets from "https://unpkg.com/sharedstreets?module"
-</script>
 ```
 
 ## API

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2018-01-10
+
+- Drop Rollup bundler in favor of Browserify (Config too complex when including Crypto & Typescript)
+- Replaced Base58 with Base16 (hex)
+
+## 2018-01-09
+
+- Implement `sharedstreets.geometry`
+
 ## 2018-01-05
 
 - Drop PBF & Typescript definition from core library
