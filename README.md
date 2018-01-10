@@ -94,7 +94,7 @@ Just as street references can be generated from any basemap, street geometries c
 ```javascript
 const line = [[110, 45], [115, 50], [120, 55]]
 const geom = sharedstreets.geometry(line)
-geom.id // => 'SWkr931VN89aHemb4L7MDS'
+geom.id // => 'ce9c0ec1472c0a8bab3190ab075e9b21'
 ```
 
 Returns **Feature&lt;LineString>** SharedStreets Geometry
@@ -126,7 +126,7 @@ In the draft specification the 128-bit IDs are encoded as base-58 strings.
 ```javascript
 const pt = [110, 45];
 const intersection = sharedstreets.intersection(pt);
-intersection.id // => 'F585H3jn72yicbJhf4791w'
+intersection.id // => '71f34691f182a467137b3d37265cb3b6'
 ```
 
 Returns **Feature&lt;Point>** SharedStreets Intersection
@@ -143,7 +143,7 @@ Generates Hash for SharedStreets Reference ID
 
 ```javascript
 sharedstreets.generateHash('Intersection 110.000000 45.000000')
-// => 'F585H3jn72yicbJhf4791w'
+// => '71f34691f182a467137b3d37265cb3b6'
 ```
 
 Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** SharedStreets Reference ID

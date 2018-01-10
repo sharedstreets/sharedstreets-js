@@ -1,4 +1,3 @@
-import * as Base58 from './lib/base58'
 import { createHash } from 'crypto'
 import { getCoord, getCoords } from '@turf/invariant'
 import { point, lineString, Point, LineString, Feature } from '@turf/helpers'
@@ -30,7 +29,7 @@ import {
  * @example
  * const line = [[110, 45], [115, 50], [120, 55]]
  * const geom = sharedstreets.geometry(line)
- * geom.id // => 'SWkr931VN89aHemb4L7MDS'
+ * geom.id // => 'ce9c0ec1472c0a8bab3190ab075e9b21'
  */
 export function geometry (
   line: Feature<LineString> | LineString | number[][],
@@ -85,7 +84,7 @@ export function geometry (
  * @example
  * const pt = [110, 45];
  * const intersection = sharedstreets.intersection(pt);
- * intersection.id // => 'F585H3jn72yicbJhf4791w'
+ * intersection.id // => '71f34691f182a467137b3d37265cb3b6'
  */
 export function intersection (
   pt: number[] | Feature<Point> | Point,
@@ -123,20 +122,10 @@ export function intersection (
  * @returns {string} SharedStreets Reference ID
  * @example
  * sharedstreets.generateHash('Intersection 110.000000 45.000000')
- * // => 'F585H3jn72yicbJhf4791w'
+ * // => '71f34691f182a467137b3d37265cb3b6'
  */
 export function generateHash (message: string): string {
-  // Java => byte[] bytesOfMessage = message.getBytes("UTF-8");
-  // Python => bytesOfMessage = message.encode('utf8')
-  const bytesOfMessage = Buffer.from(message, 'utf8')
-
-  // Java => byte[] bytes = MessageDigest.getInstance("MD5").digest(bytesOfMessage);
-  // Python => byte = hashlib.md5(bytesOfMessage).digest()
-  const bytes = createHash('md5').update(bytesOfMessage).digest()
-
-  // Java => return Base58.encode(bytes);
-  // Python => return base58.b58encode(byte)
-  return Base58.encode(bytes)
+  return createHash('md5').update(message).digest('hex')
 }
 
 /**
