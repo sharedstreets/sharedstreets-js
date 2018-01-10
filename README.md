@@ -43,7 +43,9 @@ $ npm install sharedstreets
 
 **In browser**
 
-Download the [CommonJS](https://unpkg.com/sharedstreets/dist/sharedstreets.min.js) or [UMD Minified](https://unpkg.com/sharedstreets/dist/sharedstreets.min.js) files, and include it in a script tag. This will expose a global variable named **sharedstreets**.
+Download the [CommonJS](https://unpkg.com/sharedstreets/dist/sharedstreets.min.js) or [UMD Minified](https://unpkg.com/sharedstreets/dist/sharedstreets.min.js) files, and include it in a script tag.
+
+This will expose a global variable named **sharedstreets**.
 
 ```html
 <script src="sharedstreets.min.js" charset="utf-8"></script>
