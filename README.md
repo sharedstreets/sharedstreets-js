@@ -1,37 +1,6 @@
-# SharedStreets (Node.js & Web Browser)
+# SharedStreets (Node.js & Javascript)
 
-> Javascript library for using SharedStreets Reference data
-
-## A "digital commons" for the street
-
-New digital tools have the potential to radically improve the efficiency, affordability, and
-inclusiveness of our transport system, but success depends on cooperation between the
-cities that build and manage our streets and the companies and transport services that use them.
-
-As new transportation technologies emerge, cites need access to increasingly privatized
-data about public infrastructure. While private sector innovators are collecting detailed,
-street-level data in real time on everything from traffic speeds to transit use, cities don’t
-have the access they need. Clearly a new partnership model is needed.
-
-SharedStreets is building a “digital commons” for streets: a universal language for
-communicating information about city streets, and a launching pad for public-private
-collaboration and data exchange.
-
-### Universal Data Standards
-
-The platform allows parties to connect their own data workflows and systems and take advantage of a growing range of new data sources. SharedStreets data standards facilitate public and private collaboration through a non-proprietary
-system for describig streets.
-
-[Learn more about SharedStreets Data Standards »](https://github.com/sharedstreets/sharedstreets-referencing)
-
-![image](https://github.com/sharedstreets/sharedstreets-ref-system/raw/master/img/gis_vs_sharedstreets.png)
-
-### Trusted Third Party Data Exchange
-
-![image](https://github.com/sharedstreets/sharedstreets-ref-system/raw/master/img/sharedstreets_references.png)
-
-Shared digital infrastructure lets cities use standardized practices to ensure user and business privacy.
-It also uses best-in-practice reusable licensing models to support public and commercial data sharing agreements.
+Node.js & Javascript implementation of [SharedStreets Reference System](https://github.com/sharedstreets/sharedstreets-ref-system).
 
 ## Install
 
@@ -43,7 +12,7 @@ $ npm install sharedstreets
 
 **In browser**
 
-Download the [CommonJS](https://unpkg.com/sharedstreets/dist/sharedstreets.min.js) or [UMD Minified](https://unpkg.com/sharedstreets/dist/sharedstreets.min.js) files, and include it in a script tag.
+Download the [CommonJS](https://unpkg.com/sharedstreets/dist/sharedstreets.js) or [UMD Minified](https://unpkg.com/sharedstreets/dist/sharedstreets.min.js) files, and include it in a script tag.
 
 This will expose a global variable named **sharedstreets**.
 
