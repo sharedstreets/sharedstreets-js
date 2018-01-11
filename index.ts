@@ -1,12 +1,19 @@
 import { createHash } from 'crypto'
 import { getCoord, getCoords } from '@turf/invariant'
-import { point, lineString, Point, LineString, Feature } from '@turf/helpers'
+import {
+  point, lineString,
+  Point, LineString, Feature, FeatureCollection,
+} from '@turf/helpers'
 import {
   SharedStreetsGeometry,
   SharedStreetsGeometryProperties,
   SharedStreetsIntersection,
   SharedStreetsIntersectionProperties,
   SharedStreetsRoadClass,
+  SharedStreetsFormOfWay,
+  SharedStreetsReference,
+  SharedStreetsLocationReference,
+  SharedStreetsLocationReferenceProperties,
 } from 'sharedstreets-types'
 
 /**
@@ -176,12 +183,55 @@ export function getFormOfWay (value: number) {
 }
 
 /**
- * Location Reference (UNDER DEVELOPMENT)
+ * Reference
  *
  * @private
- * @param {Point|Array<number>} start Start location reference as a GeoJSON Point or an Array of numbers <longitude, latitude>.
- * @param {Point|Array<number>} end End location reference as a GeoJSON Point or an Array of numbers <longitude, latitude>.
- * @param {number} bearing Compass bearing of the street geometry for the 20 meters immediately following the location reference.
+ * @param {FeatureCollection<Point>|Array<Point>} locationReferences Location References in a form of a GeoJSON FeatureCollection or Array of points.
+ * @param {Feature<LineString>} geom Geometry in a form of a GeoJSON LineString
+ * @param {string} formOfWay Form Of Way
+ * @returns {Feature<LineString>} SharedStreets Location Reference
+ * @example
+ * const locationReferenceInbound = sharedstreets.locationReference([110, 40]);
+ * const locationReferenceOutput = sharedstreets.locationReference([130, 60]);
+ * const geom = sharedstreets.geometry([[110, 40], [130, 60]]);
+ * const formOfWay = 'Motorway';
+ *
+ * const ref = sharedstreets.reference([locationReferenceInbound, locationReferenceOutput], geom, formOfWay);
+ * ref.id // => 'NxPFkg4CrzHeFhwV7Uiq7K'
+ */
+export function reference (
+  locationReferences: SharedStreetsLocationReference[] | FeatureCollection<Point, SharedStreetsLocationReferenceProperties>,
+  geom: SharedStreetsGeometry,
+  formOfWay: SharedStreetsFormOfWay,
+): SharedStreetsReference {
+  const message = `Reference
+    - FormOfWay (Integer)
+    Array of LocationReferences:
+      - x (Float 6 fixed)
+      - y (Float 6 fixed)
+      - bearing (Round Integer)
+      - distance (Round Integer/ Centimers)
+  `
+  const id = generateHash(message)
+  return {
+    id,
+    geometryId: 'foo',
+    locationReferences: ['hello', 'world'],
+    formOfWay: 'Motorway',
+  }
+}
+
+/**
+ * Location Reference
+ *
+ * @private
+ * @param {Feature<Point>|Array<number>} start Start location reference as a GeoJSON Point or an Array of numbers <longitude, latitude>.
+ * @param {Feature<Point>|Array<number>} end End location reference as a GeoJSON Point or an Array of numbers <longitude, latitude>.
+ * @param {Object} [options={}] Optional parameters
+ * @param {number} [options.bearing] Compass bearing of the street geometry for the 20 meters immediately following the location reference.
+ * @param {number} [options.bearingOut] Outbound bearing (??)
+ * @param {number} [options.distance] Distances are defined as centimeters.
+ * @param {string} [options.units='centimeters'] Define a different input distance measurement (ex: kilometers, meters, miles).
  * @returns {Feature<LineString>} SharedStreets Location Reference
  * @example
  * const start = [-74.003388, 40.634538];
