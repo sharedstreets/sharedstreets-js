@@ -185,7 +185,6 @@ export function getFormOfWay (value: number) {
 /**
  * Reference
  *
- * @private
  * @param {FeatureCollection<Point>|Array<Point>} locationReferences Location References in a form of a GeoJSON FeatureCollection or Array of points.
  * @param {Feature<LineString>} geom Geometry in a form of a GeoJSON LineString
  * @param {string} formOfWay Form Of Way

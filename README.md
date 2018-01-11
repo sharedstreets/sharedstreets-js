@@ -31,6 +31,7 @@ This will expose a global variable named **sharedstreets**.
 -   [generateHash](#generatehash)
 -   [getRoadClass](#getroadclass)
 -   [getFormOfWay](#getformofway)
+-   [reference](#reference)
 
 ### geometry
 
@@ -144,3 +145,27 @@ sharedstreets.getFormOfWay(5) // => 'TrafficSquare'
 ```
 
 Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Form of Way
+
+### reference
+
+Reference
+
+**Parameters**
+
+-   `locationReferences` **(FeatureCollection&lt;Point> | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;Point>)** Location References in a form of a GeoJSON FeatureCollection or Array of points.
+-   `geom` **Feature&lt;LineString>** Geometry in a form of a GeoJSON LineString
+-   `formOfWay` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Form Of Way
+
+**Examples**
+
+```javascript
+const locationReferenceInbound = sharedstreets.locationReference([110, 40]);
+const locationReferenceOutput = sharedstreets.locationReference([130, 60]);
+const geom = sharedstreets.geometry([[110, 40], [130, 60]]);
+const formOfWay = 'Motorway';
+
+const ref = sharedstreets.reference([locationReferenceInbound, locationReferenceOutput], geom, formOfWay);
+ref.id // => 'NxPFkg4CrzHeFhwV7Uiq7K'
+```
+
+Returns **Feature&lt;LineString>** SharedStreets Location Reference
