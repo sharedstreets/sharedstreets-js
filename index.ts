@@ -1,8 +1,8 @@
 import { createHash } from 'crypto'
 import { getCoord, getCoords } from '@turf/invariant'
 import {
-  point, lineString,
-  Point, LineString, Feature, FeatureCollection,
+  point, lineString, featureCollection,
+  Point, LineString, Feature, FeatureCollection, Units,
 } from '@turf/helpers'
 import {
   SharedStreetsGeometry,
@@ -199,7 +199,7 @@ export function getFormOfWay (value: number) {
  * ref.id // => 'NxPFkg4CrzHeFhwV7Uiq7K'
  */
 export function reference (
-  locationReferences: SharedStreetsLocationReference[] | FeatureCollection<Point, SharedStreetsLocationReferenceProperties>,
+  locationReferences: SharedStreetsLocationReference[],
   geom: SharedStreetsGeometry,
   formOfWay: SharedStreetsFormOfWay,
 ): SharedStreetsReference {
@@ -212,11 +212,14 @@ export function reference (
       - distance (Round Integer/ Centimers)
   `
   const id = generateHash(message)
+
   return {
     id,
+    type: 'FeatureCollection',
     geometryId: 'foo',
     locationReferences: ['hello', 'world'],
     formOfWay: 'Motorway',
+    features: locationReferences,
   }
 }
 
@@ -224,23 +227,46 @@ export function reference (
  * Location Reference
  *
  * @private
- * @param {Feature<Point>|Array<number>} start Start location reference as a GeoJSON Point or an Array of numbers <longitude, latitude>.
- * @param {Feature<Point>|Array<number>} end End location reference as a GeoJSON Point or an Array of numbers <longitude, latitude>.
+ * @param {Feature<Point>|Array<number>} intersect Intersection as a GeoJSON Point or an Array of numbers <longitude, latitude>.
  * @param {Object} [options={}] Optional parameters
- * @param {number} [options.bearing] Compass bearing of the street geometry for the 20 meters immediately following the location reference.
- * @param {number} [options.bearingOut] Outbound bearing (??)
- * @param {number} [options.distance] Distances are defined as centimeters.
+ * @param {string} [options.intersectionId] Intersection Id - Fallbacks to input's point `id` or generates Intersection Id.
+ * @param {number} [options.inboundBearing] Inbound bearing of the street geometry for the 20 meters immediately following the location reference.
+ * @param {number} [options.outboundBearing] Outbound bearing.
+ * @param {number} [options.distanceToNextRef] Distance to next Location Reference (distance defined in centimeters).
  * @param {string} [options.units='centimeters'] Define a different input distance measurement (ex: kilometers, meters, miles).
  * @returns {Feature<LineString>} SharedStreets Location Reference
  * @example
- * const start = [-74.003388, 40.634538];
- * const end = [-74.004107, 40.63406];
- * const bearing = 228.890377;
+ * const intersect = sharedstreets.intersection([-74.003388, 40.634538]);
  *
- * const locRef = sharedstreets.locationReference(start, end, bearing);
+ * const locRef = sharedstreets.locationReference(intersect);
  * locRef.id // => 'NxPFkg4CrzHeFhwV7Uiq7K'
  */
-// export function locationReference (start: Location, end: Location, bearing: number) {
-//   const message = 'Geometry 110.543 45.123'
-//   return generateHash(message)
-// }
+export function locationReference (
+  intersect: number[] | Feature<Point> | Point,
+  options: {
+    intersectionId?: string,
+    inboundBearing?: number,
+    outboundBearing?: number,
+    distanceToNextRef?: number,
+    units?: Units,
+} = {}): SharedStreetsLocationReference {
+  // SharedStreets Intersection Java Implementation
+  // https://github.com/sharedstreets/sharedstreets-builder/blob/master/src/main/java/io/sharedstreets/data/SharedStreetsLocationReference.java
+  const coord = getCoord(intersect)
+
+  // Retrieve ID from SharedStreets Intersection, fallbacks to generating a new ID
+  let intersectionId
+  if (Array.isArray(intersect)) intersectionId = intersection(coord)
+  else if (intersect.type === 'Point') intersectionId = intersection(coord)
+  else if (intersect.id) intersectionId = intersect.id
+  else if (intersect.properties.id) intersectionId = intersect.properties.id
+  else throw new Error('intersectionId was not found')
+
+  // Include extra properties & Reference ID to GeoJSON Properties
+  const properties: SharedStreetsLocationReferenceProperties = {intersectionId}
+  if (options.inboundBearing) properties.inboundBearing = options.inboundBearing
+  if (options.outboundBearing) properties.outboundBearing = options.outboundBearing
+  if (options.distanceToNextRef) properties.distanceToNextRef = options.distanceToNextRef
+
+  return point(coord, properties, {})
+}

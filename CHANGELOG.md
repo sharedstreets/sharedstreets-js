@@ -1,5 +1,10 @@
 # Changelog
 
+## 2018-01-11
+
+- Start implementation of SharedStreets Location Reference
+- Start implementation of SharedStreets Reference
+
 ## 2018-01-10
 
 - Drop Rollup bundler in favor of Browserify (Config too complex when including Crypto & Typescript)
