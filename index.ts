@@ -270,3 +270,12 @@ export function locationReference (
 
   return point(coord, properties, {})
 }
+
+export function latlonsToCoords (latlons: number[]) {
+  const coords: Array<[number, number]> = []
+  latlons.reduce((lat, deg, index) => {
+    if (index % 2 === 0) return deg // Latitude
+    coords.push([deg, lat])
+  })
+  return coords
+}
