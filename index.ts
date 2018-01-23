@@ -6,14 +6,11 @@ import {
 } from '@turf/helpers'
 import {
   SharedStreetsGeometry,
-  SharedStreetsGeometryProperties,
   SharedStreetsIntersection,
-  SharedStreetsIntersectionProperties,
-  SharedStreetsRoadClass,
-  SharedStreetsFormOfWay,
+  SharedStreetsMetadata,
   SharedStreetsReference,
-  SharedStreetsLocationReference,
-  SharedStreetsLocationReferenceProperties,
+  RoadClass,
+  FormOfWay,
 } from 'sharedstreets-types'
 
 /**
@@ -45,9 +42,9 @@ export function geometry (
     toIntersectionId?: string,
     forwardReferenceId?: string,
     backReferenceId?: string,
-    roadClass?: number | SharedStreetsRoadClass,
+    roadClass?: RoadClass,
   } = {},
-): SharedStreetsGeometry {
+): Feature<LineString, SharedStreetsGeometry> {
   // SharedStreets Geometry Java Implementation
   // https://github.com/sharedstreets/sharedstreets-builder/blob/e5dd30da787f/src/main/java/io/sharedstreets/data/SharedStreetsGeometry.java#L98-L108
 
@@ -59,12 +56,12 @@ export function geometry (
   const id = generateHash(message)
 
   // Include extra properties & Reference ID to GeoJSON Properties
-  const properties: SharedStreetsGeometryProperties = {id}
+  const properties: SharedStreetsGeometry = {id}
   if (options.fromIntersectionId) properties.fromIntersectionId = options.fromIntersectionId
   if (options.toIntersectionId) properties.toIntersectionId = options.toIntersectionId
   if (options.forwardReferenceId) properties.forwardReferenceId = options.forwardReferenceId
   if (options.backReferenceId) properties.backReferenceId = options.backReferenceId
-  if (options.roadClass) properties.roadClass = typeof options.roadClass === 'number' ? getRoadClass(options.roadClass) : options.roadClass
+  if (options.roadClass) properties.roadClass = options.roadClass
 
   return lineString(coords, properties, {id})
 }
@@ -84,7 +81,7 @@ export function geometry (
  *
  * @param {Feature<Point>|Array<number>} pt Point location reference as a GeoJSON Point or an Array of numbers <longitude, latitude>.
  * @param {Object} [options={}] Optional parameters
- * @param {number} [options.osmNodeId] OSM Node Id
+ * @param {number} [options.nodeId] Node Id
  * @param {Array<string>} [options.outboundReferenceIds] Outbound Reference Ids
  * @param {Array<string>} [options.inboundReferenceIds] Inbound Reference Ids
  * @returns {Feature<Point>} SharedStreets Intersection
@@ -96,11 +93,11 @@ export function geometry (
 export function intersection (
   pt: number[] | Feature<Point> | Point,
   options: {
-    osmNodeId?: number,
+    nodeId?: number,
     outboundReferenceIds?: string[],
     inboundReferenceIds?: string[],
   } = {},
-): SharedStreetsIntersection {
+): Feature<Point, SharedStreetsIntersection> {
   // SharedStreets Intersection Java Implementation
   // https://github.com/sharedstreets/sharedstreets-builder/blob/master/src/main/java/io/sharedstreets/data/SharedStreetsIntersection.java
 
@@ -114,8 +111,8 @@ export function intersection (
   const id = generateHash(message)
 
   // Include extra properties & Reference ID to GeoJSON Properties
-  const properties: SharedStreetsIntersectionProperties = {id}
-  if (options.osmNodeId) properties.osmNodeId = options.osmNodeId
+  const properties: SharedStreetsIntersection = {id}
+  if (options.nodeId) properties.nodeId = options.nodeId
   if (options.outboundReferenceIds) properties.outboundReferenceIds = options.outboundReferenceIds
   if (options.inboundReferenceIds) properties.inboundReferenceIds = options.inboundReferenceIds
 
@@ -199,10 +196,10 @@ export function getFormOfWay (value: number) {
  * ref.id // => 'NxPFkg4CrzHeFhwV7Uiq7K'
  */
 export function reference (
-  locationReferences: SharedStreetsLocationReference[],
+  locationReferences: SharedStreetsReference[],
   geom: SharedStreetsGeometry,
-  formOfWay: SharedStreetsFormOfWay,
-): SharedStreetsReference {
+  formOfWay: FormOfWay,
+): FeatureCollection<Point, SharedStreetsReference> {
   const message = `Reference
     - FormOfWay (Integer)
     Array of LocationReferences:
@@ -249,7 +246,7 @@ export function locationReference (
     outboundBearing?: number,
     distanceToNextRef?: number,
     units?: Units,
-} = {}): SharedStreetsLocationReference {
+} = {}): SharedStreetsReference {
   // SharedStreets Intersection Java Implementation
   // https://github.com/sharedstreets/sharedstreets-builder/blob/master/src/main/java/io/sharedstreets/data/SharedStreetsLocationReference.java
   const coord = getCoord(intersect)
@@ -263,7 +260,7 @@ export function locationReference (
   else throw new Error('intersectionId was not found')
 
   // Include extra properties & Reference ID to GeoJSON Properties
-  const properties: SharedStreetsLocationReferenceProperties = {intersectionId}
+  const properties: SharedStreetsReference = {intersectionId}
   if (options.inboundBearing) properties.inboundBearing = options.inboundBearing
   if (options.outboundBearing) properties.outboundBearing = options.outboundBearing
   if (options.distanceToNextRef) properties.distanceToNextRef = options.distanceToNextRef
