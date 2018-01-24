@@ -1,5 +1,9 @@
 # Changelog
 
+## 2018-01-23
+
+- Add Geometry Id & Intersection Id
+
 ## 2018-01-11
 
 - Start implementation of SharedStreets Location Reference
