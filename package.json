@@ -15,7 +15,7 @@
     "pretest": "tsc",
     "test": "node test.js",
     "posttest": "tslint index.ts --project tsconfig.json",
-    "docs": "documentation readme index.js --section=API",
+    "docs": "tsc && documentation readme index.js --section=API",
     "benchmark": "benchmark bench.js",
     "build": "browserify index.js -s sharedstreets -o dist/sharedstreets.js",
     "postbuild": "uglifyjs dist/sharedstreets.js -o dist/sharedstreets.min.js -cm"

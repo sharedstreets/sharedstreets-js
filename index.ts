@@ -9,6 +9,7 @@ import {
   SharedStreetsIntersection,
   SharedStreetsMetadata,
   SharedStreetsReference,
+  LocationReference,
   RoadClass,
   FormOfWay,
 } from 'sharedstreets-types'
@@ -25,8 +26,8 @@ import {
  * @param {string|number} [options.roadClass] Road Class as number or full string name ('Motorway', 'Residential', etc...)
  * @returns {Feature<LineString>} SharedStreets Geometry
  * @example
- * const line = [[110, 45], [115, 50], [120, 55]]
- * const geom = sharedstreets.geometry(line)
+ * const line = [[110, 45], [115, 50], [120, 55]];
+ * const geom = sharedstreets.geometry(line);
  * geom.id // => 'ce9c0ec1472c0a8bab3190ab075e9b21'
  */
 export function geometry (
@@ -165,15 +166,15 @@ export function generateHash (message: string): string {
  */
 export function getRoadClass (value: number) {
   switch (value) {
-    case 0: { return 'Motorway' }
-    case 1: { return 'Trunk' }
-    case 2: { return 'Primary' }
-    case 3: { return 'Secondary' }
-    case 4: { return 'Tertiary' }
-    case 5: { return 'Residential' }
-    case 6: { return 'Unclassified' }
-    case 7: { return 'Service' }
-    case 8: { return 'Other' }
+    case 0: return 'Motorway'
+    case 1: return 'Trunk'
+    case 2: return 'Primary'
+    case 3: return 'Secondary'
+    case 4: return 'Tertiary'
+    case 5: return 'Residential'
+    case 6: return 'Unclassified'
+    case 7: return 'Service'
+    case 8: return 'Other'
     default: throw new Error(`[${value}] unknown RoadClass value`)
   }
 }
@@ -189,14 +190,14 @@ export function getRoadClass (value: number) {
  */
 export function getFormOfWay (value: number) {
   switch (value) {
-    case 0: { return 'Undefined' }
-    case 1: { return 'Motorway' }
-    case 2: { return 'MultipleCarriageway' }
-    case 3: { return 'SingleCarriageway' }
-    case 4: { return 'Roundabout' }
-    case 5: { return 'TrafficSquare' }
-    case 6: { return 'SlipRoad' }
-    case 7: { return 'Other' }
+    case 0: return 'Undefined'
+    case 1: return 'Motorway'
+    case 2: return 'MultipleCarriageway'
+    case 3: return 'SingleCarriageway'
+    case 4: return 'Roundabout'
+    case 5: return 'TrafficSquare'
+    case 6: return 'SlipRoad'
+    case 7: return 'Other'
     default: throw new Error(`[${value}] unknown FormOfWay value`)
   }
 }
@@ -204,6 +205,7 @@ export function getFormOfWay (value: number) {
 /**
  * Reference
  *
+ * @private
  * @param {FeatureCollection<Point>|Array<Point>} locationReferences Location References in a form of a GeoJSON FeatureCollection or Array of points.
  * @param {Feature<LineString>} geom Geometry in a form of a GeoJSON LineString
  * @param {string} formOfWay Form Of Way
@@ -211,17 +213,19 @@ export function getFormOfWay (value: number) {
  * @example
  * const locationReferenceInbound = sharedstreets.locationReference([110, 40]);
  * const locationReferenceOutput = sharedstreets.locationReference([130, 60]);
+ * const locationReferences = [locationReferenceInbound, locationReferenceOutput];
  * const geom = sharedstreets.geometry([[110, 40], [130, 60]]);
  * const formOfWay = 'Motorway';
  *
- * const ref = sharedstreets.reference([locationReferenceInbound, locationReferenceOutput], geom, formOfWay);
+ * const ref = sharedstreets.reference(locationReferences, geom, formOfWay);
  * ref.id // => 'NxPFkg4CrzHeFhwV7Uiq7K'
  */
 export function reference (
-  locationReferences: SharedStreetsReference[],
+  locationReferences: LocationReference[],
   geom: SharedStreetsGeometry,
   formOfWay: FormOfWay,
-): FeatureCollection<Point, SharedStreetsReference> {
+): SharedStreetsReference {
+  // To-Do
   const message = `Reference
     - FormOfWay (Integer)
     Array of LocationReferences:
@@ -234,11 +238,9 @@ export function reference (
 
   return {
     id,
-    type: 'FeatureCollection',
-    geometryId: 'foo',
-    locationReferences: ['hello', 'world'],
-    formOfWay: 'Motorway',
-    features: locationReferences,
+    geometryId: geom.id,
+    formOfWay,
+    locationReferences,
   }
 }
 
@@ -268,26 +270,28 @@ export function locationReference (
     outboundBearing?: number,
     distanceToNextRef?: number,
     units?: Units,
-} = {}): SharedStreetsReference {
+} = {}): LocationReference {
   // SharedStreets Intersection Java Implementation
   // https://github.com/sharedstreets/sharedstreets-builder/blob/master/src/main/java/io/sharedstreets/data/SharedStreetsLocationReference.java
   const coord = getCoord(intersect)
 
+  // To-Do
   // Retrieve ID from SharedStreets Intersection, fallbacks to generating a new ID
-  let intersectionId
-  if (Array.isArray(intersect)) intersectionId = intersection(coord)
-  else if (intersect.type === 'Point') intersectionId = intersection(coord)
-  else if (intersect.id) intersectionId = intersect.id
-  else if (intersect.properties.id) intersectionId = intersect.properties.id
-  else throw new Error('intersectionId was not found')
+  // intersectionId = options.intersectionId
+  // if (Array.isArray(intersect)) intersectionId = intersection(coord)
+  // else if (intersect.type === 'Point') intersectionId = intersection(coord)
+  // else if (intersect.id) intersectionId = intersect.id
+  // else if (intersect.properties.id) intersectionId = intersect.properties.id
+  // else throw new Error('intersectionId was not found')
 
-  // Include extra properties & Reference ID to GeoJSON Properties
-  const properties: SharedStreetsReference = {intersectionId}
-  if (options.inboundBearing) properties.inboundBearing = options.inboundBearing
-  if (options.outboundBearing) properties.outboundBearing = options.outboundBearing
-  if (options.distanceToNextRef) properties.distanceToNextRef = options.distanceToNextRef
+  // // Include extra properties & Reference ID to GeoJSON Properties
+  // const properties: SharedStreetsReference = {intersectionId}
+  // if (options.inboundBearing) properties.inboundBearing = options.inboundBearing
+  // if (options.outboundBearing) properties.outboundBearing = options.outboundBearing
+  // if (options.distanceToNextRef) properties.distanceToNextRef = options.distanceToNextRef
 
-  return point(coord, properties, {})
+  // return point(coord, properties, {})
+  return {}
 }
 
 export function latlonsToCoords (latlons: number[]) {
