@@ -16,12 +16,6 @@ import {
 /**
  * Geometry
  *
- * SharedStreets Geometries are street centerline data derived from the basemap used to
- * produce SharedStreets References. A single geometry is shared by each set of forward and back references.
- *
- * SharedStreets is premised on the idea that there's no one correct geometry for a given street.
- * Just as street references can be generated from any basemap, street geometries can be derived from any data source.
- *
  * @param {Feature<LineString>|Array<Array<number>>} line Line Geometry as a GeoJSON LineString or an Array of Positions Array<<longitude, latitude>>.
  * @param {Object} [options={}] Optional parameters
  * @param {string} [options.fromIntersectionId] From Intersection SharedStreets Reference ID
@@ -45,17 +39,10 @@ export function geometry (
     roadClass?: RoadClass,
   } = {},
 ): Feature<LineString, SharedStreetsGeometry> {
-  // SharedStreets Geometry Java Implementation
-  // https://github.com/sharedstreets/sharedstreets-builder/blob/e5dd30da787f/src/main/java/io/sharedstreets/data/SharedStreetsGeometry.java#L98-L108
-
-  // Round decimal precision to 6
   const coords = getCoords(line)
+  const id = geometryId(line)
 
-  // Generate SharedStreets Reference ID from message
-  const message = 'Geometry ' + coords.map(([x, y]) => `${x.toFixed(6)} ${y.toFixed(6)}`).join(' ')
-  const id = generateHash(message)
-
-  // Include extra properties & Reference ID to GeoJSON Properties
+  // Include extra properties to GeoJSON Properties
   const properties: SharedStreetsGeometry = {id}
   if (options.fromIntersectionId) properties.fromIntersectionId = options.fromIntersectionId
   if (options.toIntersectionId) properties.toIntersectionId = options.toIntersectionId
@@ -67,17 +54,27 @@ export function geometry (
 }
 
 /**
+ * Geometry Id
+ *
+ * @param {Feature<LineString>|Array<Array<number>>} line Line Geometry as a GeoJSON LineString or an Array of Positions Array<<longitude, latitude>>.
+ * @returns {Feature<LineString>} SharedStreets Geometry Id
+ * @example
+ * const line = [[110, 45], [115, 50], [120, 55]];
+ * const id = sharedstreets.geometryId(line);
+ * id // => 'ce9c0ec1472c0a8bab3190ab075e9b21'
+ */
+export function geometryId (line: Feature<LineString> | LineString | number[][]): string {
+  // SharedStreets Geometry Java Implementation
+  // https://github.com/sharedstreets/sharedstreets-builder/blob/master/src/main/java/io/sharedstreets/data/SharedStreetsGeometry.java#L98-L108
+  const coords = getCoords(line)
+
+  // Generate SharedStreets Reference ID from message
+  const message = 'Geometry ' + coords.map(([x, y]) => `${x.toFixed(6)} ${y.toFixed(6)}`).join(' ')
+  return generateHash(message)
+}
+
+/**
  * Intersection
- *
- * > Nodes connecting street street segments references
- *
- * SharedStreets uses 128-bit shorthand identifiers to relate data within the SharedStreets referencing system.
- * These IDs provide a basemap-independent addressing system for street segment references,
- * intersections and geometries. These identifiers are generated deterministically using a hash of the underlying data.
- * This means that two different users with the same input data can generate matching SharedStreets identifiers.
- * This simplifies data sharing, allowing users to match data using shorthand IDs whenever possible.
- *
- * In the draft specification the 128-bit IDs are encoded as base-58 strings.
  *
  * @param {Feature<Point>|Array<number>} pt Point location reference as a GeoJSON Point or an Array of numbers <longitude, latitude>.
  * @param {Object} [options={}] Optional parameters
@@ -120,13 +117,38 @@ export function intersection (
 }
 
 /**
+ * Intersection Id
+ *
+ * @param {Feature<Point>|Array<number>} pt Point location reference as a GeoJSON Point or an Array of numbers <longitude, latitude>.
+ * @param {Object} [options={}] Optional parameters
+ * @param {number} [options.nodeId] Node Id
+ * @param {Array<string>} [options.outboundReferenceIds] Outbound Reference Ids
+ * @param {Array<string>} [options.inboundReferenceIds] Inbound Reference Ids
+ * @returns {Feature<Point>} SharedStreets Intersection
+ * @example
+ * const pt = [110, 45];
+ * const id = sharedstreets.intersectionId(pt);
+ * id // => '71f34691f182a467137b3d37265cb3b6'
+ */
+export function intersectionId(pt: number[] | Feature<Point> | Point): string {
+  // SharedStreets Intersection Java Implementation
+  // https://github.com/sharedstreets/sharedstreets-builder/blob/master/src/main/java/io/sharedstreets/data/SharedStreetsIntersection.java#L42-L49
+  const coord = getCoord(pt)
+  const x = coord[0].toFixed(6)
+  const y = coord[1].toFixed(6)
+
+  const message = `Intersection ${x} ${y}`
+  return generateHash(message)
+}
+
+/**
  * Generates Hash for SharedStreets Reference ID
  *
  * @param {string} message Message to hash
  * @returns {string} SharedStreets Reference ID
  * @example
- * sharedstreets.generateHash('Intersection 110.000000 45.000000')
- * // => '71f34691f182a467137b3d37265cb3b6'
+ * const hash = sharedstreets.generateHash('Intersection 110.000000 45.000000')
+ * hash // => '71f34691f182a467137b3d37265cb3b6'
  */
 export function generateHash (message: string): string {
   return createHash('md5').update(message).digest('hex')
