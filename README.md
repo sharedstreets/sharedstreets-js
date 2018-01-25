@@ -26,42 +26,21 @@ This will expose a global variable named **sharedstreets**.
 
 #### Table of Contents
 
--   [geometry](#geometry)
 -   [geometryId](#geometryid)
--   [intersection](#intersection)
 -   [intersectionId](#intersectionid)
+-   [referenceId](#referenceid)
+-   [latlonsToCoords](#latlonstocoords)
 -   [generateHash](#generatehash)
 -   [getRoadClass](#getroadclass)
 -   [getFormOfWay](#getformofway)
-
-### geometry
-
-Geometry
-
-**Parameters**
-
--   `line` **(Feature&lt;LineString> | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>>)** Line Geometry as a GeoJSON LineString or an Array of Positions Array&lt;&lt;longitude, latitude>>.
--   `options` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Optional parameters (optional, default `{}`)
-    -   `options.fromIntersectionId` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)?** From Intersection SharedStreets Reference ID
-    -   `options.toIntersectionId` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)?** To Intersection SharedStreets Reference ID
-    -   `options.forwardReferenceId` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)?** Forward SharedStreets Reference ID
-    -   `options.backwardReferenceId` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)?** Backward SharedStreets Reference ID
-    -   `options.roadClass` **([string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) \| [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number))?** Road Class as number or full string name ('Motorway', 'Residential', etc...)
-
-**Examples**
-
-```javascript
-const line = [[110, 45], [115, 50], [120, 55]];
-const geom = sharedstreets.geometry(line);
-geom.id // => 'ce9c0ec1472c0a8bab3190ab075e9b21'
-```
-
-Returns **Feature&lt;LineString>** SharedStreets Geometry
 
 ### geometryId
 
 Geometry Id
 
+SharedStreets Geometry Java Implementation
+<https://github.com/sharedstreets/sharedstreets-builder/blob/master/src/main/java/io/sharedstreets/data/SharedStreetsGeometry.java#L98-L108>
+
 **Parameters**
 
 -   `line` **(Feature&lt;LineString> | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>>)** Line Geometry as a GeoJSON LineString or an Array of Positions Array&lt;&lt;longitude, latitude>>.
@@ -69,56 +48,75 @@ Geometry Id
 **Examples**
 
 ```javascript
-const line = [[110, 45], [115, 50], [120, 55]];
-const id = sharedstreets.geometryId(line);
-id // => 'ce9c0ec1472c0a8bab3190ab075e9b21'
+sharedstreets.geometryId([[110, 45], [115, 50], [120, 55]]);
+// => 'ce9c0ec1472c0a8bab3190ab075e9b21'
 ```
 
-Returns **Feature&lt;LineString>** SharedStreets Geometry Id
-
-### intersection
-
-Intersection
-
-**Parameters**
-
--   `pt` **(Feature&lt;Point> | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>)** Point location reference as a GeoJSON Point or an Array of numbers &lt;longitude, latitude>.
--   `options` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Optional parameters (optional, default `{}`)
-    -   `options.nodeId` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)?** Node Id
-    -   `options.outboundReferenceIds` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>?** Outbound Reference Ids
-    -   `options.inboundReferenceIds` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>?** Inbound Reference Ids
-
-**Examples**
-
-```javascript
-const pt = [110, 45];
-const intersection = sharedstreets.intersection(pt);
-intersection.id // => '71f34691f182a467137b3d37265cb3b6'
-```
-
-Returns **Feature&lt;Point>** SharedStreets Intersection
+Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** SharedStreets Geometry Id
 
 ### intersectionId
 
 Intersection Id
 
+SharedStreets Intersection Java Implementation
+<https://github.com/sharedstreets/sharedstreets-builder/blob/master/src/main/java/io/sharedstreets/data/SharedStreetsIntersection.java#L42-L49>
+
 **Parameters**
 
 -   `pt` **(Feature&lt;Point> | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>)** Point location reference as a GeoJSON Point or an Array of numbers &lt;longitude, latitude>.
--   `options` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Optional parameters (optional, default `{}`)
-    -   `options.nodeId` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)?** Node Id
-    -   `options.outboundReferenceIds` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>?** Outbound Reference Ids
-    -   `options.inboundReferenceIds` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>?** Inbound Reference Ids
 
 **Examples**
 
 ```javascript
-const pt = [110, 45];
-const id = sharedstreets.intersectionId(pt);
-id // => '71f34691f182a467137b3d37265cb3b6'
+sharedstreets.intersectionId([110, 45]);
+// => '71f34691f182a467137b3d37265cb3b6'
 ```
 
-Returns **Feature&lt;Point>** SharedStreets Intersection
+Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** SharedStreets Intersection Id
+
+### referenceId
+
+Reference Id
+
+Shared Streets Reference Java Implementation
+<https://github.com/sharedstreets/sharedstreets-builder/blob/master/src/main/java/io/sharedstreets/data/SharedStreetsReference.java#L323-L340>
+
+**Parameters**
+
+-   `locationReferences` **(FeatureCollection&lt;Point> | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;Point>)** Location References in a form of a GeoJSON FeatureCollection or Array of points.
+-   `formOfWay` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Form Of Way
+
+**Examples**
+
+```javascript
+const locationReferences = [
+  sharedstreets.locationReference([-74.00482177734375, 40.741641998291016], {outboundBearing: 208, distanceToNextRef: 9279}),
+  sharedstreets.locationReference([-74.005126953125, 40.74085235595703], {inboundBearing: 188})
+];
+const formOfWay = 'MultipleCarriageway';
+
+sharedstreets.referenceId(locationReferences, formOfWay);
+// => '41d73e28819470745fa1f93dc46d82a9'
+```
+
+Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** SharedStreets Reference Id
+
+### latlonsToCoords
+
+latlonsToCoords
+
+**Parameters**
+
+-   `latlons` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>** Single Array of paired latitude & longitudes
+
+**Examples**
+
+```javascript
+latlonsToCoords([45, 110, 55, 120]);
+// => [[110, 45], [120, 55]]
+```
+
+Returns **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>>** GeoJSON coordinate format
 
 ### generateHash
 
@@ -131,8 +129,8 @@ Generates Hash for SharedStreets Reference ID
 **Examples**
 
 ```javascript
-const hash = sharedstreets.generateHash('Intersection 110.000000 45.000000')
-hash // => '71f34691f182a467137b3d37265cb3b6'
+sharedstreets.generateHash('Intersection -74.00482177734375 40.741641998291016');
+// => '69f13f881649cb21ee3b359730790bb9'
 ```
 
 Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** SharedStreets Reference ID
@@ -148,8 +146,8 @@ getRoadClass
 **Examples**
 
 ```javascript
-sharedstreets.getRoadClass(0) // => 'Motorway'
-sharedstreets.getRoadClass(5) // => 'Residential'
+sharedstreets.getRoadClass(0); // => 'Motorway'
+sharedstreets.getRoadClass(5); // => 'Residential'
 ```
 
 Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Road Class
@@ -165,8 +163,8 @@ getFormOfWay
 **Examples**
 
 ```javascript
-sharedstreets.getFormOfWay(0) // => 'Undefined'
-sharedstreets.getFormOfWay(5) // => 'TrafficSquare'
+sharedstreets.getFormOfWay(0); // => 'Undefined'
+sharedstreets.getFormOfWay(5); // => 'TrafficSquare'
 ```
 
 Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Form of Way

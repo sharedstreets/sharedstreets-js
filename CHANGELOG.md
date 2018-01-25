@@ -1,8 +1,13 @@
 # Changelog
 
+- Add `referenceId`
+- Add `locationReference`
+- Clean documentation
+
 ## 2018-01-23
 
-- Add Geometry Id & Intersection Id
+- Add `geometryId`
+- Add `intersectionId`
 
 ## 2018-01-11
 
