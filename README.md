@@ -10,14 +10,34 @@ Node.js & Javascript implementation of [SharedStreets Reference System](https://
 $ npm install sharedstreets
 ```
 
-**In browser**
+**CommonJS**
 
-Download the [CommonJS](https://unpkg.com/sharedstreets/dist/sharedstreets.js) or [UMD Minified](https://unpkg.com/sharedstreets/dist/sharedstreets.min.js) files, and include it in a script tag.
+```js
+const sharedstreets = require('sharedstreets');
+```
+
+**Typescript**
+
+```ts
+import * as sharedstreets from 'sharedstreets';
+```
+
+## In Browser
+
+Download the latest [sharedstreets.js](https://unpkg.com/sharedstreets@latest) UMD file or use the link directly and include it in a script tag.
 
 This will expose a global variable named **sharedstreets**.
 
+**external url**
+
 ```html
-<script src="sharedstreets.min.js" charset="utf-8"></script>
+<script src="https://unpkg.com/sharedstreets@latest" charset="utf-8"></script>
+```
+
+**local file**
+
+```html
+<script src="sharedstreets.js" charset="utf-8"></script>
 ```
 
 ## API
