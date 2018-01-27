@@ -147,7 +147,7 @@ export function latlonsToCoords (latlons: number[]) {
 }
 
 /**
- * Generates Hash for SharedStreets Reference ID
+ * Generates Base16 Hash
  *
  * @param {string} message Message to hash
  * @returns {string} SharedStreets Reference ID

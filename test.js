@@ -21,15 +21,15 @@ test('sharedstreets -- generateHash', t => {
 })
 
 test('sharedstreets -- geometry', t => {
-  t.equal(sharedstreets.geometry(line1).id, 'ce9c0ec1472c0a8bab3190ab075e9b21', 'geometry => line1')
-  t.equal(sharedstreets.geometry(line2).id, '02aa80dc9c72ea4175bfb10c05e5a2b9', 'geometry => line2')
-  t.equal(sharedstreets.geometry(line3).id, '58ae3bdd54f99e0331a8cb147557adcc', 'geometry => line3')
+  t.equal(sharedstreets.geometryId(line1), 'ce9c0ec1472c0a8bab3190ab075e9b21', 'geometry => line1')
+  t.equal(sharedstreets.geometryId(line2), '02aa80dc9c72ea4175bfb10c05e5a2b9', 'geometry => line2')
+  t.equal(sharedstreets.geometryId(line3), '58ae3bdd54f99e0331a8cb147557adcc', 'geometry => line3')
   t.end()
 })
 
 test('sharedstreets -- intersection', t => {
-  t.equal(sharedstreets.intersection(pt1).id, '71f34691f182a467137b3d37265cb3b6', 'intersection => pt1')
-  t.equal(sharedstreets.intersection(pt2).id, '103c2dbe16d28cdcdcd5e5e253eaa026', 'intersection => pt2')
-  t.equal(sharedstreets.intersection(pt3).id, '0f346cb98b5d8f0500e167cb0a390266', 'intersection => pt3')
+  t.equal(sharedstreets.intersectionId(pt1), '71f34691f182a467137b3d37265cb3b6', 'intersection => pt1')
+  t.equal(sharedstreets.intersectionId(pt2), '103c2dbe16d28cdcdcd5e5e253eaa026', 'intersection => pt2')
+  t.equal(sharedstreets.intersectionId(pt3), '0f346cb98b5d8f0500e167cb0a390266', 'intersection => pt3')
   t.end()
 })

@@ -47,8 +47,8 @@
     "typescript": "*"
   },
   "dependencies": {
-    "@turf/helpers": "6.0.0-beta.3",
-    "@turf/invariant": "6.0.0-beta.3",
+    "@turf/helpers": "6.x",
+    "@turf/invariant": "6.x",
     "sharedstreets-types": "1.x"
   }
 }

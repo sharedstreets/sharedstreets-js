@@ -120,7 +120,7 @@ Returns **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Gl
 
 ### generateHash
 
-Generates Hash for SharedStreets Reference ID
+Generates Base16 Hash
 
 **Parameters**
 
