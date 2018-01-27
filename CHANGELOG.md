@@ -1,6 +1,6 @@
 # Changelog
 
-## 2018-01-27
+## 2018-01-27 - 0.2.0
 
 - Add messages methods (helps troubleshoot library)
 - Add `geometryMessage`
