@@ -72,7 +72,7 @@ export function intersectionMessage(pt: number[] | Feature<Point> | Point): stri
  * Reference Id
  *
  * @param {string} formOfWay Form Of Way
- * @param {Array<LocationReference>} locationReferences Location References in a form of a GeoJSON FeatureCollection or Array of points.
+ * @param {Array<LocationReference>} locationReferences An Array of Location References.
  * @returns {string} SharedStreets Reference Id
  * @example
  * const locationReferences = [

@@ -94,7 +94,7 @@ Reference Id
 
 **Parameters**
 
--   `locationReferences` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;LocationReference>** Location References in a form of a GeoJSON FeatureCollection or Array of points.
+-   `locationReferences` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;LocationReference>** An Array of Location References.
 -   `formOfWay` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Form Of Way
 
 **Examples**
