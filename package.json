@@ -3,16 +3,20 @@
   "version": "0.2.0",
   "description": "SharedStreets, a 'digital commons' for the street",
   "main": "index",
+  "browser": "dist/sharedstreets.js",
   "files": [
     "index.js",
-    "index.ts"
+    "index.ts",
+    "dist"
   ],
   "scripts": {
     "pretest": "tsc",
     "test": "node test.js",
     "posttest": "tslint index.ts --project tsconfig.json",
     "docs": "tsc && documentation readme index.js --section=API",
-    "benchmark": "benchmark bench.js"
+    "benchmark": "benchmark bench.js",
+    "build": "browserify index.ts -p tsify -s sharedstreets -o dist/sharedstreets.js",
+    "postbuild": "uglifyjs dist/sharedstreets.js -o dist/sharedstreets.min.js -cm"
   },
   "repository": {
     "type": "git",
@@ -35,11 +39,13 @@
   },
   "homepage": "https://github.com/sharedstreets/sharedstreets.js#readme",
   "devDependencies": {
-    "@types/debug": "0.0.30",
     "@types/node": "*",
+    "browserify": "*",
     "tape": "*",
+    "tsify": "*",
     "tslint": "*",
-    "typescript": "*"
+    "typescript": "*",
+    "uglify-js": "*"
   },
   "dependencies": {
     "@turf/helpers": "6.x",
