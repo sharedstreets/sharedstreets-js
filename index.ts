@@ -72,7 +72,7 @@ export function intersectionMessage(pt: number[] | Feature<Point> | Point): stri
  * Reference Id
  *
  * @param {string} formOfWay Form Of Way
- * @param {FeatureCollection<Point>|Array<Point>} locationReferences Location References in a form of a GeoJSON FeatureCollection or Array of points.
+ * @param {Array<LocationReference>} locationReferences Location References in a form of a GeoJSON FeatureCollection or Array of points.
  * @returns {string} SharedStreets Reference Id
  * @example
  * const locationReferences = [
@@ -118,7 +118,7 @@ export function referenceMessage (locationReferences: LocationReference[], formO
  * @param {number} [options.inboundBearing] Inbound bearing of the street geometry for the 20 meters immediately following the location reference.
  * @param {number} [options.outboundBearing] Outbound bearing.
  * @param {number} [options.distanceToNextRef] Distance to next Location Reference (distance defined in centimeters).
- * @returns {Feature<Point>} SharedStreets Location Reference
+ * @returns {LocationReference} SharedStreets Location Reference
  * @example
  * const options = {
  *   outboundBearing: 208,
