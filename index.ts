@@ -6,6 +6,7 @@ import { LocationReference, FormOfWay } from 'sharedstreets-types'
 /**
  * Shared Streets Java implementation
  *
+ * @private
  * Intersection
  * https://github.com/sharedstreets/sharedstreets-builder/blob/master/src/main/java/io/sharedstreets/data/SharedStreetsIntersection.java#L42-L49
  *
