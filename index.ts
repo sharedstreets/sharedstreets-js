@@ -156,8 +156,8 @@ export function locationReference (
  * @param {Array<number>} latlons Single Array of paired latitude & longitudes
  * @returns {Array<Array<number>>} GeoJSON coordinate format
  * @example
- * latlonsToCoords([45, 110, 55, 120]);
- * // => [[110, 45], [120, 55]]
+ * const coords = latlonsToCoords([45, 110, 55, 120]);
+ * coords // => [[110, 45], [120, 55]]
  */
 export function latlonsToCoords (latlons: number[]) {
   const coords: Array<[number, number]> = []
@@ -174,8 +174,9 @@ export function latlonsToCoords (latlons: number[]) {
  * @param {string} message Message to hash
  * @returns {string} SharedStreets Reference ID
  * @example
- * sharedstreets.generateHash('Intersection -74.00482177734375 40.741641998291016');
- * // => '69f13f881649cb21ee3b359730790bb9'
+ * const message = 'Intersection -74.00482177734375 40.741641998291016';
+ * const hash = sharedstreets.generateHash(message);
+ * hash // => '69f13f881649cb21ee3b359730790bb9'
  */
 export function generateHash (message: string): string {
   return createHash('md5').update(message).digest('hex')

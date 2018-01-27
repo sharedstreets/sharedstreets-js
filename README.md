@@ -123,8 +123,8 @@ Converts latlons to GeoJSON LineString Coords
 **Examples**
 
 ```javascript
-latlonsToCoords([45, 110, 55, 120]);
-// => [[110, 45], [120, 55]]
+const coords = latlonsToCoords([45, 110, 55, 120]);
+coords // => [[110, 45], [120, 55]]
 ```
 
 Returns **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>>** GeoJSON coordinate format
@@ -140,8 +140,9 @@ Generates Base16 Hash
 **Examples**
 
 ```javascript
-sharedstreets.generateHash('Intersection -74.00482177734375 40.741641998291016');
-// => '69f13f881649cb21ee3b359730790bb9'
+const message = 'Intersection -74.00482177734375 40.741641998291016';
+const hash = sharedstreets.generateHash(message);
+hash // => '69f13f881649cb21ee3b359730790bb9'
 ```
 
 Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** SharedStreets Reference ID
