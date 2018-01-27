@@ -37,11 +37,7 @@ export function geometryId (line: Feature<LineString> | LineString | number[][])
 /**
  * Geometry Message
  *
- * @param {Feature<LineString>|Array<Array<number>>} line Line Geometry as a GeoJSON LineString or an Array of Positions Array<<longitude, latitude>>.
- * @returns {string} SharedStreets Geometry Message
- * @example
- * const message = sharedstreets.geometryMessage([[110, 45], [115, 50], [120, 55]]);
- * message // => 'ce9c0ec1472c0a8bab3190ab075e9b21'
+ * @private
  */
 export function geometryMessage (line: Feature<LineString> | LineString | number[][]): string {
   const coords = getCoords(line)
@@ -65,11 +61,7 @@ export function intersectionId(pt: number[] | Feature<Point> | Point): string {
 /**
  * Intersection Message
  *
- * @param {Feature<Point>|Array<number>} pt Point location reference as a GeoJSON Point or an Array of numbers <longitude, latitude>.
- * @returns {string} SharedStreets Intersection Message
- * @example
- * const message = sharedstreets.intersectionMessage([110, 45]);
- * message // => 'Intersection 110.000000 45.000000'
+ * @private
  */
 export function intersectionMessage(pt: number[] | Feature<Point> | Point): string {
   const [x, y] = getCoord(pt)
@@ -100,23 +92,12 @@ export function referenceId (locationReferences: LocationReference[], formOfWay:
 /**
  * Reference Message
  *
- * @param {string} formOfWay Form Of Way
- * @param {FeatureCollection<Point>|Array<Point>} locationReferences Location References in a form of a GeoJSON FeatureCollection or Array of points.
- * @returns {string} SharedStreets Reference Id
- * @example
- * const locationReferences = [
- *   sharedstreets.locationReference([-74.00482177734375, 40.741641998291016], {outboundBearing: 208, distanceToNextRef: 9279}),
- *   sharedstreets.locationReference([-74.005126953125, 40.74085235595703], {inboundBearing: 188})
- * ];
- * const formOfWay = 'MultipleCarriageway';
- *
- * const message = sharedstreets.referenceMessage(locationReferences, formOfWay);
- * message // => '41d73e28819470745fa1f93dc46d82a9'
+ * @private
  */
 export function referenceMessage (locationReferences: LocationReference[], formOfWay: FormOfWay): string {
   let message = `Reference ${formOfWay}`
   locationReferences.forEach(lr => {
-    if (lr.outboundBearing !== null || lr.outboundBearing !== undefined) {
+    if (lr.outboundBearing || lr.outboundBearing === 0) {
       message += ` ${Math.round(lr.outboundBearing)}`
       message += ` ${Math.round(lr.distanceToNextRef * 100)}` // store in centimeter
     }
