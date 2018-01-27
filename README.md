@@ -18,7 +18,7 @@ const sharedstreets = require('sharedstreets');
 
 **Typescript**
 
-```ts
+```typescript
 import * as sharedstreets from 'sharedstreets';
 ```
 
