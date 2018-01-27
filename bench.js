@@ -5,19 +5,26 @@ const Benchmark = require('benchmark')
 const message = 'Intersection 110.000000 45.000000'
 const coord = [110, 45]
 const geom = [[110, 45], [115, 50], [120, 55]]
+const locationReferences = [
+    sharedstreets.locationReference([-74.00482177734375, 40.741641998291016], {outboundBearing: 208, distanceToNextRef: 9279}),
+    sharedstreets.locationReference([-74.005126953125, 40.74085235595703], {inboundBearing: 188})
+];
+const formOfWay = 'MultipleCarriageway';
 
+sharedstreets.referenceId(locationReferences, formOfWay)
 /**
  * Benchmark Results
  *
- * generateHash x 172,742 ops/sec ±2.18% (88 runs sampled)
- * intersection x 120,711 ops/sec ±1.79% (80 runs sampled)
- * geometry x 60,542 ops/sec ±14.37% (68 runs sampled)
+ * generateHash x 502,728 ops/sec ±3.09% (71 runs sampled)
+ * intersectionId x 322,772 ops/sec ±3.84% (79 runs sampled)
+ * geometryId x 183,952 ops/sec ±4.09% (83 runs sampled)
  */
 const suite = new Benchmark.Suite('sharedstreets')
 suite
-    .add('generateHash', () => sharedstreets.generateHash(message))
-    .add('intersection', () => sharedstreets.intersection(coord))
-    .add('geometry', () => sharedstreets.geometry(geom))
+    // .add('generateHash', () => sharedstreets.generateHash(message))
+    // .add('intersectionId', () => sharedstreets.intersectionId(coord))
+    // .add('geometryId', () => sharedstreets.geometryId(geom))
+    .add('referenceId', () => sharedstreets.referenceId(locationReferences, formOfWay))
     .on('cycle', e => console.log(String(e.target)))
     .on('complete', () => {})
     .run()

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2018-01-27
+
+- Add messages methods (helps troubleshoot library)
+- Add `geometryMessage`
+- Add `intersectionMessage`
+- Add `referenceMessage`
+
+## 2018-01-25
+
 - Add `referenceId`
 - Add `locationReference`
 - Clean documentation

@@ -1,60 +1,82 @@
 import { createHash } from 'crypto'
 import { getCoord, getCoords } from '@turf/invariant'
-import {
-  // point, lineString,
-  Point, LineString, Feature,
-} from '@turf/helpers'
-import {
-  // SharedStreetsGeometry,
-  // SharedStreetsIntersection,
-  // SharedStreetsMetadata,
-  // SharedStreetsReference,
-  LocationReference,
-  // RoadClass,
-  FormOfWay,
-} from 'sharedstreets-types'
+import { Point, LineString, Feature } from '@turf/helpers'
+import { LocationReference, FormOfWay } from 'sharedstreets-types'
+
+/**
+ * Shared Streets Java implementation
+ *
+ * Intersection
+ * https://github.com/sharedstreets/sharedstreets-builder/blob/master/src/main/java/io/sharedstreets/data/SharedStreetsIntersection.java#L42-L49
+ *
+ * Geometry
+ * https://github.com/sharedstreets/sharedstreets-builder/blob/master/src/main/java/io/sharedstreets/data/SharedStreetsGeometry.java#L98-L108
+ *
+ * Reference
+ * https://github.com/sharedstreets/sharedstreets-builder/blob/master/src/main/java/io/sharedstreets/data/SharedStreetsReference.java#L323-L340
+ *
+ * Location Reference
+ * https://github.com/sharedstreets/sharedstreets-builder/blob/master/src/main/java/io/sharedstreets/data/SharedStreetsLocationReference.java
+ */
 
 /**
  * Geometry Id
  *
- * SharedStreets Geometry Java Implementation
- * https://github.com/sharedstreets/sharedstreets-builder/blob/master/src/main/java/io/sharedstreets/data/SharedStreetsGeometry.java#L98-L108
- *
  * @param {Feature<LineString>|Array<Array<number>>} line Line Geometry as a GeoJSON LineString or an Array of Positions Array<<longitude, latitude>>.
  * @returns {string} SharedStreets Geometry Id
  * @example
- * sharedstreets.geometryId([[110, 45], [115, 50], [120, 55]]);
- * // => 'ce9c0ec1472c0a8bab3190ab075e9b21'
+ * const id = sharedstreets.geometryId([[110, 45], [115, 50], [120, 55]]);
+ * id // => 'ce9c0ec1472c0a8bab3190ab075e9b21'
  */
 export function geometryId (line: Feature<LineString> | LineString | number[][]): string {
-  const coords = getCoords(line)
-  const message = 'Geometry ' + coords.map(([x, y]) => `${x.toFixed(6)} ${y.toFixed(6)}`).join(' ')
+  const message = geometryMessage(line)
   return generateHash(message)
+}
+
+/**
+ * Geometry Message
+ *
+ * @param {Feature<LineString>|Array<Array<number>>} line Line Geometry as a GeoJSON LineString or an Array of Positions Array<<longitude, latitude>>.
+ * @returns {string} SharedStreets Geometry Message
+ * @example
+ * const message = sharedstreets.geometryMessage([[110, 45], [115, 50], [120, 55]]);
+ * message // => 'ce9c0ec1472c0a8bab3190ab075e9b21'
+ */
+export function geometryMessage (line: Feature<LineString> | LineString | number[][]): string {
+  const coords = getCoords(line)
+  return 'Geometry ' + coords.map(([x, y]) => `${x.toFixed(6)} ${y.toFixed(6)}`).join(' ')
 }
 
 /**
  * Intersection Id
  *
- * SharedStreets Intersection Java Implementation
- * https://github.com/sharedstreets/sharedstreets-builder/blob/master/src/main/java/io/sharedstreets/data/SharedStreetsIntersection.java#L42-L49
- *
  * @param {Feature<Point>|Array<number>} pt Point location reference as a GeoJSON Point or an Array of numbers <longitude, latitude>.
  * @returns {string} SharedStreets Intersection Id
  * @example
- * sharedstreets.intersectionId([110, 45]);
- * // => '71f34691f182a467137b3d37265cb3b6'
+ * const id = sharedstreets.intersectionId([110, 45]);
+ * id // => '71f34691f182a467137b3d37265cb3b6'
  */
 export function intersectionId(pt: number[] | Feature<Point> | Point): string {
-  const [x, y] = getCoord(pt)
-  const message = `Intersection ${x.toFixed(6)} ${y.toFixed(6)}`
+  const message = intersectionMessage(pt)
   return generateHash(message)
 }
 
 /**
- * Reference Id
+ * Intersection Message
  *
- * Shared Streets Reference Java Implementation
- * https://github.com/sharedstreets/sharedstreets-builder/blob/master/src/main/java/io/sharedstreets/data/SharedStreetsReference.java#L323-L340
+ * @param {Feature<Point>|Array<number>} pt Point location reference as a GeoJSON Point or an Array of numbers <longitude, latitude>.
+ * @returns {string} SharedStreets Intersection Message
+ * @example
+ * const message = sharedstreets.intersectionMessage([110, 45]);
+ * message // => 'Intersection 110.000000 45.000000'
+ */
+export function intersectionMessage(pt: number[] | Feature<Point> | Point): string {
+  const [x, y] = getCoord(pt)
+  return `Intersection ${x.toFixed(6)} ${y.toFixed(6)}`
+}
+
+/**
+ * Reference Id
  *
  * @param {string} formOfWay Form Of Way
  * @param {FeatureCollection<Point>|Array<Point>} locationReferences Location References in a form of a GeoJSON FeatureCollection or Array of points.
@@ -66,28 +88,46 @@ export function intersectionId(pt: number[] | Feature<Point> | Point): string {
  * ];
  * const formOfWay = 'MultipleCarriageway';
  *
- * sharedstreets.referenceId(locationReferences, formOfWay);
- * // => '41d73e28819470745fa1f93dc46d82a9'
+ * const id = sharedstreets.referenceId(locationReferences, formOfWay);
+ * id // => '41d73e28819470745fa1f93dc46d82a9'
  */
 export function referenceId (locationReferences: LocationReference[], formOfWay: FormOfWay): string {
+  const message = referenceMessage(locationReferences, formOfWay)
+  return generateHash(message)
+}
+
+/**
+ * Reference Message
+ *
+ * @param {string} formOfWay Form Of Way
+ * @param {FeatureCollection<Point>|Array<Point>} locationReferences Location References in a form of a GeoJSON FeatureCollection or Array of points.
+ * @returns {string} SharedStreets Reference Id
+ * @example
+ * const locationReferences = [
+ *   sharedstreets.locationReference([-74.00482177734375, 40.741641998291016], {outboundBearing: 208, distanceToNextRef: 9279}),
+ *   sharedstreets.locationReference([-74.005126953125, 40.74085235595703], {inboundBearing: 188})
+ * ];
+ * const formOfWay = 'MultipleCarriageway';
+ *
+ * const message = sharedstreets.referenceMessage(locationReferences, formOfWay);
+ * message // => '41d73e28819470745fa1f93dc46d82a9'
+ */
+export function referenceMessage (locationReferences: LocationReference[], formOfWay: FormOfWay): string {
   let message = `Reference ${formOfWay}`
   locationReferences.forEach(lr => {
     if (lr.outboundBearing !== null || lr.outboundBearing !== undefined) {
       message += ` ${Math.round(lr.outboundBearing)}`
       message += ` ${Math.round(lr.distanceToNextRef * 100)}` // store in centimeter
     }
-    if (lr.inboundBearing !== null || lr.inboundBearing !== undefined) {
+    if (lr.inboundBearing || lr.inboundBearing === 0) {
       message += ` ${lr.inboundBearing.toFixed(1)}`
     }
   })
-  return generateHash(message)
+  return message
 }
 
 /**
- * Location Reference Id
- *
- * SharedStreets Location Reference Java Implementation
- * https://github.com/sharedstreets/sharedstreets-builder/blob/master/src/main/java/io/sharedstreets/data/SharedStreetsLocationReference.java
+ * Location Reference
  *
  * @private
  * @param {Feature<Point>|Array<number>} pt Point as a GeoJSON Point or an Array of numbers <longitude, latitude>.
@@ -103,7 +143,7 @@ export function referenceId (locationReferences: LocationReference[], formOfWay:
  *   distanceToNextRef: 9279
  * };
  * const locRef = sharedstreets.locationReference([-74.00482177734375, 40.741641998291016], options);
- * locRef.intersectionId // => 'NxPFkg4CrzHeFhwV7Uiq7K'
+ * locRef.intersectionId // => '5c88d4fa3900a083355c46c54da8f584'
  */
 export function locationReference (
   pt: number[] | Feature<Point> | Point,
@@ -129,7 +169,7 @@ export function locationReference (
 }
 
 /**
- * latlonsToCoords
+ * Converts latlons to GeoJSON LineString Coords
  *
  * @param {Array<number>} latlons Single Array of paired latitude & longitudes
  * @returns {Array<Array<number>>} GeoJSON coordinate format
@@ -160,7 +200,7 @@ export function generateHash (message: string): string {
 }
 
 /**
- * getRoadClass
+ * Retrieve RoadClass value rom number
  *
  * @param {number} value Number value [between 0-8]
  * @returns {string} Road Class
@@ -184,7 +224,7 @@ export function getRoadClass (value: number) {
 }
 
 /**
- * getFormOfWay
+ * Retrieve FormOfWay value from number
  *
  * @param {number} value Number value [between 0-8]
  * @returns {string} Form of Way

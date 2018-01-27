@@ -6,8 +6,7 @@
 		"moduleResolution": "node",
 		"noImplicitAny": true,
 		"noUnusedLocals": true,
-		"noUnusedParameters": true,
-		"declaration": true
+		"noUnusedParameters": true
 	},
 	"include": [
 		"index.ts"
