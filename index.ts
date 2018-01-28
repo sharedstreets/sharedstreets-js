@@ -153,17 +153,17 @@ export function locationReference (
 /**
  * Converts latlons to GeoJSON LineString Coords
  *
- * @param {Array<number>} latlons Single Array of paired latitude & longitudes
+ * @param {Array<number>} lonlats Single Array of paired longitudes and latitudes (x,y)
  * @returns {Array<Array<number>>} GeoJSON coordinate format
  * @example
- * const coords = latlonsToCoords([45, 110, 55, 120]);
+ * const coords = lonLatsToCoords([45, 110, 55, 120]);
  * coords // => [[110, 45], [120, 55]]
  */
-export function latlonsToCoords (latlons: number[]) {
+export function lonLatsToCoords (lonlats: number[]) {
   const coords: Array<[number, number]> = []
-  latlons.reduce((lat, deg, index) => {
-    if (index % 2 === 0) return deg // Latitude
-    coords.push([deg, lat])
+  lonlats.reduce((lon, deg, index) => {
+    if (index % 2 === 0) return deg; // longitude
+    coords.push([deg, lon])
   })
   return coords
 }
