@@ -41,6 +41,7 @@
   "devDependencies": {
     "@types/node": "*",
     "browserify": "*",
+    "sharedstreets-pbf": "*",
     "tape": "*",
     "tsify": "*",
     "tslint": "*",
@@ -50,7 +51,7 @@
   "dependencies": {
     "@turf/helpers": "6.x",
     "@turf/invariant": "6.x",
-    "debug": "^3.1.0",
+    "bignumber.js": "6.x",
     "sharedstreets-types": "1.x"
   }
 }

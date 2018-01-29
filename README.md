@@ -101,13 +101,13 @@ Reference Id
 
 ```javascript
 const locationReferences = [
-  sharedstreets.locationReference([-74.00482177734375, 40.741641998291016], {outboundBearing: 208, distanceToNextRef: 9279}),
-  sharedstreets.locationReference([-74.005126953125, 40.74085235595703], {inboundBearing: 188})
+  sharedstreets.locationReference([-74.0048213, 40.7416415], {outboundBearing: 208, distanceToNextRef: 9279}),
+  sharedstreets.locationReference([-74.0051265, 40.7408505], {inboundBearing: 188})
 ];
-const formOfWay = 'MultipleCarriageway';
+const formOfWay = 2; // => 'MultipleCarriageway'
 
 const id = sharedstreets.referenceId(locationReferences, formOfWay);
-id // => '41d73e28819470745fa1f93dc46d82a9'
+id // => '???'
 ```
 
 Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** SharedStreets Reference Id

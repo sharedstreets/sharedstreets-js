@@ -2,6 +2,7 @@ import { createHash } from 'crypto'
 import { getCoord, getCoords } from '@turf/invariant'
 import { Point, LineString, Feature } from '@turf/helpers'
 import { LocationReference, FormOfWay } from 'sharedstreets-types'
+import BigNumber from 'bignumber.js'
 
 /**
  * Shared Streets Java implementation
@@ -41,7 +42,7 @@ export function geometryId (line: Feature<LineString> | LineString | number[][])
  */
 export function geometryMessage (line: Feature<LineString> | LineString | number[][]): string {
   const coords = getCoords(line)
-  return 'Geometry ' + coords.map(([x, y]) => `${x.toFixed(6)} ${y.toFixed(6)}`).join(' ')
+  return 'Geometry ' + coords.map(([x, y]) => `${round(x)} ${round(y)}`).join(' ')
 }
 
 /**
@@ -65,7 +66,7 @@ export function intersectionId(pt: number[] | Feature<Point> | Point): string {
  */
 export function intersectionMessage(pt: number[] | Feature<Point> | Point): string {
   const [x, y] = getCoord(pt)
-  return `Intersection ${x.toFixed(6)} ${y.toFixed(6)}`
+  return `Intersection ${round(x)} ${round(y)}`
 }
 
 /**
@@ -76,13 +77,13 @@ export function intersectionMessage(pt: number[] | Feature<Point> | Point): stri
  * @returns {string} SharedStreets Reference Id
  * @example
  * const locationReferences = [
- *   sharedstreets.locationReference([-74.00482177734375, 40.741641998291016], {outboundBearing: 208, distanceToNextRef: 9279}),
- *   sharedstreets.locationReference([-74.005126953125, 40.74085235595703], {inboundBearing: 188})
+ *   sharedstreets.locationReference([-74.0048213, 40.7416415], {outboundBearing: 208, distanceToNextRef: 9279}),
+ *   sharedstreets.locationReference([-74.0051265, 40.7408505], {inboundBearing: 188})
  * ];
- * const formOfWay = 'MultipleCarriageway';
+ * const formOfWay = 2; // => 'MultipleCarriageway'
  *
  * const id = sharedstreets.referenceId(locationReferences, formOfWay);
- * id // => '41d73e28819470745fa1f93dc46d82a9'
+ * id // => '???'
  */
 export function referenceId (locationReferences: LocationReference[], formOfWay: FormOfWay): string {
   const message = referenceMessage(locationReferences, formOfWay)
@@ -97,12 +98,13 @@ export function referenceId (locationReferences: LocationReference[], formOfWay:
 export function referenceMessage (locationReferences: LocationReference[], formOfWay: FormOfWay): string {
   let message = `Reference ${formOfWay}`
   locationReferences.forEach(lr => {
-    if (lr.outboundBearing || lr.outboundBearing === 0) {
-      message += ` ${Math.round(lr.outboundBearing)}`
-      message += ` ${Math.round(lr.distanceToNextRef * 100)}` // store in centimeter
+    message += ` ${round(lr.lon)} ${round(lr.lat)}`
+    if (lr.outboundBearing !== null && lr.outboundBearing !== undefined) {
+      message += ` ${Math.floor(lr.outboundBearing)}`
+      message += ` ${Math.floor(lr.distanceToNextRef * 100)}` // store in centimeter
     }
-    if (lr.inboundBearing || lr.inboundBearing === 0) {
-      message += ` ${lr.inboundBearing.toFixed(1)}`
+    if (lr.inboundBearing !== null && lr.inboundBearing !== undefined) {
+      message += ` ${round(lr.inboundBearing, 1)}`
     }
   })
   return message
@@ -139,7 +141,11 @@ export function locationReference (
   const id = options.intersectionId || intersectionId(coord)
 
   // Include extra properties & Reference ID to GeoJSON Properties
-  const locRef: LocationReference = {intersectionId: id}
+  const locRef: LocationReference = {
+    intersectionId: id,
+    lon: coord[0],
+    lat: coord[1],
+  }
   if (options.inboundBearing) locRef.inboundBearing = options.inboundBearing
   if (options.outboundBearing) locRef.outboundBearing = options.outboundBearing
   if (options.distanceToNextRef) locRef.distanceToNextRef = options.distanceToNextRef
@@ -227,4 +233,15 @@ export function getFormOfWay (value: number) {
     case 7: return 'Other'
     default: throw new Error(`[${value}] unknown FormOfWay value`)
   }
+}
+
+/**
+ * Round
+ *
+ * @private
+ * @param {number} num Number to round
+ * @param {number} [decimalPlaces=6] Decimal Places
+ */
+export function round(num: number, decimalPlaces = 6) {
+  return new BigNumber(String(num)).toFixed(decimalPlaces)
 }
