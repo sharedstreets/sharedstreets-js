@@ -49,7 +49,7 @@ This will expose a global variable named **sharedstreets**.
 -   [geometryId](#geometryid)
 -   [intersectionId](#intersectionid)
 -   [referenceId](#referenceid)
--   [latlonsToCoords](#latlonstocoords)
+-   [lonlatsToCoords](#lonlatstocoords)
 -   [generateHash](#generatehash)
 -   [getRoadClass](#getroadclass)
 -   [getFormOfWay](#getformofway)
@@ -112,18 +112,18 @@ id // => '41d73e28819470745fa1f93dc46d82a9'
 
 Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** SharedStreets Reference Id
 
-### latlonsToCoords
+### lonlatsToCoords
 
-Converts latlons to GeoJSON LineString Coords
+Converts lonlats to GeoJSON LineString Coords
 
 **Parameters**
 
--   `latlons` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>** Single Array of paired latitude & longitudes
+-   `lonlats` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>** Single Array of paired latitude & longitudes
 
 **Examples**
 
 ```javascript
-const coords = latlonsToCoords([45, 110, 55, 120]);
+const coords = lonlatsToCoords([110, 45, 120, 55]);
 coords // => [[110, 45], [120, 55]]
 ```
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2018-01-29 - 0.3.0
+
+- Add `.pbf` test cases
+- Replace `latlonsToCoords` => `lonlatsToCoords`
+
 ## 2018-01-27 - 0.2.0
 
 - Add messages methods (helps troubleshoot library)
