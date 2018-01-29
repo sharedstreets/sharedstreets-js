@@ -3,7 +3,7 @@
 ## 2018-01-29 - 0.3.0
 
 - Fix `bignumber.js` precision loss issue
-- Add `.pbf` test cases
+- Add `.pbf` test cases (intersection 100%, geometry 100%, reference 0%)
 - Replace `latlonsToCoords` => `lonlatsToCoords`
 
 ## 2018-01-27 - 0.2.0

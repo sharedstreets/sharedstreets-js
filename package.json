@@ -11,7 +11,7 @@
   ],
   "scripts": {
     "pretest": "tsc",
-    "test": "node test.js",
+    "test": "tap test.js",
     "posttest": "tslint index.ts --project tsconfig.json",
     "docs": "tsc && documentation readme index.js --section=API",
     "benchmark": "benchmark bench.js",
@@ -42,6 +42,7 @@
     "@types/node": "*",
     "browserify": "*",
     "sharedstreets-pbf": "*",
+    "tap": "*",
     "tape": "*",
     "tsify": "*",
     "tslint": "*",
