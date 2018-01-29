@@ -1,4 +1,8 @@
+const fs = require('fs')
+const path = require('path')
+const glob = require('glob')
 const test = require('tape')
+const sharedstreetsPbf = require('sharedstreets-pbf')
 const sharedstreets = require('./')
 
 // fixtures
@@ -48,10 +52,8 @@ test('sharedstreets -- geometry', t => {
     -74.007025,
     40.733334
   ])
-  t.equal(sharedstreets.geometryMessage(coords1), 'Geometry -74.008536 40.744172 -74.008563 40.744033 -74.008589 40.743895 -74.008680 40.743430 -74.008752 40.743065', 'message => coords1')
-
-  // Geometry ID Failing (doesn't line up with Java builder)
-  t.skip(sharedstreets.geometryId(coords1), '8e1b6416c8931954511b4a175c737059', 'id => coords1')
+  t.equal(sharedstreets.geometryMessage(coords1), 'Geometry -74.008536 40.744172 -74.008563 40.744033 -74.008590 40.743895 -74.008680 40.743430 -74.008752 40.743065', 'message => coords1')
+  t.equal(sharedstreets.geometryId(coords1), '8e1b6416c8931954511b4a175c737059', 'id => coords1')
 
   t.equal(sharedstreets.geometryMessage(coords2), 'Geometry -74.007399 40.733370 -74.007025 40.733334', 'message => coords2')
   t.equal(sharedstreets.geometryId(coords2), '8e2f3977a03a0723cf1cd46d37244427', 'id => coords2')
@@ -68,8 +70,8 @@ test('sharedstreets -- intersection', t => {
   t.equal(sharedstreets.intersectionMessage(pt3), 'Intersection -74.004107 40.634060', 'intersectionMessage => pt3')
 
   // Extras
-  // https://github.com/sharedstreets/sharedstreets-pbf/blob/master/test/out/11-602-769.intersection.json
   t.equal(sharedstreets.intersectionId([-74.00962750000001, 40.740100500000004]), '803182394d597ae26d70807a89ed400c', 'intersectionId => extra1')
+  t.equal(sharedstreets.intersectionMessage([-74.00962750000001, 40.740100500000004]), 'Intersection -74.009628 40.740101', 'intersectionMessage => extra1')
   t.end()
 })
 
@@ -78,13 +80,13 @@ test('sharedstreets -- referenceId', t => {
   const locationReferenceInbound = sharedstreets.locationReference([-74.0051265, 40.7408505], {inboundBearing: 188})
   const formOfWay = 2; // => 'MultipleCarriageway'
 
-  t.equal(sharedstreets.referenceMessage([locationReferenceOutbound, locationReferenceInbound], formOfWay), 'Reference 2 208 927900 188.0', 'referenceId => pt1')
+  t.equal(sharedstreets.referenceMessage([locationReferenceOutbound, locationReferenceInbound], formOfWay), 'Reference 2 -74.004821 40.741642 208 927900 -74.005127 40.740851 188.0', 'referenceId => pt1')
 
   t.equal(locationReferenceOutbound.intersectionId, '69f13f881649cb21ee3b359730790bb9', 'locationReferenceOutbound => intersectionId')
   t.equal(locationReferenceInbound.intersectionId, 'f361178c33988ef9bfc8b51b7545c5fa', 'locationReferenceInbound => intersectionId')
 
   // Failing (doesn't line up with Java builder)
-  t.skip(sharedstreets.referenceId([locationReferenceOutbound, locationReferenceInbound], formOfWay), '41d73e28819470745fa1f93dc46d82a9', 'referenceId => pt1')
+  t.equal(sharedstreets.referenceId([locationReferenceOutbound, locationReferenceInbound], formOfWay), '41d73e28819470745fa1f93dc46d82a9', 'referenceId => pt1')
   t.end()
 })
 
@@ -96,5 +98,18 @@ test('sharedstreets -- locationReference', t => {
   const locRef = sharedstreets.locationReference([-74.0048213, 40.7416415], options);
 
   t.equal(locRef.intersectionId, '69f13f881649cb21ee3b359730790bb9', 'locRef => intersectionId')
+  t.end()
+})
+
+test('sharedstreets-pbf -- intersection', t => {
+  glob.sync(path.join(__dirname, 'test', 'in', `*.intersection.pbf`)).forEach(filepath => {
+    const {name, base} = path.parse(filepath)
+    const buffer = fs.readFileSync(filepath)
+    const intersections = sharedstreetsPbf.intersection(buffer)
+
+    intersections.forEach(({lon, lat, id}) => {
+      if (sharedstreets.intersectionId([lon, lat]) !== id) t.error(`[${lon},${lat}] => ${id}`)
+    })
+  })
   t.end()
 })
