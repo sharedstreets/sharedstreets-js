@@ -103,9 +103,6 @@ export function referenceMessage (locationReferences: LocationReference[], formO
       message += ` ${Math.floor(lr.outboundBearing)}`
       message += ` ${Math.floor(lr.distanceToNextRef * 100)}` // store in centimeter
     }
-    if (lr.inboundBearing !== null && lr.inboundBearing !== undefined) {
-      message += ` ${round(lr.inboundBearing, 1)}`
-    }
   })
   return message
 }
