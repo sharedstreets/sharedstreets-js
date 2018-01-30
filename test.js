@@ -80,13 +80,11 @@ test('sharedstreets -- referenceId', t => {
   const locationReferenceInbound = sharedstreets.locationReference([-74.0051265, 40.7408505], {inboundBearing: 188})
   const formOfWay = 2; // => 'MultipleCarriageway'
 
-  t.equal(sharedstreets.referenceMessage([locationReferenceOutbound, locationReferenceInbound], formOfWay), 'Reference 2 -74.004821 40.741642 208 927900 -74.005127 40.740851 188.0', 'referenceId => pt1')
-
   t.equal(locationReferenceOutbound.intersectionId, '69f13f881649cb21ee3b359730790bb9', 'locationReferenceOutbound => intersectionId')
   t.equal(locationReferenceInbound.intersectionId, 'f361178c33988ef9bfc8b51b7545c5fa', 'locationReferenceInbound => intersectionId')
 
-  // Failing (doesn't line up with Java builder)
-  t.skip(sharedstreets.referenceId([locationReferenceOutbound, locationReferenceInbound], formOfWay), '41d73e28819470745fa1f93dc46d82a9', 'referenceId => pt1')
+  t.equal(sharedstreets.referenceMessage([locationReferenceOutbound, locationReferenceInbound], formOfWay), 'Reference 2 -74.004821 40.741642 208 9279 -74.005127 40.740851', 'referenceId => pt1')
+  t.equal(sharedstreets.referenceId([locationReferenceOutbound, locationReferenceInbound], formOfWay), 'ef209661aeebadfb4e0a2cb93153493f', 'referenceId => pt1')
   t.end()
 })
 
@@ -109,7 +107,10 @@ test('sharedstreets-pbf -- intersection', t => {
 
     intersections.forEach(intersection => {
       const {lon, lat, id} = intersection
-      if (sharedstreets.intersectionId([lon, lat]) !== id) t.error(`[${lon},${lat}] => ${id}`)
+      const expectedId = sharedstreets.intersectionId([lon, lat])
+      const message = sharedstreets.intersectionMessage([lon, lat])
+
+      t.equal(expectedId, id, `[${message}] => ${id}`)
     })
   })
   t.end()
@@ -124,7 +125,10 @@ test('sharedstreets-pbf -- geometry', t => {
     geometries.forEach(geometry => {
       const {lonlats, id} = geometry
       const coords = sharedstreets.lonlatsToCoords(lonlats)
-      if (sharedstreets.geometryId(coords) !== id) t.error(`[${lonlats}] => ${id}`)
+      const expectedId = sharedstreets.geometryId(coords)
+      const message = sharedstreets.geometryMessage(coords)
+
+      t.equal(expectedId, id, `[${message}] => ${id}`)
     })
   })
   t.end()
@@ -138,7 +142,10 @@ test('sharedstreets-pbf -- reference', t => {
 
     geometries.forEach(reference => {
       const {locationReferences, id, formOfWay} = reference
-      if (sharedstreets.referenceId(locationReferences, formOfWay) !== id) t.skip(`${formOfWay} => ${id}`)
+      const expectedId = sharedstreets.referenceId(locationReferences, formOfWay)
+      const message = sharedstreets.referenceMessage(locationReferences, formOfWay)
+
+      t.equal(expectedId, id, `[${message}] => ${id}`)
     })
   })
   t.end()

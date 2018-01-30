@@ -1,5 +1,13 @@
 # Changelog
 
+## 2018-01-30 - 0.4.0
+
+- Improved readability of testing (expectedId)
+- Handle FormOfWay as `undefined`
+- Split method names `getFormOfWay` => `getFormOfWayString` & `getFormOfWayNumber`
+- Split method names `getFormOfWay` => `getFormOfWayString` & `getFormOfWayNumber`
+- Update pbf sample data
+
 ## 2018-01-29 - 0.3.0
 
 - Fix `bignumber.js` precision loss issue
