@@ -19,6 +19,9 @@ import BigNumber from 'bignumber.js'
  *
  * Location Reference
  * https://github.com/sharedstreets/sharedstreets-builder/blob/master/src/main/java/io/sharedstreets/data/SharedStreetsLocationReference.java
+ *
+ * OpenLR White Paper
+ * http://www.openlr.org/data/docs/OpenLR-Whitepaper_v1.5.pdf
  */
 
 /**
@@ -95,13 +98,16 @@ export function referenceId (locationReferences: LocationReference[], formOfWay:
  *
  * @private
  */
-export function referenceMessage (locationReferences: LocationReference[], formOfWay: FormOfWay): string {
+export function referenceMessage (locationReferences: LocationReference[], formOfWay: string | number): string {
+  // Convert FormOfWay to Number if encoding ID
+  if (typeof formOfWay !== 'number') formOfWay = getFormOfWayNumber(formOfWay)
+
   let message = `Reference ${formOfWay}`
   locationReferences.forEach(lr => {
     message += ` ${round(lr.lon)} ${round(lr.lat)}`
     if (lr.outboundBearing !== null && lr.outboundBearing !== undefined) {
       message += ` ${Math.floor(lr.outboundBearing)}`
-      message += ` ${Math.floor(lr.distanceToNextRef * 100)}` // store in centimeter
+      message += ` ${Math.floor(lr.distanceToNextRef)}` // distanceToNextRef must be stored in centimeter
     }
   })
   return message
@@ -116,7 +122,7 @@ export function referenceMessage (locationReferences: LocationReference[], formO
  * @param {string} [options.intersectionId] Intersection Id - Fallbacks to input's point `id` or generates Intersection Id.
  * @param {number} [options.inboundBearing] Inbound bearing of the street geometry for the 20 meters immediately following the location reference.
  * @param {number} [options.outboundBearing] Outbound bearing.
- * @param {number} [options.distanceToNextRef] Distance to next Location Reference (distance defined in centimeters).
+ * @param {number} [options.distanceToNextRef] Distance to next Location Reference (distance must be defined in centimeters).
  * @returns {LocationReference} SharedStreets Location Reference
  * @example
  * const options = {
@@ -186,15 +192,15 @@ export function generateHash (message: string): string {
 }
 
 /**
- * Retrieve RoadClass value rom number
+ * Get RoadClass from a Number to a String
  *
  * @param {number} value Number value [between 0-8]
  * @returns {string} Road Class
  * @example
- * sharedstreets.getRoadClass(0); // => 'Motorway'
- * sharedstreets.getRoadClass(5); // => 'Residential'
+ * sharedstreets.getRoadClassString(0); // => 'Motorway'
+ * sharedstreets.getRoadClassString(5); // => 'Residential'
  */
-export function getRoadClass (value: number) {
+export function getRoadClassString (value: number) {
   switch (value) {
     case 0: return 'Motorway'
     case 1: return 'Trunk'
@@ -205,21 +211,46 @@ export function getRoadClass (value: number) {
     case 6: return 'Unclassified'
     case 7: return 'Service'
     case 8: return 'Other'
-    default: throw new Error(`[${value}] unknown RoadClass value`)
+    default: throw new Error(`[${value}] unknown RoadClass Number value`)
   }
 }
 
 /**
- * Retrieve FormOfWay value from number
+ * Get RoadClass from a String to a Number
  *
- * @param {number} value Number value [between 0-8]
+ * @param {number} value String value ['Motorway', 'Trunk', 'Primary', etc...]
+ * @returns {string} Road Class
+ * @example
+ * sharedstreets.getRoadClassNumber('Motorway'); // => 0
+ * sharedstreets.getRoadClassNumber('Residential'); // => 5
+ */
+export function getRoadClassNumber (value: string) {
+  switch (value) {
+    case 'Motorway': return 0
+    case 'Trunk': return 1
+    case 'Primary': return 2
+    case 'Secondary': return 3
+    case 'Tertiary': return 4
+    case 'Residential': return 5
+    case 'Unclassified': return 6
+    case 'Service': return 7
+    case 'Other': return 8
+    default: throw new Error(`[${value}] unknown RoadClass String value`)
+  }
+}
+
+/**
+ * Get FormOfWay from a Number to a String
+ *
+ * @param {number} value Number value [between 0-7]
  * @returns {string} Form of Way
  * @example
- * sharedstreets.getFormOfWay(0); // => 'Undefined'
- * sharedstreets.getFormOfWay(5); // => 'TrafficSquare'
+ * sharedstreets.getFormOfWayString(0); // => 'Undefined'
+ * sharedstreets.getFormOfWayString(5); // => 'TrafficSquare'
  */
-export function getFormOfWay (value: number) {
+export function getFormOfWayString (value: number): string {
   switch (value) {
+    case undefined:
     case 0: return 'Undefined'
     case 1: return 'Motorway'
     case 2: return 'MultipleCarriageway'
@@ -228,7 +259,31 @@ export function getFormOfWay (value: number) {
     case 5: return 'TrafficSquare'
     case 6: return 'SlipRoad'
     case 7: return 'Other'
-    default: throw new Error(`[${value}] unknown FormOfWay value`)
+    default: throw new Error(`[${value}] unknown FormOfWay Number value`)
+  }
+}
+
+/**
+ * Get FormOfWay from a String to a Number
+ *
+ * @param {number} value String value [ex: 'Undefined', 'Motorway', etc...]
+ * @returns {number} Form of Way
+ * @example
+ * sharedstreets.getFormOfWayNumber('Undefined'); // => 0
+ * sharedstreets.getFormOfWayNumber('TrafficSquare'); // => 5
+ */
+export function getFormOfWayNumber (value: string) {
+  switch (value) {
+    case undefined:
+    case 'Undefined': return 0
+    case 'Motorway': return 1
+    case 'MultipleCarriageway': return 2
+    case 'SingleCarriageway': return 3
+    case 'Roundabout': return 4
+    case 'TrafficSquare': return 5
+    case 'SlipRoad': return 6
+    case 'Other': return 7
+    default: throw new Error(`[${value}] unknown FormOfWay String value`)
   }
 }
 
