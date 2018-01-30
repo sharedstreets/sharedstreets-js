@@ -51,8 +51,10 @@ This will expose a global variable named **sharedstreets**.
 -   [referenceId](#referenceid)
 -   [lonlatsToCoords](#lonlatstocoords)
 -   [generateHash](#generatehash)
--   [getRoadClass](#getroadclass)
--   [getFormOfWay](#getformofway)
+-   [getRoadClassString](#getroadclassstring)
+-   [getRoadClassNumber](#getroadclassnumber)
+-   [getFormOfWayString](#getformofwaystring)
+-   [getFormOfWayNumber](#getformofwaynumber)
 
 ### geometryId
 
@@ -147,9 +149,9 @@ hash // => '69f13f881649cb21ee3b359730790bb9'
 
 Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** SharedStreets Reference ID
 
-### getRoadClass
+### getRoadClassString
 
-Retrieve RoadClass value rom number
+Get RoadClass from a Number to a String
 
 **Parameters**
 
@@ -158,25 +160,59 @@ Retrieve RoadClass value rom number
 **Examples**
 
 ```javascript
-sharedstreets.getRoadClass(0); // => 'Motorway'
-sharedstreets.getRoadClass(5); // => 'Residential'
+sharedstreets.getRoadClassString(0); // => 'Motorway'
+sharedstreets.getRoadClassString(5); // => 'Residential'
 ```
 
 Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Road Class
 
-### getFormOfWay
+### getRoadClassNumber
 
-Retrieve FormOfWay value from number
+Get RoadClass from a String to a Number
 
 **Parameters**
 
--   `value` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** Number value [between 0-8]
+-   `value` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** String value ['Motorway', 'Trunk', 'Primary', etc...]
 
 **Examples**
 
 ```javascript
-sharedstreets.getFormOfWay(0); // => 'Undefined'
-sharedstreets.getFormOfWay(5); // => 'TrafficSquare'
+sharedstreets.getRoadClassNumber('Motorway'); // => 0
+sharedstreets.getRoadClassNumber('Residential'); // => 5
+```
+
+Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Road Class
+
+### getFormOfWayString
+
+Get FormOfWay from a Number to a String
+
+**Parameters**
+
+-   `value` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** Number value [between 0-7]
+
+**Examples**
+
+```javascript
+sharedstreets.getFormOfWayString(0); // => 'Undefined'
+sharedstreets.getFormOfWayString(5); // => 'TrafficSquare'
 ```
 
 Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Form of Way
+
+### getFormOfWayNumber
+
+Get FormOfWay from a String to a Number
+
+**Parameters**
+
+-   `value` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** String value [ex: 'Undefined', 'Motorway', etc...]
+
+**Examples**
+
+```javascript
+sharedstreets.getFormOfWayNumber('Undefined'); // => 0
+sharedstreets.getFormOfWayNumber('TrafficSquare'); // => 5
+```
+
+Returns **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** Form of Way
