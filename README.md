@@ -1,5 +1,8 @@
 # SharedStreets (Node.js & Javascript)
 
+[![npm version](https://badge.fury.io/js/sharedstreets.svg)](https://badge.fury.io/js/sharedstreets)
+[![Build Status](https://travis-ci.org/sharedstreets/sharedstreets.svg?branch=master)](https://travis-ci.org/sharedstreets/sharedstreets)
+
 Node.js & Javascript implementation of [SharedStreets Reference System](https://github.com/sharedstreets/sharedstreets-ref-system).
 
 ## Install
