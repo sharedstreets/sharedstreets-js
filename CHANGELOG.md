@@ -1,5 +1,11 @@
 # Changelog
 
+## 2018-02-06 - 0.5.0
+
+- Enforce strict TSLint `tslint.json`
+- Enforce strict=true `tsconfig.json`
+  https://github.com/sharedstreets/sharedstreets-js/issues/9
+
 ## 2018-01-30 - 0.4.0
 
 - Improved readability of testing (expectedId)
