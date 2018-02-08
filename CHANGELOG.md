@@ -1,5 +1,9 @@
 # Changelog
 
+## 2018-02-08 - 0.6.0
+
+- Add `coordsToLonlats` method
+
 ## 2018-02-06 - 0.5.0
 
 - Enforce strict TSLint `tslint.json`

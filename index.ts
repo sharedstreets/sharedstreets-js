@@ -163,20 +163,37 @@ export function locationReference(
 /**
  * Converts lonlats to GeoJSON LineString Coords
  *
- * @param {Array<number>} lonlats Single Array of paired latitude & longitudes
- * @returns {Array<Array<number>>} GeoJSON coordinate format
+ * @param {Array<number>} lonlats Single Array of paired longitudes & latitude
+ * @returns {Array<Array<number>>}  GeoJSON LineString coordinates
  * @example
  * const coords = lonlatsToCoords([110, 45, 120, 55]);
  * coords // => [[110, 45], [120, 55]]
  */
 export function lonlatsToCoords(lonlats: number[]) {
-  const coords: Array<[number, number]> = [];
+  const coords: number[][] = [];
   lonlats.reduce((lon, deg, index) => {
     if (index % 2 === 0) { return deg; } // Longitude
     coords.push([lon, deg]);
     return deg; // Latitude
   });
   return coords;
+}
+
+/**
+ * Converts GeoJSON LineString Coords to lonlats
+ *
+ * @param {Array<Array<number, number>>} coords GeoJSON LineString coordinates
+ * @returns {Array<number>} lonlats Single Array of paired longitudes & latitude
+ * @example
+ * const lonlats = coordsToLonlats([[110, 45], [120, 55]]);
+ * lonlats // => [110, 45, 120, 55]
+ */
+export function coordsToLonlats(coords: number[][]) {
+  const lonlats: number[] = [];
+  coords.forEach((coord) => {
+    lonlats.push(coord[0], coord[1]);
+  });
+  return lonlats;
 }
 
 /**

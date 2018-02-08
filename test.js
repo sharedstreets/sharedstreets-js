@@ -150,3 +150,9 @@ test('sharedstreets-pbf -- reference', t => {
   })
   t.end()
 })
+
+test('sharedstreets -- coordsToLonlats', t => {
+  const lonlats = sharedstreets.coordsToLonlats([[110, 45], [120, 55]]);
+  t.deepEqual(lonlats, [110, 45, 120, 55]);
+  t.end();
+})

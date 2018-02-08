@@ -53,6 +53,7 @@ This will expose a global variable named **sharedstreets**.
 -   [intersectionId](#intersectionid)
 -   [referenceId](#referenceid)
 -   [lonlatsToCoords](#lonlatstocoords)
+-   [coordsToLonlats](#coordstolonlats)
 -   [generateHash](#generatehash)
 -   [getRoadClassString](#getroadclassstring)
 -   [getRoadClassNumber](#getroadclassnumber)
@@ -71,7 +72,7 @@ Geometry Id
 
 ```javascript
 const id = sharedstreets.geometryId([[110, 45], [115, 50], [120, 55]]);
-id // => 'ce9c0ec1472c0a8bab3190ab075e9b21'
+id // => "ce9c0ec1472c0a8bab3190ab075e9b21"
 ```
 
 Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** SharedStreets Geometry Id
@@ -88,7 +89,7 @@ Intersection Id
 
 ```javascript
 const id = sharedstreets.intersectionId([110, 45]);
-id // => '71f34691f182a467137b3d37265cb3b6'
+id // => "71f34691f182a467137b3d37265cb3b6"
 ```
 
 Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** SharedStreets Intersection Id
@@ -109,10 +110,10 @@ const locationReferences = [
   sharedstreets.locationReference([-74.0048213, 40.7416415], {outboundBearing: 208, distanceToNextRef: 9279}),
   sharedstreets.locationReference([-74.0051265, 40.7408505], {inboundBearing: 188})
 ];
-const formOfWay = 2; // => 'MultipleCarriageway'
+const formOfWay = 2; // => "MultipleCarriageway"
 
 const id = sharedstreets.referenceId(locationReferences, formOfWay);
-id // => '???'
+id // => "???"
 ```
 
 Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** SharedStreets Reference Id
@@ -123,7 +124,7 @@ Converts lonlats to GeoJSON LineString Coords
 
 **Parameters**
 
--   `lonlats` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>** Single Array of paired latitude & longitudes
+-   `lonlats` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>** Single Array of paired longitudes & latitude
 
 **Examples**
 
@@ -132,7 +133,24 @@ const coords = lonlatsToCoords([110, 45, 120, 55]);
 coords // => [[110, 45], [120, 55]]
 ```
 
-Returns **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>>** GeoJSON coordinate format
+Returns **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>>** GeoJSON LineString coordinates
+
+### coordsToLonlats
+
+Converts GeoJSON LineString Coords to lonlats
+
+**Parameters**
+
+-   `coords` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number), [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>>** GeoJSON LineString coordinates
+
+**Examples**
+
+```javascript
+const lonlats = coordsToLonlats([[110, 45], [120, 55]]);
+lonlats // => [110, 45, 120, 55]
+```
+
+Returns **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>** lonlats Single Array of paired longitudes & latitude
 
 ### generateHash
 
@@ -145,9 +163,9 @@ Generates Base16 Hash
 **Examples**
 
 ```javascript
-const message = 'Intersection -74.00482177734375 40.741641998291016';
+const message = "Intersection -74.00482177734375 40.741641998291016";
 const hash = sharedstreets.generateHash(message);
-hash // => '69f13f881649cb21ee3b359730790bb9'
+hash // => "69f13f881649cb21ee3b359730790bb9"
 ```
 
 Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** SharedStreets Reference ID
@@ -163,8 +181,8 @@ Get RoadClass from a Number to a String
 **Examples**
 
 ```javascript
-sharedstreets.getRoadClassString(0); // => 'Motorway'
-sharedstreets.getRoadClassString(5); // => 'Residential'
+sharedstreets.getRoadClassString(0); // => "Motorway"
+sharedstreets.getRoadClassString(5); // => "Residential"
 ```
 
 Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Road Class
@@ -175,13 +193,13 @@ Get RoadClass from a String to a Number
 
 **Parameters**
 
--   `value` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** String value ['Motorway', 'Trunk', 'Primary', etc...]
+-   `value` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** String value ["Motorway", "Trunk", "Primary", etc...]
 
 **Examples**
 
 ```javascript
-sharedstreets.getRoadClassNumber('Motorway'); // => 0
-sharedstreets.getRoadClassNumber('Residential'); // => 5
+sharedstreets.getRoadClassNumber("Motorway"); // => 0
+sharedstreets.getRoadClassNumber("Residential"); // => 5
 ```
 
 Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Road Class
@@ -197,8 +215,8 @@ Get FormOfWay from a Number to a String
 **Examples**
 
 ```javascript
-sharedstreets.getFormOfWayString(0); // => 'Undefined'
-sharedstreets.getFormOfWayString(5); // => 'TrafficSquare'
+sharedstreets.getFormOfWayString(0); // => "Undefined"
+sharedstreets.getFormOfWayString(5); // => "TrafficSquare"
 ```
 
 Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Form of Way
@@ -209,13 +227,13 @@ Get FormOfWay from a String to a Number
 
 **Parameters**
 
--   `value` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** String value [ex: 'Undefined', 'Motorway', etc...]
+-   `value` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** String value [ex: "Undefined", "Motorway", etc...]
 
 **Examples**
 
 ```javascript
-sharedstreets.getFormOfWayNumber('Undefined'); // => 0
-sharedstreets.getFormOfWayNumber('TrafficSquare'); // => 5
+sharedstreets.getFormOfWayNumber("Undefined"); // => 0
+sharedstreets.getFormOfWayNumber("TrafficSquare"); // => 5
 ```
 
 Returns **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** Form of Way
