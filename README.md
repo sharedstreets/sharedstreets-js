@@ -101,7 +101,7 @@ Reference Id
 **Parameters**
 
 -   `locationReferences` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;LocationReference>** An Array of Location References.
--   `formOfWay` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Form Of Way
+-   `formOfWay` **([string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) \| [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number))** Form Of Way (optional, default `0`)
 
 **Examples**
 
@@ -113,7 +113,7 @@ const locationReferences = [
 const formOfWay = 2; // => "MultipleCarriageway"
 
 const id = sharedstreets.referenceId(locationReferences, formOfWay);
-id // => "???"
+id // => "ef209661aeebadfb4e0a2cb93153493f"
 ```
 
 Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** SharedStreets Reference Id
