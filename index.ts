@@ -75,8 +75,8 @@ export function intersectionMessage(pt: number[] | Feature<Point> | Point): stri
 /**
  * Reference Id
  *
- * @param {string} formOfWay Form Of Way
  * @param {Array<LocationReference>} locationReferences An Array of Location References.
+ * @param {string|number} [formOfWay=0] Form Of Way
  * @returns {string} SharedStreets Reference Id
  * @example
  * const locationReferences = [
@@ -86,9 +86,9 @@ export function intersectionMessage(pt: number[] | Feature<Point> | Point): stri
  * const formOfWay = 2; // => "MultipleCarriageway"
  *
  * const id = sharedstreets.referenceId(locationReferences, formOfWay);
- * id // => "???"
+ * id // => "ef209661aeebadfb4e0a2cb93153493f"
  */
-export function referenceId(locationReferences: LocationReference[], formOfWay: FormOfWay): string {
+export function referenceId(locationReferences: LocationReference[], formOfWay: FormOfWay = 0): string {
   const message = referenceMessage(locationReferences, formOfWay);
   return generateHash(message);
 }
@@ -98,7 +98,7 @@ export function referenceId(locationReferences: LocationReference[], formOfWay: 
  *
  * @private
  */
-export function referenceMessage(locationReferences: LocationReference[], formOfWay: string | number): string {
+export function referenceMessage(locationReferences: LocationReference[], formOfWay: string | number = 0): string {
   // Convert FormOfWay to Number if encoding ID
   if (typeof formOfWay !== "number") { formOfWay = getFormOfWayNumber(formOfWay); }
 
