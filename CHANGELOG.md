@@ -2,6 +2,7 @@
 
 ## 2018-02-08 - 0.6.0
 
+- Make `formOfWay` optional for `referenceId` method.
 - Add `coordsToLonlats` method
 
 ## 2018-02-06 - 0.5.0
