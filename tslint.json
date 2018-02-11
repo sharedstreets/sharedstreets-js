@@ -5,7 +5,7 @@
     ],
     "jsRules": {},
     "rules": {
-        "max-line-length": [true, 150]
+        "max-line-length": [false]
     },
     "rulesDirectory": []
 }

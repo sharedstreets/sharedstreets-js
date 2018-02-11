@@ -12,9 +12,7 @@
     "test": "tap test.js",
     "posttest": "tslint index.ts --project tsconfig.json",
     "docs": "tsc && documentation readme index.js --section=API",
-    "benchmark": "benchmark bench.js",
-    "build": "browserify index.ts -p tsify -s sharedstreets -o dist/sharedstreets.js",
-    "postbuild": "uglifyjs dist/sharedstreets.js -o dist/sharedstreets.min.js -cm"
+    "benchmark": "benchmark bench.js"
   },
   "repository": {
     "type": "git",
@@ -37,15 +35,14 @@
   },
   "homepage": "https://github.com/sharedstreets/sharedstreets.js#readme",
   "devDependencies": {
+    "@types/glob": "*",
     "@types/node": "*",
-    "browserify": "*",
+    "@types/tape": "*",
     "sharedstreets-pbf": "*",
     "tap": "*",
     "tape": "*",
-    "tsify": "*",
     "tslint": "*",
-    "typescript": "*",
-    "uglify-js": "*"
+    "typescript": "*"
   },
   "dependencies": {
     "@turf/helpers": "6.x",

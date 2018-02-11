@@ -2,7 +2,7 @@ import { Feature, LineString, Point } from "@turf/helpers";
 import { getCoord, getCoords } from "@turf/invariant";
 import BigNumber from "bignumber.js";
 import { createHash } from "crypto";
-import { FormOfWay, LocationReference } from "sharedstreets-types";
+import { LocationReference } from "sharedstreets-types";
 
 /**
  * Shared Streets Java implementation
@@ -88,7 +88,7 @@ export function intersectionMessage(pt: number[] | Feature<Point> | Point): stri
  * const id = sharedstreets.referenceId(locationReferences, formOfWay);
  * id // => "ef209661aeebadfb4e0a2cb93153493f"
  */
-export function referenceId(locationReferences: LocationReference[], formOfWay: FormOfWay = 0): string {
+export function referenceId(locationReferences: LocationReference[], formOfWay: string | number = 0): string {
   const message = referenceMessage(locationReferences, formOfWay);
   return generateHash(message);
 }

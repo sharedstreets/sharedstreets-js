@@ -2,6 +2,7 @@
 
 ## 2018-02-08 - 0.6.0
 
+- Convert tests to Typescript
 - Make `formOfWay` optional for `referenceId` method.
 - Add `coordsToLonlats` method
 

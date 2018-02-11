@@ -13,6 +13,7 @@ dist
 // Typescript compiled files
 *.d.ts
 index.js
+test.js
 index.mjs
 index.min.js
 
