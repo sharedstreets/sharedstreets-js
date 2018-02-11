@@ -27,20 +27,15 @@ import * as sharedstreets from 'sharedstreets';
 
 ## In Browser
 
-Download the latest [sharedstreets.js](https://unpkg.com/sharedstreets@latest) UMD file or use the link directly and include it in a script tag.
+For a full list of web examples, check out [SharedStreets examples](https://github.com/sharedstreets/sharedstreets-examples).
 
-This will expose a global variable named **sharedstreets**.
+## How to build
 
-**external url**
-
-```html
-<script src="https://unpkg.com/sharedstreets@latest" charset="utf-8"></script>
-```
-
-**local file**
-
-```html
-<script src="sharedstreets.js" charset="utf-8"></script>
+```bash
+$ git clone git@github.com:sharedstreets/sharedstreets-js.git
+$ cd sharedstreets-js
+$ yarn
+$ yarn test
 ```
 
 ## API
