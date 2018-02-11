@@ -45,8 +45,11 @@
     "typescript": "*"
   },
   "dependencies": {
+    "@turf/bearing": "*",
+    "@turf/distance": "*",
     "@turf/helpers": "6.x",
     "@turf/invariant": "6.x",
+    "@turf/line-offset": "*",
     "bignumber.js": "6.x",
     "sharedstreets-types": "1.x"
   }

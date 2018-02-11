@@ -1,8 +1,12 @@
-import { Feature, LineString, Point } from "@turf/helpers";
-import { getCoord, getCoords } from "@turf/invariant";
+import bearing from "@turf/bearing";
+import distance from "@turf/distance";
+import { Feature, lineString, LineString, Point } from "@turf/helpers";
+import { getCoord, getCoords, getGeom } from "@turf/invariant";
+import lineOffset from "@turf/line-offset";
 import BigNumber from "bignumber.js";
 import { createHash } from "crypto";
-import { LocationReference } from "sharedstreets-types";
+import { LocationReference, SharedStreetsGeometry } from "sharedstreets-types";
+import { isArray } from "util";
 
 /**
  * Shared Streets Java implementation
@@ -46,6 +50,97 @@ export function geometryId(line: Feature<LineString> | LineString | number[][]):
 export function geometryMessage(line: Feature<LineString> | LineString | number[][]): string {
   const coords = getCoords(line);
   return "Geometry " + coords.map(([x, y]) => `${round(x)} ${round(y)}`).join(" ");
+}
+
+/**
+ * geometry
+ *
+ * @param {Feature<LineString>|Array<Array<number>>} line GeoJSON LineString Feature
+ * @param {Object} [options={}] Optional parameters
+ * @param {string} [options.formOfWay] Property field that contains FormOfWay value (number/string).
+ * @param {string} [options.roadClass] Property field that contains RoadClass value (number/string).
+ * @returns {SharedStreetsGeometry[]} SharedStreets Geometries
+ * @example
+ * const line = [[110, 45], [115, 50], [120, 55]];
+ * const geom = sharedstreets.geometry(line);
+ * geom.id; // => "ce9c0ec1472c0a8bab3190ab075e9b21"
+ * geom.lonlats; // => [ 110, 45, 115, 50, 120, 55 ]
+ */
+export function geometry(line: Feature<LineString> | LineString | number[][], options: {
+  formOfWay?: string,
+  roadClass?: string,
+  // To-Do
+  // - fromIntersection [optional]
+  // - toIntersection [optional]
+  // - forwardReference [optional]
+  // - backReference [optional]
+} = {}): SharedStreetsGeometry {
+  let properties: any = {};
+  let coords;
+
+  // Deconstruct GeoJSON LineString
+  if (isArray(line)) {
+    coords = line;
+  } else if (line.type === "Feature") {
+    properties = line.properties || {};
+    if (line.geometry === null) { throw new Error("line geometry cannot be null"); }
+    coords = line.geometry.coordinates;
+  } else {
+    coords = line.coordinates;
+  }
+
+  // Calculate Distances
+  const start = coords[0];
+  const end = coords[coords.length - 1];
+  const distanceToNextRef = distance(start, end, {units: "meters"}) / 100;
+
+  // LRs describe the compass bearing of the street geometry for the 20 meters immediately following the LR.
+  const line20m = lineOffset(lineString(coords), 20, {units: "meters"});
+  const line20mCoords = getCoords(line20m);
+  const start20m = line20mCoords[line20mCoords.length - 1];
+
+  // Calculate outbound & inbound
+  const outboundBearing = bearing(start, start20m);
+  const inboundBearing = bearing(end, start);
+
+  // FormOfWay needs to be extracted from the GeoJSON properties.
+  let formOfWay = 0;
+  if (options.formOfWay && properties[options.formOfWay]) {
+    formOfWay = properties[options.formOfWay];
+  }
+
+  // RoadClass needs to be extracted from the GeoJSON properties.
+  let roadClass = "Other";
+  if (options.roadClass && properties[options.roadClass]) {
+    roadClass = properties[options.roadClass];
+  }
+
+  // To-Do make below from Optional parameters
+  // Location References
+  const fromIntersection = locationReference(start, {
+    distanceToNextRef,
+    outboundBearing,
+  });
+  const toIntersection = locationReference(end, {
+    inboundBearing,
+  });
+  const fromIntersectionId = fromIntersection.intersectionId;
+  const toIntersectionId = toIntersection.intersectionId;
+
+  // Forward/Back Reference
+  const forwardReferenceId = referenceId([fromIntersection, toIntersection], formOfWay);
+  const backReferenceId = referenceId([toIntersection, fromIntersection], formOfWay);
+
+  // Save Results
+  return {
+    backReferenceId,
+    forwardReferenceId,
+    fromIntersectionId,
+    id: geometryId(line),
+    lonlats: coordsToLonlats(coords),
+    roadClass,
+    toIntersectionId,
+  };
 }
 
 /**
