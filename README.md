@@ -10,7 +10,7 @@ Node.js & Javascript implementation of [SharedStreets Reference System](https://
 **In Node.js**
 
 ```bash
-$ npm install sharedstreets
+$ yarn add sharedstreets
 ```
 
 **CommonJS**
