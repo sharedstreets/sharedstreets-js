@@ -1,8 +1,12 @@
 # Changelog
 
-## 2018-02-08 - 0.6.0
+## 2018-02-11 - 0.7.0
 
 - Convert tests to Typescript
+- Add new method `geometry`
+
+## 2018-02-08 - 0.6.0
+
 - Make `formOfWay` optional for `referenceId` method.
 - Add `coordsToLonlats` method
 

@@ -45,6 +45,7 @@ $ yarn test
 #### Table of Contents
 
 -   [geometryId](#geometryid)
+-   [geometry](#geometry)
 -   [intersectionId](#intersectionid)
 -   [referenceId](#referenceid)
 -   [lonlatsToCoords](#lonlatstocoords)
@@ -71,6 +72,28 @@ id // => "ce9c0ec1472c0a8bab3190ab075e9b21"
 ```
 
 Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** SharedStreets Geometry Id
+
+### geometry
+
+geometry
+
+**Parameters**
+
+-   `line` **(Feature&lt;LineString> | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>>)** GeoJSON LineString Feature
+-   `options` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Optional parameters (optional, default `{}`)
+    -   `options.formOfWay` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)?** Property field that contains FormOfWay value (number/string).
+    -   `options.roadClass` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)?** Property field that contains RoadClass value (number/string).
+
+**Examples**
+
+```javascript
+const line = [[110, 45], [115, 50], [120, 55]];
+const geom = sharedstreets.geometry(line);
+geom.id; // => "ce9c0ec1472c0a8bab3190ab075e9b21"
+geom.lonlats; // => [ 110, 45, 115, 50, 120, 55 ]
+```
+
+Returns **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;SharedStreetsGeometry>** SharedStreets Geometries
 
 ### intersectionId
 
