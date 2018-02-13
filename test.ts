@@ -161,13 +161,26 @@ test("sharedstreets -- geometry", (t) => {
   const line = [[110, 45], [115, 50], [120, 55]];
   const geom = sharedstreets.geometry(line);
   t.deepEqual(geom, {
-    backReferenceId: "197cb60a06518f4d616fea25b5e81266",
-    forwardReferenceId: "79aad7fa7e4fec23ff2c97d0b33086ce",
-    fromIntersectionId: "71f34691f182a467137b3d37265cb3b6",
     id: "ce9c0ec1472c0a8bab3190ab075e9b21",
-    lonlats: [ 110, 45, 115, 50, 120, 55 ],
-    roadClass: "Other",
+    fromIntersectionId: "71f34691f182a467137b3d37265cb3b6",
     toIntersectionId: "42286ee839cf23904b00acfc7d13a2e2",
+    forwardReferenceId: "79aad7fa7e4fec23ff2c97d0b33086ce",
+    backReferenceId: "197cb60a06518f4d616fea25b5e81266",
+    roadClass: "Other",
+    lonlats: [ 110, 45, 115, 50, 120, 55 ],
+  });
+  t.end();
+});
+
+test("sharedstreets -- intersection", (t) => {
+  const intersect = sharedstreets.intersection([110, 45]);
+  t.deepEqual(intersect, {
+    id: "71f34691f182a467137b3d37265cb3b6",
+    nodeId: "",
+    lat: 45,
+    lon: 110,
+    inboundReferenceIds: [],
+    outboundReferenceIds: [],
   });
   t.end();
 });

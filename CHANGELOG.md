@@ -1,9 +1,13 @@
 # Changelog
 
-## 2018-02-11 - 0.7.0
+## 2018-02-12
 
-- Convert tests to Typescript
+- Add new method `intersection`
+
+## 2018-02-11
+
 - Add new method `geometry`
+- Convert tests to Typescript
 
 ## 2018-02-08 - 0.6.0
 
