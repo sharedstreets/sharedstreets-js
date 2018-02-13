@@ -5,7 +5,7 @@ import { getCoord, getCoords, getGeom } from "@turf/invariant";
 import lineOffset from "@turf/line-offset";
 import BigNumber from "bignumber.js";
 import { createHash } from "crypto";
-import { LocationReference, SharedStreetsGeometry } from "sharedstreets-types";
+import { LocationReference, SharedStreetsGeometry, SharedStreetsIntersection } from "sharedstreets-types";
 import { isArray } from "util";
 
 /**
@@ -132,14 +132,17 @@ export function geometry(line: Feature<LineString> | LineString | number[][], op
   const backReferenceId = referenceId([toIntersection, fromIntersection], formOfWay);
 
   // Save Results
+  const id = geometryId(line);
+  const lonlats = coordsToLonlats(coords);
+
   return {
-    backReferenceId,
-    forwardReferenceId,
+    id,
     fromIntersectionId,
-    id: geometryId(line),
-    lonlats: coordsToLonlats(coords),
-    roadClass,
     toIntersectionId,
+    forwardReferenceId,
+    backReferenceId,
+    roadClass,
+    lonlats,
   };
 }
 
@@ -163,8 +166,45 @@ export function intersectionId(pt: number[] | Feature<Point> | Point): string {
  * @private
  */
 export function intersectionMessage(pt: number[] | Feature<Point> | Point): string {
-  const [x, y] = getCoord(pt);
-  return `Intersection ${round(x)} ${round(y)}`;
+  const [lon, lat] = getCoord(pt);
+  return `Intersection ${round(lon)} ${round(lat)}`;
+}
+
+/**
+ * Intersection
+ *
+ * @param {Feature<Point>|Array<number>} pt Point location reference as a GeoJSON Point or an Array of numbers <longitude, latitude>.
+ * @param {Object} [options={}] Optional parameters
+ * @param {string} [options.nodeId] Define NodeId for Intersection
+ * @returns {string} SharedStreets Intersection
+ * @example
+ * const intersection = sharedstreets.intersection([110, 45]);
+ * intersection.id // => "71f34691f182a467137b3d37265cb3b6"
+ */
+export function intersection(pt: number[] | Feature<Point> | Point, options: {
+  nodeId?: number,
+  inboundReferences?: LocationReference[],
+  outboundReferencesIds?: LocationReference[],
+} = {}): SharedStreetsIntersection {
+  // Default params
+  const inboundReferences = options.inboundReferences || [];
+  const outboundReferences = options.outboundReferencesIds || [];
+  const nodeId = options.nodeId;
+
+  // Main
+  const [lon, lat] = getCoord(pt);
+  const id = intersectionId(pt);
+  const inboundReferenceIds = inboundReferences.map((ref) => ref.intersectionId);
+  const outboundReferenceIds = outboundReferences.map((ref) => ref.intersectionId);
+
+  return {
+    id,
+    nodeId,
+    lon,
+    lat,
+    inboundReferenceIds,
+    outboundReferenceIds,
+  };
 }
 
 /**
