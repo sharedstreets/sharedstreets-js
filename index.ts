@@ -182,14 +182,14 @@ export function intersectionMessage(pt: number[] | Feature<Point> | Point): stri
  * intersection.id // => "71f34691f182a467137b3d37265cb3b6"
  */
 export function intersection(pt: number[] | Feature<Point> | Point, options: {
-  nodeId?: number,
+  nodeId?: string,
   inboundReferences?: LocationReference[],
   outboundReferencesIds?: LocationReference[],
 } = {}): SharedStreetsIntersection {
   // Default params
   const inboundReferences = options.inboundReferences || [];
   const outboundReferences = options.outboundReferencesIds || [];
-  const nodeId = options.nodeId;
+  const nodeId = options.nodeId || "";
 
   // Main
   const [lon, lat] = getCoord(pt);

@@ -176,10 +176,10 @@ test("sharedstreets -- intersection", (t) => {
   const intersect = sharedstreets.intersection([110, 45]);
   t.deepEqual(intersect, {
     id: "71f34691f182a467137b3d37265cb3b6",
-    inboundReferenceIds: [],
+    nodeId: "",
     lat: 45,
     lon: 110,
-    nodeId: undefined,
+    inboundReferenceIds: [],
     outboundReferenceIds: [],
   });
   t.end();
