@@ -78,7 +78,7 @@ test("sharedstreets -- intersection", (t) => {
 test("sharedstreets -- referenceId", (t) => {
   const locationReferenceOutbound = sharedstreets.locationReference([-74.0048213, 40.7416415], {outboundBearing: 208, distanceToNextRef: 9279});
   const locationReferenceInbound = sharedstreets.locationReference([-74.0051265, 40.7408505], {inboundBearing: 188});
-  const formOfWay = 2; // => 'MultipleCarriageway'
+  const formOfWay = 2; // => "MultipleCarriageway"
 
   t.equal(locationReferenceOutbound.intersectionId, "69f13f881649cb21ee3b359730790bb9", "locationReferenceOutbound => intersectionId");
   t.equal(locationReferenceInbound.intersectionId, "f361178c33988ef9bfc8b51b7545c5fa", "locationReferenceInbound => intersectionId");
@@ -181,6 +181,35 @@ test("sharedstreets -- intersection", (t) => {
     lon: 110,
     inboundReferenceIds: [],
     outboundReferenceIds: [],
+  });
+  t.end();
+});
+
+test("sharedstreets -- reference", (t) => {
+  const line = [[110, 45], [115, 50], [120, 55]];
+  const geom = sharedstreets.geometry(line);
+  const locationReferences = [
+    sharedstreets.locationReference([-74.0048213, 40.7416415], {outboundBearing: 208, distanceToNextRef: 9279}),
+    sharedstreets.locationReference([-74.0051265, 40.7408505], {inboundBearing: 188}),
+  ];
+  const formOfWay = 2; // => "MultipleCarriageway"
+  const ref = sharedstreets.reference(geom, locationReferences, formOfWay);
+  t.equal(ref.id, "ef209661aeebadfb4e0a2cb93153493f");
+  t.end();
+});
+
+test("sharedstreets -- metadata", (t) => {
+  const line = [[110, 45], [115, 50], [120, 55]];
+  const gisMetadata = [{source: "sharedstreets", sections: [{sectionId: "foo", sectionProperties: "bar"}]}];
+  const geom = sharedstreets.geometry(line);
+  const metadata = sharedstreets.metadata(geom, {}, gisMetadata);
+
+  t.deepEqual(metadata, {
+    geometryId: "ce9c0ec1472c0a8bab3190ab075e9b21",
+    osmMetadata: {},
+    gisMetadata: [
+      { source: "sharedstreets", sections: [{sectionId: "foo", sectionProperties: "bar"}]},
+    ],
   });
   t.end();
 });

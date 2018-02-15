@@ -2,6 +2,8 @@
 
 ## 2018-02-15
 
+- Add new method `metadata`
+- Update docs for `reference`
 - Add new method `reference`
 
 ## 2018-02-12

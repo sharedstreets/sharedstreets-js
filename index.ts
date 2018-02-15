@@ -5,7 +5,11 @@ import { getCoord, getCoords, getGeom } from "@turf/invariant";
 import lineOffset from "@turf/line-offset";
 import BigNumber from "bignumber.js";
 import { createHash } from "crypto";
-import { FormOfWay, LocationReference, SharedStreetsGeometry, SharedStreetsIntersection, SharedStreetsReference } from "sharedstreets-types";
+import {
+  FormOfWay, GISMetadata, GISSectionMetadata, LocationReference, OSMMetadata,
+  SharedStreetsGeometry, SharedStreetsIntersection, SharedStreetsMetadata, SharedStreetsReference,
+  WaySection,
+} from "sharedstreets-types";
 import { isArray } from "util";
 
 /**
@@ -264,13 +268,14 @@ export function referenceMessage(
  * @param {}
  * @returns {SharedStreetsReference} SharedStreets Reference
  * @example
+ * const line = [[110, 45], [115, 50], [120, 55]];
+ * const geom = sharedstreets.geometry(line);
  * const locationReferences = [
  *   sharedstreets.locationReference([-74.0048213, 40.7416415], {outboundBearing: 208, distanceToNextRef: 9279}),
- *   sharedstreets.locationReference([-74.0051265, 40.7408505], {inboundBearing: 188})
+ *   sharedstreets.locationReference([-74.0051265, 40.7408505], {inboundBearing: 188}),
  * ];
  * const formOfWay = 2; // => "MultipleCarriageway"
- *
- * const ref = sharedstreets.reference(locationReferences, formOfWay);
+ * const ref = sharedstreets.reference(geom, locationReferences, formOfWay);
  * ref.id // => "ef209661aeebadfb4e0a2cb93153493f"
  */
 export function reference(
@@ -330,6 +335,31 @@ export function locationReference(
     throw new Error("distanceToNextRef is required if outboundBearing is present");
   }
   return locRef;
+}
+
+/**
+ * Metadata
+ *
+ * @param {SharedStreetsGeometry} geom SharedStreets Geometry
+ * @param {OSMMetadata} [osmMetadata={}] OSM Metadata
+ * @param {Array<GISMetadata>} [gisMetadata=[]] GIS Metadata
+ * @param {}
+ * @returns {SharedStreetsMetadata} SharedStreets Metadata
+ * @example
+ * const line = [[110, 45], [115, 50], [120, 55]];
+ * const geom = sharedstreets.geometry(line);
+ * const metadata = sharedstreets.metadata(geom)
+ */
+export function metadata(
+  geom: SharedStreetsGeometry,
+  osmMetadata: OSMMetadata = {},
+  gisMetadata: GISMetadata[] = [],
+): SharedStreetsMetadata {
+  return {
+    geometryId: geom.id,
+    osmMetadata,
+    gisMetadata,
+  };
 }
 
 /**

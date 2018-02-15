@@ -50,6 +50,7 @@ $ yarn test
 -   [intersection](#intersection)
 -   [referenceId](#referenceid)
 -   [reference](#reference)
+-   [metadata](#metadata)
 -   [lonlatsToCoords](#lonlatstocoords)
 -   [coordsToLonlats](#coordstolonlats)
 -   [generateHash](#generatehash)
@@ -170,17 +171,38 @@ Reference
 **Examples**
 
 ```javascript
+const line = [[110, 45], [115, 50], [120, 55]];
+const geom = sharedstreets.geometry(line);
 const locationReferences = [
   sharedstreets.locationReference([-74.0048213, 40.7416415], {outboundBearing: 208, distanceToNextRef: 9279}),
-  sharedstreets.locationReference([-74.0051265, 40.7408505], {inboundBearing: 188})
+  sharedstreets.locationReference([-74.0051265, 40.7408505], {inboundBearing: 188}),
 ];
 const formOfWay = 2; // => "MultipleCarriageway"
-
-const ref = sharedstreets.reference(locationReferences, formOfWay);
+const ref = sharedstreets.reference(geom, locationReferences, formOfWay);
 ref.id // => "ef209661aeebadfb4e0a2cb93153493f"
 ```
 
 Returns **SharedStreetsReference** SharedStreets Reference
+
+### metadata
+
+Metadata
+
+**Parameters**
+
+-   `geom` **SharedStreetsGeometry** SharedStreets Geometry
+-   `osmMetadata` **OSMMetadata** OSM Metadata (optional, default `{}`)
+-   `gisMetadata` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;GISMetadata>** GIS Metadata (optional, default `[]`)
+
+**Examples**
+
+```javascript
+const line = [[110, 45], [115, 50], [120, 55]];
+const geom = sharedstreets.geometry(line);
+const metadata = sharedstreets.metadata(geom)
+```
+
+Returns **SharedStreetsMetadata** SharedStreets Metadata
 
 ### lonlatsToCoords
 
