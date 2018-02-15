@@ -47,7 +47,9 @@ $ yarn test
 -   [geometryId](#geometryid)
 -   [geometry](#geometry)
 -   [intersectionId](#intersectionid)
+-   [intersection](#intersection)
 -   [referenceId](#referenceid)
+-   [reference](#reference)
 -   [lonlatsToCoords](#lonlatstocoords)
 -   [coordsToLonlats](#coordstolonlats)
 -   [generateHash](#generatehash)
@@ -93,7 +95,7 @@ geom.id; // => "ce9c0ec1472c0a8bab3190ab075e9b21"
 geom.lonlats; // => [ 110, 45, 115, 50, 120, 55 ]
 ```
 
-Returns **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;SharedStreetsGeometry>** SharedStreets Geometries
+Returns **SharedStreetsGeometry** SharedStreets Geometry
 
 ### intersectionId
 
@@ -112,6 +114,25 @@ id // => "71f34691f182a467137b3d37265cb3b6"
 
 Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** SharedStreets Intersection Id
 
+### intersection
+
+Intersection
+
+**Parameters**
+
+-   `pt` **(Feature&lt;Point> | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>)** Point location reference as a GeoJSON Point or an Array of numbers &lt;longitude, latitude>.
+-   `options` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Optional parameters (optional, default `{}`)
+    -   `options.nodeId` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)?** Define NodeId for Intersection
+
+**Examples**
+
+```javascript
+const intersection = sharedstreets.intersection([110, 45]);
+intersection.id // => "71f34691f182a467137b3d37265cb3b6"
+```
+
+Returns **SharedStreetsIntersection** SharedStreets Intersection
+
 ### referenceId
 
 Reference Id
@@ -119,7 +140,7 @@ Reference Id
 **Parameters**
 
 -   `locationReferences` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;LocationReference>** An Array of Location References.
--   `formOfWay` **([string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) \| [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number))** Form Of Way (optional, default `0`)
+-   `formOfWay` **FormOfWay** Form Of Way (optional, default `0`)
 
 **Examples**
 
@@ -135,6 +156,31 @@ id // => "ef209661aeebadfb4e0a2cb93153493f"
 ```
 
 Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** SharedStreets Reference Id
+
+### reference
+
+Reference
+
+**Parameters**
+
+-   `geom` **SharedStreetsGeometry** SharedStreets Geometry
+-   `locationReferences` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;LocationReference>** An Array of Location References.
+-   `formOfWay` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** Form Of Way (default Other) (optional, default `0`)
+
+**Examples**
+
+```javascript
+const locationReferences = [
+  sharedstreets.locationReference([-74.0048213, 40.7416415], {outboundBearing: 208, distanceToNextRef: 9279}),
+  sharedstreets.locationReference([-74.0051265, 40.7408505], {inboundBearing: 188})
+];
+const formOfWay = 2; // => "MultipleCarriageway"
+
+const ref = sharedstreets.reference(locationReferences, formOfWay);
+ref.id // => "ef209661aeebadfb4e0a2cb93153493f"
+```
+
+Returns **SharedStreetsReference** SharedStreets Reference
 
 ### lonlatsToCoords
 

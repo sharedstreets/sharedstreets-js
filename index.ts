@@ -5,7 +5,7 @@ import { getCoord, getCoords, getGeom } from "@turf/invariant";
 import lineOffset from "@turf/line-offset";
 import BigNumber from "bignumber.js";
 import { createHash } from "crypto";
-import { LocationReference, SharedStreetsGeometry, SharedStreetsIntersection } from "sharedstreets-types";
+import { FormOfWay, LocationReference, SharedStreetsGeometry, SharedStreetsIntersection, SharedStreetsReference } from "sharedstreets-types";
 import { isArray } from "util";
 
 /**
@@ -59,7 +59,7 @@ export function geometryMessage(line: Feature<LineString> | LineString | number[
  * @param {Object} [options={}] Optional parameters
  * @param {string} [options.formOfWay] Property field that contains FormOfWay value (number/string).
  * @param {string} [options.roadClass] Property field that contains RoadClass value (number/string).
- * @returns {SharedStreetsGeometry[]} SharedStreets Geometries
+ * @returns {SharedStreetsGeometry} SharedStreets Geometry
  * @example
  * const line = [[110, 45], [115, 50], [120, 55]];
  * const geom = sharedstreets.geometry(line);
@@ -176,7 +176,7 @@ export function intersectionMessage(pt: number[] | Feature<Point> | Point): stri
  * @param {Feature<Point>|Array<number>} pt Point location reference as a GeoJSON Point or an Array of numbers <longitude, latitude>.
  * @param {Object} [options={}] Optional parameters
  * @param {string} [options.nodeId] Define NodeId for Intersection
- * @returns {string} SharedStreets Intersection
+ * @returns {SharedStreetsIntersection} SharedStreets Intersection
  * @example
  * const intersection = sharedstreets.intersection([110, 45]);
  * intersection.id // => "71f34691f182a467137b3d37265cb3b6"
@@ -211,7 +211,7 @@ export function intersection(pt: number[] | Feature<Point> | Point, options: {
  * Reference Id
  *
  * @param {Array<LocationReference>} locationReferences An Array of Location References.
- * @param {string|number} [formOfWay=0] Form Of Way
+ * @param {FormOfWay} [formOfWay=0] Form Of Way
  * @returns {string} SharedStreets Reference Id
  * @example
  * const locationReferences = [
@@ -223,7 +223,10 @@ export function intersection(pt: number[] | Feature<Point> | Point, options: {
  * const id = sharedstreets.referenceId(locationReferences, formOfWay);
  * id // => "ef209661aeebadfb4e0a2cb93153493f"
  */
-export function referenceId(locationReferences: LocationReference[], formOfWay: string | number = 0): string {
+export function referenceId(
+  locationReferences: LocationReference[],
+  formOfWay = FormOfWay.Other,
+): string {
   const message = referenceMessage(locationReferences, formOfWay);
   return generateHash(message);
 }
@@ -233,7 +236,10 @@ export function referenceId(locationReferences: LocationReference[], formOfWay: 
  *
  * @private
  */
-export function referenceMessage(locationReferences: LocationReference[], formOfWay: string | number = 0): string {
+export function referenceMessage(
+  locationReferences: LocationReference[],
+  formOfWay = FormOfWay.Other,
+): string {
   // Convert FormOfWay to Number if encoding ID
   if (typeof formOfWay !== "number") { formOfWay = getFormOfWayNumber(formOfWay); }
 
@@ -247,6 +253,37 @@ export function referenceMessage(locationReferences: LocationReference[], formOf
     }
   });
   return message;
+}
+
+/**
+ * Reference
+ *
+ * @param {SharedStreetsGeometry} geom SharedStreets Geometry
+ * @param {Array<LocationReference>} locationReferences An Array of Location References.
+ * @param {number} [formOfWay=0] Form Of Way (default Other)
+ * @param {}
+ * @returns {SharedStreetsReference} SharedStreets Reference
+ * @example
+ * const locationReferences = [
+ *   sharedstreets.locationReference([-74.0048213, 40.7416415], {outboundBearing: 208, distanceToNextRef: 9279}),
+ *   sharedstreets.locationReference([-74.0051265, 40.7408505], {inboundBearing: 188})
+ * ];
+ * const formOfWay = 2; // => "MultipleCarriageway"
+ *
+ * const ref = sharedstreets.reference(locationReferences, formOfWay);
+ * ref.id // => "ef209661aeebadfb4e0a2cb93153493f"
+ */
+export function reference(
+  geom: SharedStreetsGeometry,
+  locationReferences: LocationReference[],
+  formOfWay = FormOfWay.Other,
+): SharedStreetsReference {
+  return {
+    id: referenceId(locationReferences, formOfWay),
+    geometryId: geom.id,
+    formOfWay,
+    locationReferences,
+  };
 }
 
 /**

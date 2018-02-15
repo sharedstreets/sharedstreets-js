@@ -1,5 +1,9 @@
 # Changelog
 
+## 2018-02-15
+
+- Add new method `reference`
+
 ## 2018-02-12
 
 - Add new method `intersection`
