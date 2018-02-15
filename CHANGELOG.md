@@ -1,6 +1,6 @@
 # Changelog
 
-## 2018-02-15
+## 2018-02-15 - 0.7.0
 
 - Add new method `metadata`
 - Update docs for `reference`
