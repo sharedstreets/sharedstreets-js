@@ -1,5 +1,9 @@
 # Changelog
 
+## 2018-02-17 - 0.7.2
+
+- Enforce strict TSLint/Typescript configs
+
 ## 2018-02-15 - 0.7.0
 
 - Add new method `metadata`

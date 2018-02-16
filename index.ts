@@ -1,14 +1,13 @@
 import bearing from "@turf/bearing";
 import distance from "@turf/distance";
 import { Feature, lineString, LineString, Point } from "@turf/helpers";
-import { getCoord, getCoords, getGeom } from "@turf/invariant";
+import { getCoord, getCoords } from "@turf/invariant";
 import lineOffset from "@turf/line-offset";
 import BigNumber from "bignumber.js";
 import { createHash } from "crypto";
 import {
-  FormOfWay, GISMetadata, GISSectionMetadata, LocationReference, OSMMetadata,
+  FormOfWay, GISMetadata, LocationReference, OSMMetadata,
   SharedStreetsGeometry, SharedStreetsIntersection, SharedStreetsMetadata, SharedStreetsReference,
-  WaySection,
 } from "sharedstreets-types";
 import { isArray } from "util";
 

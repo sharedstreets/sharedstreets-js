@@ -101,7 +101,6 @@ test("sharedstreets -- locationReference", (t) => {
 
 test("sharedstreets-pbf -- intersection", (t) => {
   glob.sync(path.join(__dirname, "test", "in", `*.intersection.pbf`)).forEach((filepath) => {
-    const {name, base} = path.parse(filepath);
     const buffer = fs.readFileSync(filepath);
     const intersections = sharedstreetsPbf.intersection(buffer);
 
@@ -118,7 +117,6 @@ test("sharedstreets-pbf -- intersection", (t) => {
 
 test("sharedstreets-pbf -- geometry", (t) => {
   glob.sync(path.join(__dirname, "test", "in", `*.geometry.pbf`)).forEach((filepath) => {
-    const {name, base} = path.parse(filepath);
     const buffer = fs.readFileSync(filepath);
     const geometries = sharedstreetsPbf.geometry(buffer);
 
@@ -136,7 +134,6 @@ test("sharedstreets-pbf -- geometry", (t) => {
 
 test("sharedstreets-pbf -- reference", (t) => {
   glob.sync(path.join(__dirname, "test", "in", `*.reference.pbf`)).forEach((filepath) => {
-    const {name, base} = path.parse(filepath);
     const buffer = fs.readFileSync(filepath);
     const geometries = sharedstreetsPbf.reference(buffer);
 
