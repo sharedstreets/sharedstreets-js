@@ -51,6 +51,9 @@ $ yarn test
 -   [referenceId](#referenceid)
 -   [reference](#reference)
 -   [metadata](#metadata)
+-   [outboundBearing](#outboundbearing)
+-   [inboundBearing](#inboundbearing)
+-   [distanceToNextRef](#distancetonextref)
 -   [lonlatsToCoords](#lonlatstocoords)
 -   [coordsToLonlats](#coordstolonlats)
 -   [generateHash](#generatehash)
@@ -58,6 +61,7 @@ $ yarn test
 -   [getRoadClassNumber](#getroadclassnumber)
 -   [getFormOfWayString](#getformofwaystring)
 -   [getFormOfWayNumber](#getformofwaynumber)
+-   [getCoords](#getcoords)
 
 ### geometryId
 
@@ -204,6 +208,60 @@ const metadata = sharedstreets.metadata(geom)
 
 Returns **SharedStreetsMetadata** SharedStreets Metadata
 
+### outboundBearing
+
+Calculates outbound bearing from a LineString
+
+**Parameters**
+
+-   `line` **(Feature&lt;LineString> | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>>)** GeoJSON LineString or an Array of Positions
+
+**Examples**
+
+```javascript
+const line = [[110, 45], [115, 50], [120, 55]];
+const outboundBearing = sharedstreets.outboundBearing(line);
+outboundBearing; // => 208
+```
+
+Returns **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** Outbound Bearing
+
+### inboundBearing
+
+Calculates inbound bearing from a LineString
+
+**Parameters**
+
+-   `line` **(Feature&lt;LineString> | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>>)** GeoJSON LineString or an Array of Positions
+
+**Examples**
+
+```javascript
+const line = [[110, 45], [115, 50], [120, 55]];
+const inboundBearing = sharedstreets.inboundBearing(line);
+inboundBearing; // => 188
+```
+
+Returns **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** Inbound Bearing
+
+### distanceToNextRef
+
+Calculates inbound bearing from a LineString
+
+**Parameters**
+
+-   `line` **(Feature&lt;LineString> | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>>)** GeoJSON LineString or an Array of Positions
+
+**Examples**
+
+```javascript
+const line = [[110, 45], [115, 50], [120, 55]];
+const distanceToNextRef = sharedstreets.distanceToNextRef(line);
+distanceToNextRef; // => 9279
+```
+
+Returns **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** Inbound Bearing
+
 ### lonlatsToCoords
 
 Converts lonlats to GeoJSON LineString Coords
@@ -323,3 +381,21 @@ sharedstreets.getFormOfWayNumber("TrafficSquare"); // => 5
 ```
 
 Returns **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** Form of Way
+
+### getCoords
+
+getCoords
+
+**Parameters**
+
+-   `line` **(Feature&lt;LineString> | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>>)** GeoJSON LineString or an Array of positions
+
+**Examples**
+
+```javascript
+const line = turf.lineString([[110, 45], [115, 50], [120, 55]]);
+const coords = sharedstreets.getCoords(line);
+coords; // => [[110, 45], [115, 50], [120, 55]]
+```
+
+Returns **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>>** Array of positions

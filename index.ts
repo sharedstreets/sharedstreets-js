@@ -1,7 +1,7 @@
 import bearing from "@turf/bearing";
 import distance from "@turf/distance";
 import { Feature, lineString, LineString, Point } from "@turf/helpers";
-import { getCoord, getCoords } from "@turf/invariant";
+import { getCoord } from "@turf/invariant";
 import lineOffset from "@turf/line-offset";
 import BigNumber from "bignumber.js";
 import { createHash } from "crypto";
@@ -79,32 +79,17 @@ export function geometry(line: Feature<LineString> | LineString | number[][], op
   // - backReference [optional]
 } = {}): SharedStreetsGeometry {
   let properties: any = {};
-  let coords;
+  const coords = getCoords(line);
 
-  // Deconstruct GeoJSON LineString
-  if (isArray(line)) {
-    coords = line;
-  } else if (line.type === "Feature") {
-    properties = line.properties || {};
-    if (line.geometry === null) { throw new Error("line geometry cannot be null"); }
-    coords = line.geometry.coordinates;
-  } else {
-    coords = line.coordinates;
-  }
+  // Extract Properties from GeoJSON LineString Feature
+  if (!isArray(line) && line.type === "Feature") { properties = line.properties || {}; }
 
-  // Calculate Distances
+  // Attributes for Forward & Back References
   const start = coords[0];
   const end = coords[coords.length - 1];
-  const distanceToNextRef = distance(start, end, {units: "meters"}) / 100;
-
-  // LRs describe the compass bearing of the street geometry for the 20 meters immediately following the LR.
-  const line20m = lineOffset(lineString(coords), 20, {units: "meters"});
-  const line20mCoords = getCoords(line20m);
-  const start20m = line20mCoords[line20mCoords.length - 1];
-
-  // Calculate outbound & inbound
-  const outboundBearing = bearing(start, start20m);
-  const inboundBearing = bearing(end, start);
+  const distToNextRef = distanceToNextRef(line);
+  const outBearing = outboundBearing(line);
+  const inBearing = inboundBearing(line);
 
   // FormOfWay needs to be extracted from the GeoJSON properties.
   let formOfWay = 0;
@@ -121,11 +106,11 @@ export function geometry(line: Feature<LineString> | LineString | number[][], op
   // To-Do make below from Optional parameters
   // Location References
   const fromIntersection = locationReference(start, {
-    distanceToNextRef,
-    outboundBearing,
+    distanceToNextRef: distToNextRef,
+    outboundBearing: outBearing,
   });
   const toIntersection = locationReference(end, {
-    inboundBearing,
+    inboundBearing: inBearing,
   });
   const fromIntersectionId = fromIntersection.intersectionId;
   const toIntersectionId = toIntersection.intersectionId;
@@ -362,6 +347,66 @@ export function metadata(
 }
 
 /**
+ * Calculates outbound bearing from a LineString
+ *
+ * @param {Feature<LineString>|Array<Array<number>>} line GeoJSON LineString or an Array of Positions
+ * @returns {number} Outbound Bearing
+ * @example
+ * const line = [[110, 45], [115, 50], [120, 55]];
+ * const outboundBearing = sharedstreets.outboundBearing(line);
+ * outboundBearing; // => 208
+ */
+export function outboundBearing(line: Feature<LineString>|LineString|number[][]): number {
+  const coords = getCoords(line);
+  // Calculate Distances
+  const start = coords[0];
+
+  // LRs describe the compass bearing of the street geometry for the 20 meters immediately following the LR.
+  const line20m = lineOffset(lineString(coords), 20, {units: "meters"});
+  const line20mCoords = getCoords(line20m);
+  const start20m = line20mCoords[line20mCoords.length - 1];
+
+  // Calculate outbound & inbound
+  return bearing(start, start20m);
+}
+
+/**
+ * Calculates inbound bearing from a LineString
+ *
+ * @param {Feature<LineString>|Array<Array<number>>} line GeoJSON LineString or an Array of Positions
+ * @returns {number} Inbound Bearing
+ * @example
+ * const line = [[110, 45], [115, 50], [120, 55]];
+ * const inboundBearing = sharedstreets.inboundBearing(line);
+ * inboundBearing; // => 188
+ */
+export function inboundBearing(line: Feature<LineString>|LineString|number[][]): number {
+  const coords = getCoords(line);
+  const start = coords[0];
+  const end = coords[coords.length - 1];
+
+  return bearing(end, start);
+}
+
+/**
+ * Calculates inbound bearing from a LineString
+ *
+ * @param {Feature<LineString>|Array<Array<number>>} line GeoJSON LineString or an Array of Positions
+ * @returns {number} Inbound Bearing
+ * @example
+ * const line = [[110, 45], [115, 50], [120, 55]];
+ * const distanceToNextRef = sharedstreets.distanceToNextRef(line);
+ * distanceToNextRef; // => 9279
+ */
+export function distanceToNextRef(line: Feature<LineString>|LineString|number[][]): number {
+  const coords = getCoords(line);
+  const start = coords[0];
+  const end = coords[coords.length - 1];
+
+  return distance(start, end, {units: "meters"}) / 100;
+}
+
+/**
  * Converts lonlats to GeoJSON LineString Coords
  *
  * @param {Array<number>} lonlats Single Array of paired longitudes & latitude
@@ -505,6 +550,30 @@ export function getFormOfWayNumber(value: string) {
     case "Other": return 7;
     default: throw new Error(`[${value}] unknown FormOfWay String value`);
   }
+}
+
+/**
+ * getCoords
+ *
+ * @param {Feature<LineString>|Array<Array<number>>} line GeoJSON LineString or an Array of positions
+ * @returns {Array<Array<number>>} Array of positions
+ * @example
+ * const line = turf.lineString([[110, 45], [115, 50], [120, 55]]);
+ * const coords = sharedstreets.getCoords(line);
+ * coords; // => [[110, 45], [115, 50], [120, 55]]
+ */
+export function getCoords(line: Feature<LineString> | LineString | number[][]): number[][] {
+  // Deconstruct GeoJSON LineString
+  let coords: number[][];
+  if (isArray(line)) {
+    coords = line;
+  } else if (line.type === "Feature") {
+    if (line.geometry === null) { throw new Error("line geometry cannot be null"); }
+    coords = line.geometry.coordinates;
+  } else {
+    coords = line.coordinates;
+  }
+  return coords;
 }
 
 /**

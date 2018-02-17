@@ -1,6 +1,10 @@
 # Changelog
 
-## 2018-02-17 - 0.7.2
+## 2018-02-17
+
+- Add new helper methods `inboundBearing`, `outboundBearing` & `distanceToNextRef`.
+
+## 2018-02-16 - 0.7.2
 
 - Enforce strict TSLint/Typescript configs
 
