@@ -50,7 +50,6 @@
     "@turf/helpers": "6.x",
     "@turf/invariant": "6.x",
     "@turf/line-offset": "*",
-    "@turf/rhumb-distance": "*",
     "bignumber.js": "6.x",
     "sharedstreets-types": "1.x"
   }
