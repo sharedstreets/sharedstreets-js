@@ -2,6 +2,7 @@
 
 ## 2018-02-18 - 0.8.0
 
+- Implement `backReference` & `forwardReference` methods.
 - Implement `getStartCoord` & `getEndCoord` methods, easy way to extract coordinates from a GeoJSON LineString.
 - Implement `getFormOfWay` method, easy way to extract FormOfWay from a GeoJSON LineString.
 - Update `distanceToNextRef` to use `start` & `end` params.

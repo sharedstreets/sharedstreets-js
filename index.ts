@@ -284,7 +284,7 @@ export function reference(
  * @example
  * const line = [[110, 45], [115, 50], [120, 55]];
  * const ref = sharedstreets.forwardReference(line);
- * ref.id // => "ef209661aeebadfb4e0a2cb93153493f"
+ * ref.id // => "3f652e4585aa7d7df3c1fbe4f55cea0a"
  */
 export function forwardReference(
   line: Feature<LineString> | LineString | Position[],
@@ -292,10 +292,50 @@ export function forwardReference(
     formOfWay?: number|string,
   } = {},
 ): SharedStreetsReference {
-  const formOfWay = getFormOfWay(line, options);
-  const geomId = geometryId(line);
   const start = getStartCoord(line);
   const end = getEndCoord(line);
+  const formOfWay = getFormOfWay(line, options);
+  const geomId = geometryId(line);
+  const outBearing = outboundBearing(line);
+  const inBearing = inboundBearing(line);
+  const distToNextRef = distanceToNextRef(start, end);
+  const locationReferences = [
+    locationReference(start, {outboundBearing: outBearing, distanceToNextRef: distToNextRef}),
+    locationReference(end, {inboundBearing: inBearing}),
+  ];
+  const id = referenceId(locationReferences, formOfWay);
+
+  return {
+    id,
+    geometryId: geomId,
+    formOfWay,
+    locationReferences,
+  };
+}
+
+/**
+ * Back Reference
+ *
+ * @param {Feature<LineString>|Array<Array<number>>} line GeoJSON LineString Feature or an Array of Positions
+ * @param {Object} [options={}] Optional parameters
+ * @param {number|string} [options.formOfWay=0] Form of Way (default "Undefined")
+ * @returns {SharedStreetsReference} Back SharedStreets Reference
+ * @example
+ * const line = [[110, 45], [115, 50], [120, 55]];
+ * const ref = sharedstreets.backReference(line);
+ * ref.id // => "a18b2674e41cad630f5693154837baf4"
+ */
+export function backReference(
+  line: Feature<LineString> | LineString | Position[],
+  options: {
+    formOfWay?: number|string,
+  } = {},
+): SharedStreetsReference {
+  // Back Reference switches Start => End
+  const end = getStartCoord(line);
+  const start = getEndCoord(line);
+  const formOfWay = getFormOfWay(line, options);
+  const geomId = geometryId(line);
   const outBearing = outboundBearing(line);
   const inBearing = inboundBearing(line);
   const distToNextRef = distanceToNextRef(start, end);

@@ -216,27 +216,12 @@ test("sharedstreets -- getFormOfWay", (t) => {
 });
 
 test("sharedstreets -- forwardReference", (t) => {
-  // const line = [[110, 45], [115, 50], [120, 55]];
-  // const ref = sharedstreets.forwardReference(line);
+  const line = [[110, 45], [115, 50], [120, 55]];
+  const forwardReference = sharedstreets.forwardReference(line).id;
+  const backReference = sharedstreets.backReference(line).id;
 
-  // t.deepEqual(ref, {
-  //   id: "79aad7fa7e4fec23ff2c97d0b33086ce",
-  //   geometryId: "ce9c0ec1472c0a8bab3190ab075e9b21",
-  //   formOfWay: 0,
-  //   locationReferences: [ {
-  //     intersectionId: "71f34691f182a467137b3d37265cb3b6",
-  //     lat: 45,
-  //     lon: 110,
-  //     outboundBearing: 28.98365651666192,
-  //     distanceToNextRef: 13189.788390787704,
-  //   }, {
-  //     intersectionId: "42286ee839cf23904b00acfc7d13a2e2",
-  //     lat: 55,
-  //     lon: 120,
-  //     inboundBearing: -143.31931131219864,
-  //   }],
-  // });
-  t.skip("add tests for forwardReference");
+  t.equal(forwardReference, "3f652e4585aa7d7df3c1fbe4f55cea0a");
+  t.equal(backReference, "a18b2674e41cad630f5693154837baf4");
   t.end();
 });
 

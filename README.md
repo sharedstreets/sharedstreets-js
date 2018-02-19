@@ -51,6 +51,7 @@ $ yarn test
 -   [referenceId](#referenceid)
 -   [reference](#reference)
 -   [forwardReference](#forwardreference)
+-   [backReference](#backreference)
 -   [metadata](#metadata)
 -   [outboundBearing](#outboundbearing)
 -   [inboundBearing](#inboundbearing)
@@ -208,10 +209,30 @@ Forward Reference
 ```javascript
 const line = [[110, 45], [115, 50], [120, 55]];
 const ref = sharedstreets.forwardReference(line);
-ref.id // => "ef209661aeebadfb4e0a2cb93153493f"
+ref.id // => "3f652e4585aa7d7df3c1fbe4f55cea0a"
 ```
 
 Returns **SharedStreetsReference** Forward SharedStreets Reference
+
+### backReference
+
+Back Reference
+
+**Parameters**
+
+-   `line` **(Feature&lt;LineString> | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>>)** GeoJSON LineString Feature or an Array of Positions
+-   `options` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Optional parameters (optional, default `{}`)
+    -   `options.formOfWay` **([number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number) \| [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String))** Form of Way (default "Undefined") (optional, default `0`)
+
+**Examples**
+
+```javascript
+const line = [[110, 45], [115, 50], [120, 55]];
+const ref = sharedstreets.backReference(line);
+ref.id // => "a18b2674e41cad630f5693154837baf4"
+```
+
+Returns **SharedStreetsReference** Back SharedStreets Reference
 
 ### metadata
 
