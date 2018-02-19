@@ -50,6 +50,7 @@ $ yarn test
 -   [intersection](#intersection)
 -   [referenceId](#referenceid)
 -   [reference](#reference)
+-   [forwardReference](#forwardreference)
 -   [metadata](#metadata)
 -   [outboundBearing](#outboundbearing)
 -   [inboundBearing](#inboundbearing)
@@ -60,8 +61,12 @@ $ yarn test
 -   [getRoadClassString](#getroadclassstring)
 -   [getRoadClassNumber](#getroadclassnumber)
 -   [getFormOfWayString](#getformofwaystring)
+-   [getFormOfWay](#getformofway)
+-   [getStartCoord](#getstartcoord)
+-   [getEndCoord](#getendcoord)
 -   [getFormOfWayNumber](#getformofwaynumber)
 -   [getCoords](#getcoords)
+-   [round](#round)
 
 ### geometryId
 
@@ -170,7 +175,7 @@ Reference
 
 -   `geom` **SharedStreetsGeometry** SharedStreets Geometry
 -   `locationReferences` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;LocationReference>** An Array of Location References.
--   `formOfWay` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** Form Of Way (default Other) (optional, default `0`)
+-   `formOfWay` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** Form Of Way (default Undefined) (optional, default `0`)
 
 **Examples**
 
@@ -187,6 +192,26 @@ ref.id // => "ef209661aeebadfb4e0a2cb93153493f"
 ```
 
 Returns **SharedStreetsReference** SharedStreets Reference
+
+### forwardReference
+
+Forward Reference
+
+**Parameters**
+
+-   `line` **(Feature&lt;LineString> | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>>)** GeoJSON LineString Feature or an Array of Positions
+-   `options` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Optional parameters (optional, default `{}`)
+    -   `options.formOfWay` **([number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number) \| [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String))** Form of Way (default "Undefined") (optional, default `0`)
+
+**Examples**
+
+```javascript
+const line = [[110, 45], [115, 50], [120, 55]];
+const ref = sharedstreets.forwardReference(line);
+ref.id // => "ef209661aeebadfb4e0a2cb93153493f"
+```
+
+Returns **SharedStreetsReference** Forward SharedStreets Reference
 
 ### metadata
 
@@ -352,7 +377,7 @@ Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/G
 
 ### getFormOfWayString
 
-Get FormOfWay from a Number to a String
+Get FormOfWay from a GeoJSON LineString and/or Optional parameters
 
 **Parameters**
 
@@ -366,6 +391,64 @@ sharedstreets.getFormOfWayString(5); // => "TrafficSquare"
 ```
 
 Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Form of Way
+
+### getFormOfWay
+
+Get FormOfWay from a GeoJSON LineString
+
+**Parameters**
+
+-   `line` **(Feature&lt;LineString> | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>>)** GeoJSON LineString Feature or an Array of Positions
+-   `options` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Optional parameters (optional, default `{}`)
+    -   `options.formOfWay` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** Form of Way (optional, default `0`)
+
+**Examples**
+
+```javascript
+const lineA = turf.lineString([[110, 45], [115, 50], [120, 55]], {formOfWay: 3});
+const lineB = turf.lineString([[110, 45], [115, 50], [120, 55]]);
+const lineC = turf.lineString([[110, 45], [115, 50], [120, 55]], {formOfWay: "Motorway"});
+
+sharedstreets.getFormOfWay(lineA); // => 3
+sharedstreets.getFormOfWay(lineB); // => 0
+sharedstreets.getFormOfWay(lineC); // => 1
+```
+
+### getStartCoord
+
+Get Start Coordinate from a GeoJSON LineString
+
+**Parameters**
+
+-   `line` **(Feature&lt;LineString> | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;Position>)** GeoJSON LineString or an Array of Positiosn
+
+**Examples**
+
+```javascript
+const line = turf.lineString([[110, 45], [115, 50], [120, 55]]);
+const start = sharedstreets.getStartCoord(line);
+start // => [110, 45]
+```
+
+Returns **Position** Start Coordinate
+
+### getEndCoord
+
+Get Start Coordinate from a GeoJSON LineString
+
+**Parameters**
+
+-   `line` **(Feature&lt;LineString> | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;Position>)** GeoJSON LineString or an Array of Positiosn
+
+**Examples**
+
+```javascript
+const line = turf.lineString([[110, 45], [115, 50], [120, 55]]);
+const end = sharedstreets.getEndCoord(line);
+end // => [120, 55]
+```
+
+Returns **Position** Start Coordinate
 
 ### getFormOfWayNumber
 
@@ -401,3 +484,20 @@ coords; // => [[110, 45], [115, 50], [120, 55]]
 ```
 
 Returns **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>>** Array of positions
+
+### round
+
+Round Number to 6 decimals
+
+**Parameters**
+
+-   `num` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** Number to round
+-   `decimalPlaces` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** Decimal Places (optional, default `6`)
+
+**Examples**
+
+```javascript
+sharedstreets.round(10.123456789) // => 10.123457
+```
+
+Returns **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Big Number fixed string

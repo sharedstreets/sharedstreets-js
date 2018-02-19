@@ -93,6 +93,13 @@
   dependencies:
     "@turf/helpers" "^5.1.5"
 
+"@turf/rhumb-distance@*":
+  version "5.1.5"
+  resolved "https://registry.yarnpkg.com/@turf/rhumb-distance/-/rhumb-distance-5.1.5.tgz#1806857625f4225384dad413e69f39538ff5f765"
+  dependencies:
+    "@turf/helpers" "^5.1.5"
+    "@turf/invariant" "^5.1.5"
+
 "@types/events@*":
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/@types/events/-/events-1.1.0.tgz#93b1be91f63c184450385272c47b6496fd028e02"
@@ -1656,7 +1663,7 @@ sharedstreets-pbf@*:
     protobufjs "6.x"
     sharedstreets-types "1.x"
 
-sharedstreets-types@*, sharedstreets-types@1.x:
+sharedstreets-types@1.x:
   version "1.2.3"
   resolved "https://registry.yarnpkg.com/sharedstreets-types/-/sharedstreets-types-1.2.3.tgz#060141c3a5efc3701d2bfcddfc3a88ba75d2b43a"
 

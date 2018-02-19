@@ -1,6 +1,6 @@
 import bearing from "@turf/bearing";
 import distance from "@turf/distance";
-import { Coord, Feature, lineString, LineString, Point } from "@turf/helpers";
+import { bearingToAzimuth, Coord, Feature, lineString, LineString, Point, Position } from "@turf/helpers";
 import { getCoord } from "@turf/invariant";
 import lineOffset from "@turf/line-offset";
 import BigNumber from "bignumber.js";
@@ -213,7 +213,7 @@ export function intersection(pt: number[] | Feature<Point> | Point, options: {
  */
 export function referenceId(
   locationReferences: LocationReference[],
-  formOfWay = FormOfWay.Other,
+  formOfWay = FormOfWay.Undefined,
 ): string {
   const message = referenceMessage(locationReferences, formOfWay);
   return generateHash(message);
@@ -226,7 +226,7 @@ export function referenceId(
  */
 export function referenceMessage(
   locationReferences: LocationReference[],
-  formOfWay = FormOfWay.Other,
+  formOfWay = FormOfWay.Undefined,
 ): string {
   // Convert FormOfWay to Number if encoding ID
   if (typeof formOfWay !== "number") { formOfWay = getFormOfWayNumber(formOfWay); }
@@ -248,8 +248,7 @@ export function referenceMessage(
  *
  * @param {SharedStreetsGeometry} geom SharedStreets Geometry
  * @param {Array<LocationReference>} locationReferences An Array of Location References.
- * @param {number} [formOfWay=0] Form Of Way (default Other)
- * @param {}
+ * @param {number} [formOfWay=0] Form Of Way (default Undefined)
  * @returns {SharedStreetsReference} SharedStreets Reference
  * @example
  * const line = [[110, 45], [115, 50], [120, 55]];
@@ -265,11 +264,50 @@ export function referenceMessage(
 export function reference(
   geom: SharedStreetsGeometry,
   locationReferences: LocationReference[],
-  formOfWay = FormOfWay.Other,
+  formOfWay = FormOfWay.Undefined,
 ): SharedStreetsReference {
   return {
     id: referenceId(locationReferences, formOfWay),
     geometryId: geom.id,
+    formOfWay,
+    locationReferences,
+  };
+}
+
+/**
+ * Forward Reference
+ *
+ * @param {Feature<LineString>|Array<Array<number>>} line GeoJSON LineString Feature or an Array of Positions
+ * @param {Object} [options={}] Optional parameters
+ * @param {number|string} [options.formOfWay=0] Form of Way (default "Undefined")
+ * @returns {SharedStreetsReference} Forward SharedStreets Reference
+ * @example
+ * const line = [[110, 45], [115, 50], [120, 55]];
+ * const ref = sharedstreets.forwardReference(line);
+ * ref.id // => "ef209661aeebadfb4e0a2cb93153493f"
+ */
+export function forwardReference(
+  line: Feature<LineString> | LineString | Position[],
+  options: {
+    formOfWay?: number|string,
+  } = {},
+): SharedStreetsReference {
+  const formOfWay = getFormOfWay(line, options);
+  const geomId = geometryId(line);
+  const start = getStartCoord(line);
+  const end = getEndCoord(line);
+  const outBearing = outboundBearing(line);
+  const inBearing = inboundBearing(line);
+  const distToNextRef = distanceToNextRef(start, end);
+  const locationReferences = [
+    locationReference(start, {outboundBearing: outBearing, distanceToNextRef: distToNextRef}),
+    locationReference(end, {inboundBearing: inBearing}),
+  ];
+  const id = referenceId(locationReferences, formOfWay);
+
+  return {
+    id,
+    geometryId: geomId,
     formOfWay,
     locationReferences,
   };
@@ -367,7 +405,7 @@ export function outboundBearing(line: Feature<LineString>|LineString|number[][])
   const start20m = line20mCoords[line20mCoords.length - 1];
 
   // Calculate outbound & inbound
-  return bearing(start, start20m);
+  return bearingToAzimuth(Math.floor(bearing(start, start20m)));
 }
 
 /**
@@ -385,7 +423,7 @@ export function inboundBearing(line: Feature<LineString>|LineString|number[][]):
   const start = coords[0];
   const end = coords[coords.length - 1];
 
-  return bearing(end, start);
+  return bearingToAzimuth(Math.floor(bearing(end, start)));
 }
 
 /**
@@ -401,7 +439,7 @@ export function inboundBearing(line: Feature<LineString>|LineString|number[][]):
  * distanceToNextRef; // => 9279
  */
 export function distanceToNextRef(start: Coord, end: Coord): number {
-  return distance(start, end, {units: "meters"}) / 100;
+  return Math.floor(distance(start, end, {units: "meters"}) * 100);
 }
 
 /**
@@ -503,7 +541,7 @@ export function getRoadClassNumber(value: string) {
 }
 
 /**
- * Get FormOfWay from a Number to a String
+ * Get FormOfWay from a GeoJSON LineString and/or Optional parameters
  *
  * @param {number} value Number value [between 0-7]
  * @returns {string} Form of Way
@@ -523,6 +561,95 @@ export function getFormOfWayString(value: number): string {
     case 6: return "SlipRoad";
     case 7: return "Other";
     default: throw new Error(`[${value}] unknown FormOfWay Number value`);
+  }
+}
+
+/**
+ * Get FormOfWay from a GeoJSON LineString
+ *
+ * @param {Feature<LineString>|Array<Array<number>>} line GeoJSON LineString Feature or an Array of Positions
+ * @param {Object} [options={}] Optional parameters
+ * @param {number} [options.formOfWay=0] Form of Way
+ * @example
+ * const lineA = turf.lineString([[110, 45], [115, 50], [120, 55]], {formOfWay: 3});
+ * const lineB = turf.lineString([[110, 45], [115, 50], [120, 55]]);
+ * const lineC = turf.lineString([[110, 45], [115, 50], [120, 55]], {formOfWay: "Motorway"});
+ *
+ * sharedstreets.getFormOfWay(lineA); // => 3
+ * sharedstreets.getFormOfWay(lineB); // => 0
+ * sharedstreets.getFormOfWay(lineC); // => 1
+ */
+export function getFormOfWay(
+  line: Feature<LineString> | LineString | Position[],
+  options: {
+    formOfWay?: number | string,
+  } = {},
+): number {
+  // Set default to Other (0)
+  let formOfWay: number | string = FormOfWay.Undefined;
+
+  // Retrieve formOfWay from Optional Parameters (priority order since it is user defined)
+  if (options.formOfWay !== undefined) {
+    formOfWay = options.formOfWay;
+
+    // Retrieve formOfWay via GeoJSON LineString properties
+  } else if (!Array.isArray(line) && line.type === "Feature" && line.properties && line.properties.formOfWay) {
+    formOfWay = line.properties.formOfWay;
+  }
+
+  // Assert value to Number
+  if (typeof formOfWay === "string") { formOfWay = getFormOfWayNumber(formOfWay); }
+
+  return formOfWay;
+}
+
+/**
+ * Get Start Coordinate from a GeoJSON LineString
+ *
+ * @param {Feature<LineString>|Array<Position>} line GeoJSON LineString or an Array of Positiosn
+ * @returns {Position} Start Coordinate
+ * @example
+ * const line = turf.lineString([[110, 45], [115, 50], [120, 55]]);
+ * const start = sharedstreets.getStartCoord(line);
+ * start // => [110, 45]
+ */
+export function getStartCoord(line: Feature<LineString> | LineString | Position[]): Position {
+  // Array of Positions
+  if (Array.isArray(line)) {
+    return line[0];
+  // GeoJSON Feature
+  } else if (line.type === "Feature" && line.geometry) {
+    return line.geometry.coordinates[0];
+  // GeoJSON Geometry
+  } else if (line.type === "LineString") {
+    return line.coordinates[0];
+  } else {
+    throw new Error("invalid line");
+  }
+}
+
+/**
+ * Get Start Coordinate from a GeoJSON LineString
+ *
+ * @param {Feature<LineString>|Array<Position>} line GeoJSON LineString or an Array of Positiosn
+ * @returns {Position} Start Coordinate
+ * @example
+ * const line = turf.lineString([[110, 45], [115, 50], [120, 55]]);
+ * const end = sharedstreets.getEndCoord(line);
+ * end // => [120, 55]
+ */
+export function getEndCoord(line: Feature<LineString> | LineString | Position[]): Position {
+  // Array of Positions
+  if (Array.isArray(line)) {
+    return line[line.length - 1];
+  // GeoJSON Feature
+  } else if (line.type === "Feature" && line.geometry) {
+    return line.geometry.coordinates[line.geometry.coordinates.length - 1];
+  // GeoJSON Geometry
+  } else if (line.type === "LineString") {
+    return line.coordinates[line.coordinates.length - 1];
+  } else {
+    throw new Error("invalid line");
   }
 }
 
@@ -575,12 +702,14 @@ export function getCoords(line: Feature<LineString> | LineString | number[][]): 
 }
 
 /**
- * Round
+ * Round Number to 6 decimals
  *
- * @private
  * @param {number} num Number to round
  * @param {number} [decimalPlaces=6] Decimal Places
+ * @returns {string} Big Number fixed string
+ * @example
+ * sharedstreets.round(10.123456789) // => 10.123457
  */
-export function round(num: number, decimalPlaces = 6) {
+export function round(num: number, decimalPlaces = 6): string {
   return new BigNumber(String(num)).toFixed(decimalPlaces);
 }
