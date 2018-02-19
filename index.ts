@@ -1,6 +1,6 @@
 import bearing from "@turf/bearing";
 import distance from "@turf/distance";
-import { Feature, lineString, LineString, Point } from "@turf/helpers";
+import { Coord, Feature, lineString, LineString, Point } from "@turf/helpers";
 import { getCoord } from "@turf/invariant";
 import lineOffset from "@turf/line-offset";
 import BigNumber from "bignumber.js";
@@ -87,7 +87,7 @@ export function geometry(line: Feature<LineString> | LineString | number[][], op
   // Attributes for Forward & Back References
   const start = coords[0];
   const end = coords[coords.length - 1];
-  const distToNextRef = distanceToNextRef(line);
+  const distToNextRef = distanceToNextRef(start, end);
   const outBearing = outboundBearing(line);
   const inBearing = inboundBearing(line);
 
@@ -391,18 +391,16 @@ export function inboundBearing(line: Feature<LineString>|LineString|number[][]):
 /**
  * Calculates inbound bearing from a LineString
  *
- * @param {Feature<LineString>|Array<Array<number>>} line GeoJSON LineString or an Array of Positions
- * @returns {number} Inbound Bearing
+ * @param {Coord} start GeoJSON Point or an Array of numbers [Longitude/Latitude]
+ * @param {Coord} end GeoJSON Point or an Array of numbers [Longitude/Latitude]
+ * @returns {number} Distance to next Ref in centimeters
  * @example
- * const line = [[110, 45], [115, 50], [120, 55]];
- * const distanceToNextRef = sharedstreets.distanceToNextRef(line);
+ * const start = [110, 45];
+ * const end = [120, 55];
+ * const distanceToNextRef = sharedstreets.distanceToNextRef(start, end);
  * distanceToNextRef; // => 9279
  */
-export function distanceToNextRef(line: Feature<LineString>|LineString|number[][]): number {
-  const coords = getCoords(line);
-  const start = coords[0];
-  const end = coords[coords.length - 1];
-
+export function distanceToNextRef(start: Coord, end: Coord): number {
   return distance(start, end, {units: "meters"}) / 100;
 }
 

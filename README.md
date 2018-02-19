@@ -250,17 +250,19 @@ Calculates inbound bearing from a LineString
 
 **Parameters**
 
--   `line` **(Feature&lt;LineString> | [Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)&lt;[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)>>)** GeoJSON LineString or an Array of Positions
+-   `start` **Coord** GeoJSON Point or an Array of numbers [Longitude/Latitude]
+-   `end` **Coord** GeoJSON Point or an Array of numbers [Longitude/Latitude]
 
 **Examples**
 
 ```javascript
-const line = [[110, 45], [115, 50], [120, 55]];
-const distanceToNextRef = sharedstreets.distanceToNextRef(line);
+const start = [110, 45];
+const end = [120, 55];
+const distanceToNextRef = sharedstreets.distanceToNextRef(start, end);
 distanceToNextRef; // => 9279
 ```
 
-Returns **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** Inbound Bearing
+Returns **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** Distance to next Ref in centimeters
 
 ### lonlatsToCoords
 

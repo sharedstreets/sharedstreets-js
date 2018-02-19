@@ -1,5 +1,9 @@
 # Changelog
 
+## 2018-02-18 - 0.7.3
+
+- Update `distanceToNextRef` to use `start` & `end` params.
+
 ## 2018-02-17
 
 - Add new helper methods `inboundBearing`, `outboundBearing` & `distanceToNextRef`.
