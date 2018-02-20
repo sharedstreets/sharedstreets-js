@@ -1,7 +1,7 @@
 import bearing from "@turf/bearing";
-import distance from "@turf/distance";
-import { bearingToAzimuth, Coord, Feature, lineString, LineString, Point, Position } from "@turf/helpers";
+import { bearingToAzimuth, Feature, lineString, LineString, Point, Position } from "@turf/helpers";
 import { getCoord } from "@turf/invariant";
+import length from "@turf/length";
 import lineOffset from "@turf/line-offset";
 import BigNumber from "bignumber.js";
 import { createHash } from "crypto";
@@ -87,7 +87,7 @@ export function geometry(line: Feature<LineString> | LineString | number[][], op
   // Attributes for Forward & Back References
   const start = coords[0];
   const end = coords[coords.length - 1];
-  const distToNextRef = distanceToNextRef(start, end);
+  const distToNextRef = distanceToNextRef(line);
   const outBearing = outboundBearing(line);
   const inBearing = inboundBearing(line);
 
@@ -298,7 +298,7 @@ export function forwardReference(
   const geomId = geometryId(line);
   const outBearing = outboundBearing(line);
   const inBearing = inboundBearing(line);
-  const distToNextRef = distanceToNextRef(start, end);
+  const distToNextRef = distanceToNextRef(line);
   const locationReferences = [
     locationReference(start, {outboundBearing: outBearing, distanceToNextRef: distToNextRef}),
     locationReference(end, {inboundBearing: inBearing}),
@@ -338,7 +338,7 @@ export function backReference(
   const geomId = geometryId(line);
   const outBearing = outboundBearing(line);
   const inBearing = inboundBearing(line);
-  const distToNextRef = distanceToNextRef(start, end);
+  const distToNextRef = distanceToNextRef(line);
   const locationReferences = [
     locationReference(start, {outboundBearing: outBearing, distanceToNextRef: distToNextRef}),
     locationReference(end, {inboundBearing: inBearing}),
@@ -458,7 +458,7 @@ export function outboundBearing(line: Feature<LineString>|LineString|number[][])
  * const inboundBearing = sharedstreets.inboundBearing(line);
  * inboundBearing; // => 188
  */
-export function inboundBearing(line: Feature<LineString>|LineString|number[][]): number {
+export function inboundBearing(line: Feature<LineString>|LineString|Position[]): number {
   const coords = getCoords(line);
   const start = coords[0];
   const end = coords[coords.length - 1];
@@ -478,8 +478,9 @@ export function inboundBearing(line: Feature<LineString>|LineString|number[][]):
  * const distanceToNextRef = sharedstreets.distanceToNextRef(start, end);
  * distanceToNextRef; // => 9279
  */
-export function distanceToNextRef(start: Coord, end: Coord): number {
-  return Math.floor(distance(start, end, {units: "meters"}) * 100);
+export function distanceToNextRef(line: Feature<LineString>|LineString|Position[]): number {
+  if (Array.isArray(line)) { line = lineString(line); }
+  return Math.floor(length(line, {units: "meters"}) * 100);
 }
 
 /**

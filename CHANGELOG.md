@@ -1,5 +1,9 @@
 # Changelog
 
+## 2018-02-20 - 0.9.0
+
+- `distanceToNextRef` has been changed to calculate distance along geometry instead of `start` to `end` points.
+
 ## 2018-02-19 - 0.8.2
 
 - Fix closed loops LineStrings: https://github.com/sharedstreets/sharedstreets-conflator/issues/8

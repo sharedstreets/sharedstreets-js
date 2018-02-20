@@ -220,8 +220,8 @@ test("sharedstreets -- forwardReference", (t) => {
   const forwardReference = sharedstreets.forwardReference(line).id;
   const backReference = sharedstreets.backReference(line).id;
 
-  t.equal(forwardReference, "3f652e4585aa7d7df3c1fbe4f55cea0a");
-  t.equal(backReference, "a18b2674e41cad630f5693154837baf4");
+  t.equal(forwardReference, "393dd4d6967874e601b4331637241d19");
+  t.equal(backReference, "c542190b96358772c70deaa7e14b0936");
   t.end();
 });
 
@@ -229,14 +229,14 @@ test("sharedstreets -- bearing & distance", (t) => {
   const line = [[-74.006449, 40.739405000000005], [-74.00790070000001, 40.7393884], [-74.00805100000001, 40.7393804]];
   const inboundBearing = sharedstreets.inboundBearing(line);
   const outboundBearing = sharedstreets.outboundBearing(line);
-  const start = sharedstreets.getStartCoord(line);
-  const end = sharedstreets.getEndCoord(line);
-  const distanceToNextRef = sharedstreets.distanceToNextRef(start, end);
+  const distanceToNextRef = sharedstreets.distanceToNextRef(line);
 
   t.equal(outboundBearing, 277); // => 269 Java Implementation
   t.equal(inboundBearing, 88); // => 267 Java Implementation
-  t.equal(distanceToNextRef, 13499); // => 13536 Java Implementation
-  t.skip("add tests for bearing & distance");
+  t.equal(distanceToNextRef, 13501); // => 13536 Java Implementation
+  t.skip("outboundBearing does not match Java Implementation");
+  t.skip("inboundBearing does not match Java Implementation");
+  t.skip("distanceToNextRef does not match Java Implementation");
   t.end();
 });
 
