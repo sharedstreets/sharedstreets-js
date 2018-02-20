@@ -1,6 +1,6 @@
 {
   "name": "sharedstreets",
-  "version": "0.8.2",
+  "version": "0.9.0",
   "description": "SharedStreets, a 'digital commons' for the street",
   "main": "index",
   "files": [
