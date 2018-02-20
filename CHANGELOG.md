@@ -1,5 +1,9 @@
 # Changelog
 
+## 2018-02-19 - 0.8.2
+
+- Fix closed loops LineStrings: https://github.com/sharedstreets/sharedstreets-conflator/issues/8
+
 ## 2018-02-18 - 0.8.0
 
 - Implement `backReference` & `forwardReference` methods.

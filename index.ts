@@ -389,9 +389,9 @@ export function locationReference(
     lat: coord[1],
     lon: coord[0],
   };
-  if (options.inboundBearing) { locRef.inboundBearing = options.inboundBearing; }
-  if (options.outboundBearing) { locRef.outboundBearing = options.outboundBearing; }
-  if (options.distanceToNextRef) { locRef.distanceToNextRef = options.distanceToNextRef; }
+  if (options.inboundBearing !== undefined) { locRef.inboundBearing = options.inboundBearing; }
+  if (options.outboundBearing !== undefined) { locRef.outboundBearing = options.outboundBearing; }
+  if (options.distanceToNextRef !== undefined) { locRef.distanceToNextRef = options.distanceToNextRef; }
 
   if (locRef.outboundBearing !== undefined && locRef.distanceToNextRef === undefined) {
     throw new Error("distanceToNextRef is required if outboundBearing is present");

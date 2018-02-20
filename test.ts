@@ -244,3 +244,19 @@ test("sharedstreets -- round", (t) => {
   t.equal(Number(sharedstreets.round(10.123456789)), 10.123457);
   t.end();
 });
+
+test("sharedstreets -- closed loops - Issue #8", (t) => {
+  // https://github.com/sharedstreets/sharedstreets-conflator/issues/8
+
+  const line = [
+    [-79.549159053, 43.615639543],
+    [-79.548687537, 43.615687142],
+    [-79.547733353, 43.615744613],
+    [-79.548036429, 43.614913292],
+    [-79.549024608, 43.615542992],
+    [-79.549159053, 43.615639543],
+  ];
+  t.assert(sharedstreets.forwardReference(line));
+  t.assert(sharedstreets.backReference(line));
+  t.end();
+});
