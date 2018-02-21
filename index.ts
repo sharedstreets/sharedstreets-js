@@ -170,14 +170,14 @@ export function intersectionMessage(pt: number[] | Feature<Point> | Point): stri
  * intersection.id // => "71f34691f182a467137b3d37265cb3b6"
  */
 export function intersection(pt: number[] | Feature<Point> | Point, options: {
-  nodeId?: string,
+  nodeId?: number,
   inboundReferences?: LocationReference[],
   outboundReferencesIds?: LocationReference[],
 } = {}): SharedStreetsIntersection {
   // Default params
   const inboundReferences = options.inboundReferences || [];
   const outboundReferences = options.outboundReferencesIds || [];
-  const nodeId = options.nodeId || "";
+  const nodeId = options.nodeId;
 
   // Main
   const [lon, lat] = getCoord(pt);
@@ -185,14 +185,15 @@ export function intersection(pt: number[] | Feature<Point> | Point, options: {
   const inboundReferenceIds = inboundReferences.map((ref) => ref.intersectionId);
   const outboundReferenceIds = outboundReferences.map((ref) => ref.intersectionId);
 
-  return {
+  const data: SharedStreetsIntersection = {
     id,
-    nodeId,
     lon,
     lat,
     inboundReferenceIds,
     outboundReferenceIds,
   };
+  if (nodeId !== undefined) { data.nodeId = nodeId; }
+  return data;
 }
 
 /**
