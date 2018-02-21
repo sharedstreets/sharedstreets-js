@@ -1,5 +1,9 @@
 # Changelog
 
+## 2018-02-21 - 0.9.1
+
+- Revert `nodeId` to `number` type.
+
 ## 2018-02-20 - 0.9.0
 
 - `distanceToNextRef` has been changed to calculate distance along geometry instead of `start` to `end` points.

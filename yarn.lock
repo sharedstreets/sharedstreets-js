@@ -1664,8 +1664,8 @@ sharedstreets-pbf@*:
     sharedstreets-types "1.x"
 
 sharedstreets-types@1.x:
-  version "1.2.3"
-  resolved "https://registry.yarnpkg.com/sharedstreets-types/-/sharedstreets-types-1.2.3.tgz#060141c3a5efc3701d2bfcddfc3a88ba75d2b43a"
+  version "1.2.4"
+  resolved "https://registry.yarnpkg.com/sharedstreets-types/-/sharedstreets-types-1.2.4.tgz#197e2e39444dd3f6c29ebca9d14cbfcde497ea75"
 
 shebang-command@^1.2.0:
   version "1.2.0"
