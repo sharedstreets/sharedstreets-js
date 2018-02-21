@@ -3,6 +3,7 @@
 ## 2018-02-21 - 0.9.1
 
 - Revert `nodeId` to `number` type.
+- Convert `bench.js` to Typescript
 
 ## 2018-02-20 - 0.9.0
 

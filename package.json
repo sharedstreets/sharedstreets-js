@@ -12,7 +12,7 @@
     "test": "tap test.js",
     "posttest": "tslint index.ts --project tsconfig.json",
     "docs": "tsc && documentation readme index.js --section=API",
-    "benchmark": "benchmark bench.js"
+    "bench": "tsc && node bench.js"
   },
   "repository": {
     "type": "git",
@@ -35,6 +35,7 @@
   },
   "homepage": "https://github.com/sharedstreets/sharedstreets.js#readme",
   "devDependencies": {
+    "@types/benchmark": "*",
     "@types/glob": "*",
     "@types/node": "*",
     "@types/tape": "*",
