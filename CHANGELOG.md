@@ -1,5 +1,59 @@
 # Changelog
 
+## 2018-02-21 - 0.9.1
+
+- Revert `nodeId` to `number` type.
+- Convert `bench.js` to Typescript
+
+## 2018-02-20 - 0.9.0
+
+- `distanceToNextRef` has been changed to calculate distance along geometry instead of `start` to `end` points.
+
+## 2018-02-19 - 0.8.2
+
+- Fix closed loops LineStrings: https://github.com/sharedstreets/sharedstreets-conflator/issues/8
+
+## 2018-02-18 - 0.8.0
+
+- Implement `backReference` & `forwardReference` methods.
+- Implement `getStartCoord` & `getEndCoord` methods, easy way to extract coordinates from a GeoJSON LineString.
+- Implement `getFormOfWay` method, easy way to extract FormOfWay from a GeoJSON LineString.
+- Update `distanceToNextRef` to use `start` & `end` params.
+
+## 2018-02-17
+
+- Add new helper methods `inboundBearing`, `outboundBearing` & `distanceToNextRef`.
+
+## 2018-02-16 - 0.7.2
+
+- Enforce strict TSLint/Typescript configs
+
+## 2018-02-15 - 0.7.0
+
+- Add new method `metadata`
+- Update docs for `reference`
+- Add new method `reference`
+
+## 2018-02-12
+
+- Add new method `intersection`
+
+## 2018-02-11
+
+- Add new method `geometry`
+- Convert tests to Typescript
+
+## 2018-02-08 - 0.6.0
+
+- Make `formOfWay` optional for `referenceId` method.
+- Add `coordsToLonlats` method
+
+## 2018-02-06 - 0.5.0
+
+- Enforce strict TSLint `tslint.json`
+- Enforce strict=true `tsconfig.json`
+  https://github.com/sharedstreets/sharedstreets-js/issues/9
+
 ## 2018-01-30 - 0.4.0
 
 - Improved readability of testing (expectedId)

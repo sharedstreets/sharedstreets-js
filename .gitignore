@@ -12,9 +12,7 @@ dist
 
 // Typescript compiled files
 *.d.ts
-index.js
-index.mjs
-index.min.js
+*.js
 
 # Runtime data
 pids

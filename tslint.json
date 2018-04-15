@@ -5,22 +5,8 @@
     ],
     "jsRules": {},
     "rules": {
-        "quotemark": [true, "single", "avoid-escape", "avoid-template"],
-        "semicolon": [true, "never"],
-        "object-literal-sort-keys": [false],
-        "max-line-length": [true, 150],
-        "ordered-imports": [false],
-        "arrow-parens": [false],
-        "no-console": [false],
-        "interface-name": [false],
-        "curly": [false],
-        "no-bitwise": [false],
-        "no-empty": [false],
-        "space-before-function-paren": [false],
-        "no-conditional-assignment": [false],
-        "variable-name": [false],
-        "no-unused-variable": [true],
-        "no-unused-expression": [true]
+        "max-line-length": [false],
+        "object-literal-sort-keys": [false]
     },
     "rulesDirectory": []
 }
