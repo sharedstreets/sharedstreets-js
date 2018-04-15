@@ -292,8 +292,8 @@ export function getFormOfWayNumber (value: string) {
  *
  * @private
  * @param {number} num Number to round
- * @param {number} [decimalPlaces=6] Decimal Places
+ * @param {number} [decimalPlaces=5] Decimal Places
  */
-export function round(num: number, decimalPlaces = 6) {
+export function round(num: number, decimalPlaces = 5) {
   return new BigNumber(String(num)).toFixed(decimalPlaces)
 }
