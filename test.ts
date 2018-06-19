@@ -1,4 +1,5 @@
 import { lineString } from "@turf/helpers";
+import length from "@turf/length";
 import * as fs from "fs";
 import * as glob from "glob";
 import * as path from "path";
@@ -13,9 +14,9 @@ const message3 = "Intersection -74.004107 40.634060";
 const pt1 = [110, 45];
 const pt2 = [-74.003388, 40.634538];
 const pt3 = [-74.004107, 40.63406];
-const line1 = [[110, 45], [115, 50], [120, 55]];
-const line2 = [[-74.007568359375, 40.75239562988281], [-74.00729370117188, 40.753089904785156]];
-const line3 = [[-74.00778198242188, 40.72457504272461], [-74.0076675415039, 40.72519302368164]];
+const line1 = lineString([[110, 45], [115, 50], [120, 55]]);
+const line2 = lineString([[-74.007568359375, 40.75239562988281], [-74.00729370117188, 40.753089904785156]]);
+const line3 = lineString([[-74.00778198242188, 40.72457504272461], [-74.0076675415039, 40.72519302368164]]);
 
 test("sharedstreets -- generateHash", (t) => {
   t.equal(sharedstreets.generateHash(message1), "71f34691f182a467137b3d37265cb3b6", "generateHash => message1");
@@ -101,14 +102,14 @@ test("sharedstreets -- locationReference", (t) => {
 });
 
 test("sharedstreets-pbf -- intersection", (t) => {
-  glob.sync(path.join(__dirname, "test", "in", `*.intersection.pbf`)).forEach((filepath) => {
+  glob.sync(path.join(__dirname, "test", "in", `*.intersection.6.pbf`)).forEach((filepath) => {
     const buffer = fs.readFileSync(filepath);
     const intersections = sharedstreetsPbf.intersection(buffer);
 
     intersections.forEach((intersection) => {
-      const {lon, lat, id} = intersection;
-      const expectedId = sharedstreets.intersectionId([lon, lat]);
-      const message = sharedstreets.intersectionMessage([lon, lat]);
+      const {lon, lat, id, nodeId} = intersection;
+      const expectedId = sharedstreets.intersectionId([lon, lat], nodeId);
+      const message = sharedstreets.intersectionMessage([lon, lat], nodeId);
 
       t.equal(expectedId, id, `[${message}] => ${id}`);
     });
@@ -117,7 +118,7 @@ test("sharedstreets-pbf -- intersection", (t) => {
 });
 
 test("sharedstreets-pbf -- geometry", (t) => {
-  glob.sync(path.join(__dirname, "test", "in", `*.geometry.pbf`)).forEach((filepath) => {
+  glob.sync(path.join(__dirname, "test", "in", `*.geometry.6.pbf`)).forEach((filepath) => {
     const buffer = fs.readFileSync(filepath);
     const geometries = sharedstreetsPbf.geometry(buffer);
 
@@ -134,15 +135,16 @@ test("sharedstreets-pbf -- geometry", (t) => {
 });
 
 test("sharedstreets-pbf -- reference", (t) => {
-  glob.sync(path.join(__dirname, "test", "in", `*.reference.pbf`)).forEach((filepath) => {
+  glob.sync(path.join(__dirname, "test", "in", `*.reference.6.pbf`)).forEach((filepath) => {
     const buffer = fs.readFileSync(filepath);
     const geometries = sharedstreetsPbf.reference(buffer);
 
     geometries.forEach((reference) => {
       const {locationReferences, id, formOfWay} = reference;
+      
       const expectedId = sharedstreets.referenceId(locationReferences, formOfWay);
       const message = sharedstreets.referenceMessage(locationReferences, formOfWay);
-
+    
       t.equal(expectedId, id, `[${message}] => ${id}`);
     });
   });
@@ -156,7 +158,7 @@ test("sharedstreets -- coordsToLonlats", (t) => {
 });
 
 test("sharedstreets -- geometry", (t) => {
-  const line = [[110, 45], [115, 50], [120, 55]];
+  const line = lineString([[110, 45], [115, 50], [120, 55]]);
   const geom = sharedstreets.geometry(line);
   t.equal(geom.id, "ce9c0ec1472c0a8bab3190ab075e9b21");
   t.end();
@@ -165,7 +167,7 @@ test("sharedstreets -- geometry", (t) => {
 test("sharedstreets -- intersection", (t) => {
   const intersect = sharedstreets.intersection([110, 45]);
   t.deepEqual(intersect, {
-    id: "71f34691f182a467137b3d37265cb3b6",
+    id: "afd3db07d9baa6deef7acfcaac240607",
     lat: 45,
     lon: 110,
     inboundReferenceIds: [],
@@ -175,7 +177,7 @@ test("sharedstreets -- intersection", (t) => {
 });
 
 test("sharedstreets -- reference", (t) => {
-  const line = [[110, 45], [115, 50], [120, 55]];
+  const line = lineString([[110, 45], [115, 50], [120, 55]]);
   const geom = sharedstreets.geometry(line);
   const locationReferences = [
     sharedstreets.locationReference([-74.0048213, 40.7416415], {outboundBearing: 208, distanceToNextRef: 9279}),
@@ -183,18 +185,18 @@ test("sharedstreets -- reference", (t) => {
   ];
   const formOfWay = 0; // => "Other"
   const ref = sharedstreets.reference(geom, locationReferences, formOfWay);
-  t.equal(ref.id, "b1a2b1764dc639c0bbcd8e131ef06ca8");
+  t.equal(ref.id, "e24cab806eb1778cf093fc8df13a300b");
   t.end();
 });
 
 test("sharedstreets -- metadata", (t) => {
-  const line = [[110, 45], [115, 50], [120, 55]];
+  const line = lineString([[110, 45], [115, 50], [120, 55]]);
   const gisMetadata = [{source: "sharedstreets", sections: [{sectionId: "foo", sectionProperties: "bar"}]}];
   const geom = sharedstreets.geometry(line);
   const metadata = sharedstreets.metadata(geom, {}, gisMetadata);
 
   t.deepEqual(metadata, {
-    geometryId: "ce9c0ec1472c0a8bab3190ab075e9b21",
+    geometryId: "723cda09fa38e07e0957ae939eb2684f",
     osmMetadata: {},
     gisMetadata: [
       { source: "sharedstreets", sections: [{sectionId: "foo", sectionProperties: "bar"}]},
@@ -215,24 +217,25 @@ test("sharedstreets -- getFormOfWay", (t) => {
 });
 
 test("sharedstreets -- forwardReference", (t) => {
-  const line = [[110, 45], [115, 50], [120, 55]];
+  const line = lineString([[110, 45], [115, 50], [120, 55]]);
   const forwardReference = sharedstreets.forwardReference(line).id;
   const backReference = sharedstreets.backReference(line).id;
 
-  t.equal(forwardReference, "393dd4d6967874e601b4331637241d19");
-  t.equal(backReference, "c542190b96358772c70deaa7e14b0936");
+  t.equal(forwardReference, "2cc235ee714ec5e410a584572dd1d2f3");
+  t.equal(backReference, "2644306bcd49a29aac11854ffa7555f0");
   t.end();
 });
 
 test("sharedstreets -- bearing & distance", (t) => {
-  const line = [[-74.006449, 40.739405000000005], [-74.00790070000001, 40.7393884], [-74.00805100000001, 40.7393804]];
-  const inboundBearing = sharedstreets.inboundBearing(line);
-  const outboundBearing = sharedstreets.outboundBearing(line);
+  const line = lineString([[-74.006449, 40.739405000000005], [-74.00790070000001, 40.7393884], [-74.00805100000001, 40.7393804]]);
+  const lineLength = length(line);
+  const inboundBearing = sharedstreets.inboundBearing(line, lineLength, lineLength);
+  const outboundBearing = sharedstreets.outboundBearing(line, lineLength, 0);
   const distanceToNextRef = sharedstreets.distanceToNextRef(line);
 
-  t.equal(outboundBearing, 277); // => 269 Java Implementation
-  t.equal(inboundBearing, 88); // => 267 Java Implementation
-  t.equal(distanceToNextRef, 13501); // => 13536 Java Implementation
+  t.equal(outboundBearing, 269); // => 269 Java Implementation
+  t.equal(inboundBearing, 269); // => 267 Java Implementation
+  t.equal(distanceToNextRef, 13502); // => 13502 Java Implementation
   t.skip("outboundBearing does not match Java Implementation");
   t.skip("inboundBearing does not match Java Implementation");
   t.skip("distanceToNextRef does not match Java Implementation");
@@ -240,21 +243,21 @@ test("sharedstreets -- bearing & distance", (t) => {
 });
 
 test("sharedstreets -- round", (t) => {
-  t.equal(Number(sharedstreets.round(10.123456789)), 10.123457);
+  t.equal(Number(sharedstreets.round(10.123456789)), 10.12346);
   t.end();
 });
 
 test("sharedstreets -- closed loops - Issue #8", (t) => {
   // https://github.com/sharedstreets/sharedstreets-conflator/issues/8
 
-  const line = [
+  const line = lineString([
     [-79.549159053, 43.615639543],
     [-79.548687537, 43.615687142],
     [-79.547733353, 43.615744613],
     [-79.548036429, 43.614913292],
     [-79.549024608, 43.615542992],
     [-79.549159053, 43.615639543],
-  ];
+  ]);
   t.assert(sharedstreets.forwardReference(line));
   t.assert(sharedstreets.backReference(line));
   t.end();

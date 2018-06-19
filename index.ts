@@ -1,8 +1,8 @@
 import bearing from "@turf/bearing";
-import { bearingToAzimuth, Feature, lineString, LineString, Point, Position } from "@turf/helpers";
+import { bearingToAzimuth, Feature, lineString, LineString, Point, Position} from "@turf/helpers";
 import { getCoord } from "@turf/invariant";
 import length from "@turf/length";
-import lineOffset from "@turf/line-offset";
+import along from "@turf/along";
 import BigNumber from "bignumber.js";
 import { createHash } from "crypto";
 import {
@@ -69,7 +69,7 @@ export function geometryMessage(line: Feature<LineString> | LineString | number[
  * geom.id; // => "ce9c0ec1472c0a8bab3190ab075e9b21"
  * geom.lonlats; // => [ 110, 45, 115, 50, 120, 55 ]
  */
-export function geometry(line: Feature<LineString> | LineString | number[][], options: {
+export function geometry(line: Feature<LineString>, options: {
   formOfWay?: string,
   roadClass?: string,
   // To-Do
@@ -84,12 +84,6 @@ export function geometry(line: Feature<LineString> | LineString | number[][], op
   // Extract Properties from GeoJSON LineString Feature
   if (!isArray(line) && line.type === "Feature") { properties = line.properties || {}; }
 
-  // Attributes for Forward & Back References
-  const start = coords[0];
-  const end = coords[coords.length - 1];
-  const distToNextRef = distanceToNextRef(line);
-  const outBearing = outboundBearing(line);
-  const inBearing = inboundBearing(line);
 
   // FormOfWay needs to be extracted from the GeoJSON properties.
   let formOfWay = 0;
@@ -102,22 +96,13 @@ export function geometry(line: Feature<LineString> | LineString | number[][], op
   if (options.roadClass && properties[options.roadClass]) {
     roadClass = properties[options.roadClass];
   }
+  const forwardRef = forwardReference(line, {formOfWay:formOfWay});
+  const backRef = backReference(line, {formOfWay:formOfWay});
+  const forwardReferenceId = forwardRef.id;
+  const backReferenceId = backRef.id;
 
-  // To-Do make below from Optional parameters
-  // Location References
-  const fromIntersection = locationReference(start, {
-    distanceToNextRef: distToNextRef,
-    outboundBearing: outBearing,
-  });
-  const toIntersection = locationReference(end, {
-    inboundBearing: inBearing,
-  });
-  const fromIntersectionId = fromIntersection.intersectionId;
-  const toIntersectionId = toIntersection.intersectionId;
-
-  // Forward/Back Reference
-  const forwardReferenceId = referenceId([fromIntersection, toIntersection], formOfWay);
-  const backReferenceId = referenceId([toIntersection, fromIntersection], formOfWay);
+  const fromIntersectionId = forwardRef.locationReferences[0].intersectionId;
+  const toIntersectionId = forwardRef.locationReferences[forwardRef.locationReferences.length-1].intersectionId;
 
   // Save Results
   const id = geometryId(line);
@@ -143,8 +128,8 @@ export function geometry(line: Feature<LineString> | LineString | number[][], op
  * const id = sharedstreets.intersectionId([110, 45]);
  * id // => "71f34691f182a467137b3d37265cb3b6"
  */
-export function intersectionId(pt: number[] | Feature<Point> | Point): string {
-  const message = intersectionMessage(pt);
+export function intersectionId(pt: number[] | Feature<Point> | Point, id?:string | number): string {
+  const message = intersectionMessage(pt, id);
   return generateHash(message);
 }
 
@@ -153,9 +138,13 @@ export function intersectionId(pt: number[] | Feature<Point> | Point): string {
  *
  * @private
  */
-export function intersectionMessage(pt: number[] | Feature<Point> | Point): string {
+export function intersectionMessage(pt: number[] | Feature<Point> | Point, id?:string | number): string {
   const [lon, lat] = getCoord(pt);
-  return `Intersection ${round(lon)} ${round(lat)}`;
+  var message = `Intersection ${round(lon)} ${round(lat)}`;
+  if(id != undefined)
+    message = message + ' ' + id;
+  return message
+
 }
 
 /**
@@ -170,7 +159,7 @@ export function intersectionMessage(pt: number[] | Feature<Point> | Point): stri
  * intersection.id // => "71f34691f182a467137b3d37265cb3b6"
  */
 export function intersection(pt: number[] | Feature<Point> | Point, options: {
-  nodeId?: number,
+  nodeId?: number | string,
   inboundReferences?: LocationReference[],
   outboundReferencesIds?: LocationReference[],
 } = {}): SharedStreetsIntersection {
@@ -181,7 +170,7 @@ export function intersection(pt: number[] | Feature<Point> | Point, options: {
 
   // Main
   const [lon, lat] = getCoord(pt);
-  const id = intersectionId(pt);
+  const id = intersectionId(pt, nodeId);
   const inboundReferenceIds = inboundReferences.map((ref) => ref.intersectionId);
   const outboundReferenceIds = outboundReferences.map((ref) => ref.intersectionId);
 
@@ -217,7 +206,8 @@ export function referenceId(
   formOfWay = FormOfWay.Undefined,
 ): string {
   const message = referenceMessage(locationReferences, formOfWay);
-  return generateHash(message);
+  const hash = generateHash(message);
+  return hash;
 }
 
 /**
@@ -237,8 +227,8 @@ export function referenceMessage(
     message += ` ${round(lr.lon)} ${round(lr.lat)}`;
     if (lr.outboundBearing !== null && lr.outboundBearing !== undefined &&
         lr.distanceToNextRef !== null && lr.distanceToNextRef !== undefined) {
-      message += ` ${Math.floor(lr.outboundBearing)}`;
-      message += ` ${Math.floor(lr.distanceToNextRef)}`; // distanceToNextRef must be stored in centimeter
+      message += ` ${Math.round(lr.outboundBearing)}`;
+      message += ` ${Math.round(lr.distanceToNextRef / 100)}`; // distanceToNextRef  stored in centimeter but using meters to compute ref Id
     }
   });
   return message;
@@ -287,30 +277,61 @@ export function reference(
  * const ref = sharedstreets.forwardReference(line);
  * ref.id // => "3f652e4585aa7d7df3c1fbe4f55cea0a"
  */
-export function forwardReference(
-  line: Feature<LineString> | LineString | Position[],
+export function forwardReference (
+  line: Feature<LineString>,
   options: {
     formOfWay?: number|string,
   } = {},
 ): SharedStreetsReference {
-  const start = getStartCoord(line);
-  const end = getEndCoord(line);
+
+  const lineLength = length(line, {units: "meters"}); 
+
   const formOfWay = getFormOfWay(line, options);
   const geomId = geometryId(line);
-  const outBearing = outboundBearing(line);
-  const inBearing = inboundBearing(line);
-  const distToNextRef = distanceToNextRef(line);
-  const locationReferences = [
-    locationReference(start, {outboundBearing: outBearing, distanceToNextRef: distToNextRef}),
-    locationReference(end, {inboundBearing: inBearing}),
-  ];
+
+  // lines over 15 are divided into smaller segments
+  const MAX_SEGMENT_LENGTH = 15000;
+  var segmentCount = Math.ceil(lineLength / MAX_SEGMENT_LENGTH);
+
+  var locationReferences = [];
+
+  for(var i = 0; i < segmentCount + 1; i++){
+    var refProperties:{
+      outboundBearing?:number, 
+      inboundBearing?:number,
+      distanceToNextRef?:number } = {};
+
+    if(i < segmentCount){ 
+      refProperties.outboundBearing = outboundBearing(line, lineLength, i * (lineLength / segmentCount));
+      refProperties.distanceToNextRef = Math.round(lineLength / segmentCount) * 100; 
+    }
+    if(i > 0){ 
+      refProperties.inboundBearing = inboundBearing(line, lineLength, i * (lineLength / segmentCount));
+    }
+    
+    var lrCoord;
+    
+    if(i == 0)
+      lrCoord = getStartCoord(line);
+    else if(i == segmentCount) 
+      lrCoord = getEndCoord(line);
+    else {
+      var pos = i * (lineLength / segmentCount);
+      var pt = along(line, pos);
+      lrCoord = getCoord(pt);
+    }
+
+    var ref = locationReference(lrCoord, refProperties);
+    locationReferences.push(ref);
+  }
+
   const id = referenceId(locationReferences, formOfWay);
 
   return {
     id,
     geometryId: geomId,
     formOfWay,
-    locationReferences,
+    locationReferences
   };
 }
 
@@ -327,31 +348,14 @@ export function forwardReference(
  * ref.id // => "a18b2674e41cad630f5693154837baf4"
  */
 export function backReference(
-  line: Feature<LineString> | LineString | Position[],
+  line: Feature<LineString>,
   options: {
     formOfWay?: number|string,
   } = {},
 ): SharedStreetsReference {
-  // Back Reference switches Start => End
-  const end = getStartCoord(line);
-  const start = getEndCoord(line);
-  const formOfWay = getFormOfWay(line, options);
-  const geomId = geometryId(line);
-  const outBearing = outboundBearing(line);
-  const inBearing = inboundBearing(line);
-  const distToNextRef = distanceToNextRef(line);
-  const locationReferences = [
-    locationReference(start, {outboundBearing: outBearing, distanceToNextRef: distToNextRef}),
-    locationReference(end, {inboundBearing: inBearing}),
-  ];
-  const id = referenceId(locationReferences, formOfWay);
-
-  return {
-    id,
-    geometryId: geomId,
-    formOfWay,
-    locationReferences,
-  };
+    var reversedLine = JSON.parse(JSON.stringify(line))
+    reversedLine.geometry.coordinates.reverse();
+    return forwardReference(reversedLine,  options);
 }
 
 /**
@@ -429,42 +433,59 @@ export function metadata(
  * Calculates outbound bearing from a LineString
  *
  * @param {Feature<LineString>|Array<Array<number>>} line GeoJSON LineString or an Array of Positions
+ * @param {number} len length of line
+ * @param {number} dist distance along line to sample outbound bearing
  * @returns {number} Outbound Bearing
  * @example
  * const line = [[110, 45], [115, 50], [120, 55]];
  * const outboundBearing = sharedstreets.outboundBearing(line);
+ * if line is less than 20 meters long bearing is from start to end of line
  * outboundBearing; // => 208
  */
-export function outboundBearing(line: Feature<LineString>|LineString|number[][]): number {
-  const coords = getCoords(line);
-  // Calculate Distances
-  const start = coords[0];
-
+export function outboundBearing(line: Feature<LineString>, len:number, dist:number): number {  
   // LRs describe the compass bearing of the street geometry for the 20 meters immediately following the LR.
-  const line20m = lineOffset(lineString(coords), 20, {units: "meters"});
-  const line20mCoords = getCoords(line20m);
-  const start20m = line20mCoords[line20mCoords.length - 1];
+  if(len > 20) { 
+    const start = along(line, dist, {units: "meters"});
+    const end = along(line, dist + 20, {units: "meters"});
+    // Calculate outbound & inbound
+    return bearingToAzimuth(Math.round(bearing(start, end)));
+  }
+  else {
+    const start = along(line, 0, {units: "meters"});
+    const end = along(line, len, {units: "meters"});
+    // Calculate outbound & inbound
+    return bearingToAzimuth(Math.round(bearing(start, end)));
+  }
 
-  // Calculate outbound & inbound
-  return bearingToAzimuth(Math.floor(bearing(start, start20m)));
 }
 
 /**
  * Calculates inbound bearing from a LineString
  *
  * @param {Feature<LineString>|Array<Array<number>>} line GeoJSON LineString or an Array of Positions
+ * @param {number} len length of line
+ * @param {number} dist distance along line to sample outbound bearing
  * @returns {number} Inbound Bearing
  * @example
  * const line = [[110, 45], [115, 50], [120, 55]];
  * const inboundBearing = sharedstreets.inboundBearing(line);
+ * if line is less than 20 meters long bearing is from start to end of line
  * inboundBearing; // => 188
  */
-export function inboundBearing(line: Feature<LineString>|LineString|Position[]): number {
-  const coords = getCoords(line);
-  const start = coords[0];
-  const end = coords[coords.length - 1];
+export function inboundBearing(line: Feature<LineString>, len:number, dist:number): number {
+  if(len > 20) {
+    const start = along(line, dist - 20, {units: "meters"});
+    const end = along(line, dist, {units: "meters"});
 
-  return bearingToAzimuth(Math.floor(bearing(end, start)));
+    return bearingToAzimuth(Math.round(bearing(start, end)));
+  } 
+  else  {
+    const start = along(line, 0, {units: "meters"});
+    const end = along(line, len, {units: "meters"});
+
+    return bearingToAzimuth(Math.round(bearing(start, end)));
+  }
+  
 }
 
 /**
@@ -479,9 +500,9 @@ export function inboundBearing(line: Feature<LineString>|LineString|Position[]):
  * const distanceToNextRef = sharedstreets.distanceToNextRef(start, end);
  * distanceToNextRef; // => 9279
  */
-export function distanceToNextRef(line: Feature<LineString>|LineString|Position[]): number {
+export function distanceToNextRef(line: Feature<LineString>): number {
   if (Array.isArray(line)) { line = lineString(line); }
-  return Math.floor(length(line, {units: "meters"}) * 100);
+  return Math.round(length(line, {units: "meters"}) * 100);
 }
 
 /**
@@ -752,6 +773,7 @@ export function getCoords(line: Feature<LineString> | LineString | number[][]): 
  * @example
  * sharedstreets.round(10.123456789) // => 10.123457
  */
+
 export function round(num: number, decimalPlaces = 5): string {
   return new BigNumber(String(num)).toFixed(decimalPlaces);
 }
