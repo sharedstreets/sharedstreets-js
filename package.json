@@ -39,6 +39,7 @@
     "@types/glob": "*",
     "@types/node": "*",
     "@types/tape": "*",
+    "colortape": "^0.1.2",
     "sharedstreets-pbf": "*",
     "tap": "*",
     "tape": "*",
