@@ -1,17 +1,16 @@
 {
   "name": "sharedstreets",
-  "version": "0.9.3",
+  "version": "0.10.0",
   "description": "SharedStreets, a 'digital commons' for the street",
   "main": "index",
   "files": [
-    "index.js",
-    "index.ts"
+    "build/index.js",
+    "src/index.ts"
   ],
   "scripts": {
     "pretest": "tsc",
-    "test": "tap test.js",
-    "posttest": "tslint index.ts --project tsconfig.json",
-    "docs": "tsc && documentation readme index.js --section=API",
+    "test": "colortape build/test.js",
+    "docs": "tsc && documentation readme build/index.js --section=API",
     "bench": "tsc && node bench.js"
   },
   "repository": {
@@ -27,7 +26,8 @@
   "author": "SharedStreets",
   "contributors": [
     "Denis Carriere <@DenisCarriere>",
-    "Kevin Webb <@kpwebb>"
+    "Kevin Webb <@kpwebb>",
+    "Morgan Herlocker <@morganherlocker>"
   ],
   "license": "MIT",
   "bugs": {

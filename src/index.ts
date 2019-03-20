@@ -228,7 +228,7 @@ export function referenceMessage(
     if (lr.outboundBearing !== null && lr.outboundBearing !== undefined &&
         lr.distanceToNextRef !== null && lr.distanceToNextRef !== undefined) {
       message += ` ${Math.round(lr.outboundBearing)}`;
-      message += ` ${Math.round(lr.distanceToNextRef / 100)}`; // distanceToNextRef  stored in centimeter but using meters to compute ref Id
+      message += ` ${Math.round(Math.round(lr.distanceToNextRef / 100))}`; // distanceToNextRef  stored in centimeter but using meters to compute ref Id
     }
   });
   return message;
@@ -284,7 +284,7 @@ export function forwardReference (
   } = {},
 ): SharedStreetsReference {
 
-  const lineLength = length(line, {units: "meters"}); 
+  const lineLength = Math.round(length(line, {units: "meters"}) * 100); 
 
   const formOfWay = getFormOfWay(line, options);
   const geomId = geometryId(line);
@@ -303,7 +303,7 @@ export function forwardReference (
 
     if(i < segmentCount){ 
       refProperties.outboundBearing = outboundBearing(line, lineLength, i * (lineLength / segmentCount));
-      refProperties.distanceToNextRef = Math.round(lineLength / segmentCount) * 100; 
+      refProperties.distanceToNextRef = Math.round((lineLength / segmentCount) * 100); 
     }
     if(i > 0){ 
       refProperties.inboundBearing = inboundBearing(line, lineLength, i * (lineLength / segmentCount));
