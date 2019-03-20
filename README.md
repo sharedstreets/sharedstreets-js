@@ -7,35 +7,56 @@ Node.js & JavaScript implementation of [SharedStreets Reference System](https://
 
 ## Install
 
-**In Node.js**
+### In Node.js
 
-```bash
-$ yarn add sharedstreets
+#### npm
+
+```sh
+npm install sharedstreets
 ```
 
-**CommonJS**
+#### yarn
+
+```sh
+yarn add sharedstreets
+```
+
+## Usage
+
+### CommonJS
 
 ```js
 const sharedstreets = require('sharedstreets');
 ```
 
-**Typescript**
+### Typescript
 
 ```js
 import * as sharedstreets from 'sharedstreets';
 ```
 
-## In Browser
+### In Browser
 
 For a full list of web examples, check out [SharedStreets examples](https://github.com/sharedstreets/sharedstreets-examples).
 
-## How to build
+## Development
 
-```bash
-$ git clone git@github.com:sharedstreets/sharedstreets-js.git
-$ cd sharedstreets-js
-$ yarn
-$ yarn test
+### Install
+
+```sh
+yarn install
+```
+
+### Test
+
+```sh
+yarn test
+```
+
+### Build docs
+
+```sh
+yarn run docs
 ```
 
 ## API
