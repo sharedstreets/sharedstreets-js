@@ -317,7 +317,7 @@ test("tiles -- build tile paths ", async (t:any) => {
   // get data 
   var tilePath = new tiles.TilePath('osm/planet-180430/12-1171-1566.geometry.6.pbf');
 
-  var data = await tiles.getTile(tilePath, false);
+  var data = await tiles.getTile(tilePath);
   t.equal(data.length, 7352);
   
   t.end();
