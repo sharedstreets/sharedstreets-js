@@ -1,7 +1,7 @@
 # SharedStreets (Node.js & JavaScript)
 
 [![npm version](https://badge.fury.io/js/sharedstreets.svg)](https://badge.fury.io/js/sharedstreets)
-[![Build Status](https://travis-ci.org/sharedstreets/sharedstreets-js.svg?branch=master)](https://travis-ci.org/sharedstreets/sharedstreets-js)
+[![CircleCI](https://circleci.com/gh/sharedstreets/sharedstreets-js.svg?style=svg)](https://circleci.com/gh/sharedstreets/sharedstreets-js)
 
 Node.js & JavaScript implementation of [SharedStreets Reference System](https://github.com/sharedstreets/sharedstreets-ref-system).
 
