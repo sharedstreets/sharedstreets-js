@@ -6,6 +6,12 @@ import * as path from "path";
 import * as sharedstreetsPbf from "sharedstreets-pbf";
 import * as sharedstreets from "./src/index";
 
+import * as turfHelpers from '@turf/helpers';
+import { Polygon } from "@turf/buffer/node_modules/@turf/helpers/lib/geojson";
+
+import * as tiles from "./src/tiles";
+
+
 const test = require('tape');
 
 const pt1 = [110, 45];
@@ -13,6 +19,7 @@ const pt2 = [-74.003388, 40.634538];
 const pt3 = [-74.004107, 40.63406];
 
 
+// core library tests
 
 test("sharedstreets -- intersection", (t:any) => {
   t.equal(sharedstreets.intersectionId(pt1), "afd3db07d9baa6deef7acfcaac240607", "intersectionId => pt1");
@@ -236,4 +243,72 @@ test("sharedstreets -- closed loops - Issue #8", (t:any) => {
   t.assert(sharedstreets.forwardReference(line));
   t.assert(sharedstreets.backReference(line));
   t.end();
+});
+
+
+// cache module tests
+
+test("tiles -- generate tile ids ", (t:any) => {
+
+  // test polygon (dc area)
+  var poloygon:turfHelpers.Feature<Polygon> = {
+    
+        "type": "Feature",
+        "properties": {},
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [[-77.0511531829834,38.88588861057251],
+            [-77.00746536254883, 38.88588861057251],
+            [-77.00746536254883, 38.91407701203291],
+            [-77.0511531829834, 38.91407701203291],
+            [-77.0511531829834,38.88588861057251]]
+          ]
+        }
+      };
+
+  // test tiles for polygon
+  var tiles1 = tiles.getTileIdsForPolygon(poloygon);
+  t.deepEqual(tiles1, ["12-1171-1566","12-1171-1567"]);
+  
+  // test buffering
+  var tiles2 = tiles.getTileIdsForPolygon(poloygon, 10000);
+  t.deepEqual(tiles2, ["12-1170-1566","12-1170-1567","12-1171-1566","12-1171-1567","12-1172-1566","12-1172-1567"]);  
+
+  // test polygon (dc area)
+  var point = turfHelpers.point([ -77.0511531829834, 38.88588861057251]);
+
+  // test tiles for point
+  var tiles3 = tiles.getTileIdsForPoint(point, 10);
+  t.deepEqual(tiles3, ["12-1171-1567"]);
+
+  // test buffering  
+  var tiles4 = tiles.getTileIdsForPoint(point, 10000);
+  t.deepEqual(tiles4, ["12-1170-1566","12-1170-1567","12-1170-1568","12-1171-1566","12-1171-1567","12-1171-1568","12-1172-1566","12-1172-1567","12-1172-1568"]);  
+  
+  t.end();
+});
+
+
+test("tiles -- build tile paths ", (t:any) => {
+
+    var pathString =  'osm/planet-180430/12-1171-1566.geometry.6.pbf';
+    
+    // test path parsing 
+    var tilePath = tiles.TilePath.fromPathString(pathString);
+    t.deepEqual(tilePath, {"tileId":"12-1171-1566","tileType":"geometry","source":"osm/planet-180430","tileHierarchy":6});
+    
+    // test path string builder
+    var pathString2 = tilePath.toPathString();
+    t.equal(pathString, pathString2);
+
+    // test path group
+    var pathGroup = new tiles.TilePathGroup([tilePath]);
+    t.deepEqual(pathGroup, { source: 'osm/planet-180430', tileHierarchy: 6, tileType: 'geometry', tileIds: ['12-1171-1566']});
+
+    // test path gruop eumeration
+    t.deepEqual([...pathGroup], [{ source: 'osm/planet-180430', tileHierarchy: 6, tileType: 'geometry', tileId: '12-1171-1566' }]);
+
+    t.end();
+
 });
