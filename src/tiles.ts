@@ -16,6 +16,7 @@ const sphericalMercator = new SphericalMercator({
 
 const DEFAULT_ZLEVEL = 12;
 
+const SHST_TILE_URL = 'https://tiles.sharedstreets.io/';
 const SHST_ID_API_URL = 'https://api.sharedstreets.io/v0.1.0/id/';
 
 export enum TileType {
@@ -91,7 +92,7 @@ export function getTileIdsForBounds(bounds:number[], bufferEdge:boolean):string[
 
 export async function getTile(tilePath:TilePath):Promise<any[]> {
 
-    var arrayBuffer:Uint8Array = await getPbf(tilePath);
+    var arrayBuffer:Uint8Array = await getPbf(SHST_TILE_URL + tilePath.toPathString());
 
     if(arrayBuffer) {
         
@@ -158,20 +159,19 @@ abstract class TilePathParams {
 export class TilePath extends TilePathParams{
     tileId:string;
 
+    constructor(path:string=null) {
+        super();
+
+        if(path) {
+            this.tileId = getIdFromTilePath(path);
+            this.tileType = getTypeFromTilePath(path);
+            this.source = getSourceFromTilePath(path);
+            this.tileHierarchy = getHierarchyFromPath(path);
+        }
+    }
+
     toPathString():string {
         return this.source + '/' +  this.tileId + '.' + this.tileType + '.' + this.tileHierarchy + '.pbf'
-    }
-    static fromPathString(path:string):TilePath {
-
-        // TODO regex test for path validity
-
-        var tp:TilePath = new TilePath();
-        tp.tileId = getIdFromTilePath(path);
-        tp.tileType = getTypeFromTilePath(path);
-        tp.source = getSourceFromTilePath(path);
-        tp.tileHierarchy = getHierarchyFromPath(path);
-     
-        return tp;
     }
 }
 

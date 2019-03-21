@@ -295,7 +295,7 @@ test("tiles -- build tile paths ", (t:any) => {
     var pathString =  'osm/planet-180430/12-1171-1566.geometry.6.pbf';
     
     // test path parsing 
-    var tilePath = tiles.TilePath.fromPathString(pathString);
+    var tilePath = new tiles.TilePath(pathString);
     t.deepEqual(tilePath, {"tileId":"12-1171-1566","tileType":"geometry","source":"osm/planet-180430","tileHierarchy":6});
     
     // test path string builder
@@ -310,5 +310,16 @@ test("tiles -- build tile paths ", (t:any) => {
     t.deepEqual([...pathGroup], [{ source: 'osm/planet-180430', tileHierarchy: 6, tileType: 'geometry', tileId: '12-1171-1566' }]);
 
     t.end();
+
+});
+
+test("tiles -- build tile paths ", async (t:any) => { 
+  // get data 
+  var tilePath = new tiles.TilePath('osm/planet-180430/12-1171-1566.geometry.6.pbf');
+
+  var data = await tiles.getTile(tilePath, false);
+  t.equal(data.length, 7352);
+  
+  t.end();
 
 });

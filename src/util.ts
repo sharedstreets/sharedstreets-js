@@ -16,5 +16,5 @@ export async function getPbf(url):Promise<Uint8Array> {
         method: 'GET'
     });
 
-    return new Uint8Array(data.buffer());
+    return new Uint8Array(await data.buffer());
 }
