@@ -360,7 +360,7 @@ test("cache -- load data", async (t:any) => {
   await tileIndex.indexTilesByPathGroup(tilePathGroup);
   t.equal(tileIndex.tiles.size, 2);
 
-  var data = await tileIndex.intersects(poloygon, params);
+  var data = await tileIndex.intersects(polygon, params);
   t.equal(data.features.length, 2102);
   t.end();
 
