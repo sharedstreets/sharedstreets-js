@@ -10,6 +10,8 @@ import * as turfHelpers from '@turf/helpers';
 import { Polygon } from "@turf/buffer/node_modules/@turf/helpers/lib/geojson";
 
 import * as tiles from "./src/tiles";
+import { TileIndex } from "./src/tile_index";
+import { TilePathGroup, TileType, TilePathParams } from "./src/tiles";
 
 
 const test = require('tape');
@@ -66,7 +68,7 @@ test("sharedstreets -- locationReference", (t:any) => {
 
 test("sharedstreets-pbf -- intersection", (t:any) => {
   var count = 1;
-  for(var filepath of glob.sync(path.join('./', "test", "in", `*.intersection.6.pbf`))) {
+  for(var filepath of glob.sync(path.join('./', "test", "pbf", `*.intersection.6.pbf`))) {
     const buffer = fs.readFileSync(filepath);
     const intersections = sharedstreetsPbf.intersection(buffer);
 
@@ -87,7 +89,7 @@ test("sharedstreets-pbf -- intersection", (t:any) => {
 
 test("sharedstreets-pbf -- geometry", (t:any) => {
   var count = 1;
-  for(var filepath of glob.sync(path.join('./', "test", "in", `*.geometry.6.pbf`))) {
+  for(var filepath of glob.sync(path.join('./', "test", "pbf", `*.geometry.6.pbf`))) {
 
     const buffer = fs.readFileSync(filepath);
     const geometries = sharedstreetsPbf.geometry(buffer);
@@ -110,7 +112,7 @@ test("sharedstreets-pbf -- geometry", (t:any) => {
 
 test("sharedstreets-pbf -- reference", (t:any) => {
   var count = 1;
-  for(var filepath of glob.sync(path.join('./', "test", "in", `*.reference.6.pbf`))) {
+  for(var filepath of glob.sync(path.join('./', "test", "pbf", `*.reference.6.pbf`))) {
     const buffer = fs.readFileSync(filepath);
     const references = sharedstreetsPbf.reference(buffer);
 
@@ -313,13 +315,53 @@ test("tiles -- build tile paths ", (t:any) => {
 
 });
 
-test("tiles -- build tile paths ", async (t:any) => { 
+test("tiles -- fetch/parse protobuf filese", async (t:any) => { 
   // get data 
   var tilePath = new tiles.TilePath('osm/planet-180430/12-1171-1566.geometry.6.pbf');
 
   var data = await tiles.getTile(tilePath);
   t.equal(data.length, 7352);
   
+  t.end();
+
+});
+
+
+test("cache -- load data", async (t:any) => { 
+   // test polygon (dc area)
+   var polygon:turfHelpers.Feature<Polygon> = {
+    
+    "type": "Feature",
+    "properties": {},
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [[-77.0511531829834,38.88588861057251],
+        [-77.00746536254883, 38.88588861057251],
+        [-77.00746536254883, 38.91407701203291],
+        [-77.0511531829834, 38.91407701203291],
+        [-77.0511531829834,38.88588861057251]]
+      ]
+    }
+  };
+
+  var tilesIds = tiles.getTileIdsForPolygon(polygon);
+  
+  var params = new TilePathParams();
+  params.source = 'osm/planet-180430';
+  params.tileHierarchy = 6;
+  params.tileType = TileType.GEOMETRY;
+
+  var tilePathGroup:TilePathGroup = TilePathGroup.fromPolygon(polygon, params);
+
+  t.comment(JSON.stringify(tilePathGroup));
+
+  var tileIndex = new TileIndex();
+  await tileIndex.indexTilesByPathGroup(tilePathGroup);
+  t.equal(tileIndex.tiles.size, 2);
+
+  var data = await tileIndex.intersects(poloygon, params);
+  t.equal(data.features.length, 2102);
   t.end();
 
 });

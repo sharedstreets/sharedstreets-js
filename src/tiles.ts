@@ -92,6 +92,11 @@ export function getTileIdsForBounds(bounds:number[], bufferEdge:boolean):string[
 
 export async function getTile(tilePath:TilePath):Promise<any[]> {
 
+    // TODO use local file caching
+
+    // TODO use generator/yield pattern + protobuf decodeDelimited
+
+
     var arrayBuffer:Uint8Array = await getPbf(SHST_TILE_URL + tilePath.toPathString());
 
     if(arrayBuffer) {
@@ -150,10 +155,21 @@ export function getHierarchyFromPath(tilePath:string):number {
 }
 
 
-abstract class TilePathParams {
+export class TilePathParams {
     source:string;
     tileHierarchy:number;
     tileType:TileType;
+
+    constructor(params:TilePathParams=null) {
+        if(params) 
+            this.setParams(params);
+    }
+
+    setParams(params:TilePathParams) {
+        this.source = params.source;
+        this.tileHierarchy = params.tileHierarchy;
+        this.tileType = params.tileType;
+    }   
 }
 
 export class TilePath extends TilePathParams{
@@ -192,9 +208,7 @@ export class TilePathGroup extends TilePathParams  {
     *[Symbol.iterator]() {
         for(var tileId of this.tileIds) {
             var tilePath:TilePath = new TilePath();
-            tilePath.source = this.source;
-            tilePath.tileHierarchy = this.tileHierarchy;
-            tilePath.tileType = this.tileType;
+            tilePath.setParams(this);
 
             tilePath.tileId = tileId;
 
@@ -221,5 +235,14 @@ export class TilePathGroup extends TilePathParams  {
         var idSet:Set<string> = new Set(this.tileIds);
         idSet.add(path.tileId);
         this.tileIds = [...idSet.values()];
+    }
+
+    static fromPolygon(polygon, params:TilePathParams):TilePathGroup {
+
+        var tilePathGroup = new TilePathGroup();
+        tilePathGroup.setParams(params);
+        tilePathGroup.tileIds = getTileIdsForPolygon(polygon);
+
+        return tilePathGroup;
     }
 }
