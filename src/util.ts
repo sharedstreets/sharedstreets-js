@@ -1,5 +1,5 @@
-
 import fetch from 'node-fetch';
+
 
 export async function getJson(url):Promise<{}> {
 
@@ -17,4 +17,14 @@ export async function getPbf(url):Promise<Uint8Array> {
     });
 
     return new Uint8Array(await data.buffer());
+}
+
+
+export function rmse(values:number[]):number {
+    var sum = 0;
+    for(var value of values) {
+        sum = sum + Math.pow(value, 2);
+    }
+    var mean = sum / values.length;
+    return Math.sqrt(mean);
 }

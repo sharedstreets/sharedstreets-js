@@ -7,11 +7,11 @@ import * as sharedstreetsPbf from "sharedstreets-pbf";
 import * as sharedstreets from "./src/index";
 
 import * as turfHelpers from '@turf/helpers';
-import { Polygon } from "@turf/buffer/node_modules/@turf/helpers/lib/geojson";
 
 import * as tiles from "./src/tiles";
 import { TileIndex } from "./src/tile_index";
 import { TilePathGroup, TileType, TilePathParams } from "./src/tiles";
+import { Matcher } from "./src/match";
 
 
 const test = require('tape');
@@ -253,7 +253,7 @@ test("sharedstreets -- closed loops - Issue #8", (t:any) => {
 test("tiles -- generate tile ids ", (t:any) => {
 
   // test polygon (dc area)
-  var poloygon:turfHelpers.Feature<Polygon> = {
+  var poloygon:turfHelpers.Feature<turfHelpers.Polygon> = {
     
         "type": "Feature",
         "properties": {},
@@ -306,7 +306,7 @@ test("tiles -- build tile paths ", (t:any) => {
 
     // test path group
     var pathGroup = new tiles.TilePathGroup([tilePath]);
-    t.deepEqual(pathGroup, { source: 'osm/planet-180430', tileHierarchy: 6, tileType: 'geometry', tileIds: ['12-1171-1566']});
+    t.deepEqual(pathGroup, { source: 'osm/planet-180430', tileHierarchy: 6, tileTypes: ['geometry'], tileIds: ['12-1171-1566']});
 
     // test path gruop eumeration
     t.deepEqual([...pathGroup], [{ source: 'osm/planet-180430', tileHierarchy: 6, tileType: 'geometry', tileId: '12-1171-1566' }]);
@@ -329,7 +329,7 @@ test("tiles -- fetch/parse protobuf filese", async (t:any) => {
 
 test("cache -- load data", async (t:any) => { 
    // test polygon (dc area)
-   var polygon:turfHelpers.Feature<Polygon> = {
+   var polygon:turfHelpers.Feature<turfHelpers.Polygon> = {
     
     "type": "Feature",
     "properties": {},
@@ -350,18 +350,108 @@ test("cache -- load data", async (t:any) => {
   var params = new TilePathParams();
   params.source = 'osm/planet-180430';
   params.tileHierarchy = 6;
-  params.tileType = TileType.GEOMETRY;
 
   var tilePathGroup:TilePathGroup = TilePathGroup.fromPolygon(polygon, params);
-
-  t.comment(JSON.stringify(tilePathGroup));
-
+  tilePathGroup.addType(TileType.GEOMETRY);
   var tileIndex = new TileIndex();
   await tileIndex.indexTilesByPathGroup(tilePathGroup);
   t.equal(tileIndex.tiles.size, 2);
 
-  var data = await tileIndex.intersects(polygon, params);
+  tilePathGroup.addType(TileType.INTERSECTION);
+  await tileIndex.indexTilesByPathGroup(tilePathGroup);
+  t.equal(tileIndex.tiles.size, 4);
+
+  var data = await tileIndex.intersects(polygon, TileType.GEOMETRY, params);
   t.equal(data.features.length, 2102);
+
+  var data = await tileIndex.intersects(polygon, TileType.INTERSECTION, params);
+  t.equal(data.features.length,1162);
+
   t.end();
 
 });
+
+
+test("tileIndex -- point data", async (t:any) => { 
+  // test polygon (dc area)
+  const content = fs.readFileSync('test/geojson/points_1.in.geojson');
+  var points:turfHelpers.FeatureCollection<turfHelpers.Point> = JSON.parse(content.toLocaleString());
+  
+  var params = new TilePathParams();
+  params.source = 'osm/planet-180430';
+  params.tileHierarchy = 6;
+
+  // test nearby
+  var tileIndex = new TileIndex();
+  var featureCount = 0;
+  for(var point of points.features) {
+    var foundFeatures = await tileIndex.nearby(point, TileType.GEOMETRY, 10, params);
+    featureCount += foundFeatures.features.length;
+  }
+
+  t.equal(featureCount,3);
+
+  t.end();
+});
+
+test("match points", async (t:any) => { 
+
+   // test polygon (dc area)
+   const content = fs.readFileSync('test/geojson/points_1.in.geojson');
+   var points:turfHelpers.FeatureCollection<turfHelpers.Point> = JSON.parse(content.toLocaleString());
+   
+   var params = new TilePathParams();
+   params.source = 'osm/planet-180430';
+   params.tileHierarchy = 6;
+
+  // test matcher point candidates
+  var matcher = new Matcher(params);
+  
+  var matchedPoints:turfHelpers.Feature<turfHelpers.Point>[] = [];
+  for(let searchPoint of points.features) {
+    let matches = await matcher.getPointCandidates(points.features[0], null, 3);
+    for(let match of matches) {
+      matchedPoints.push(match.toFeature());
+    }
+  }
+  const matchedPointFeatureCollection_1a:turfHelpers.FeatureCollection<turfHelpers.Point> = turfHelpers.featureCollection(matchedPoints);
+  
+  const BUILD_TEST_OUPUT = false;
+
+  const expected_1a_file = 'test/geojson/points_1a.out.geojson';
+  if(BUILD_TEST_OUPUT) {
+    var expected_1a_out:string = JSON.stringify(matchedPointFeatureCollection_1a);
+    fs.writeFileSync(expected_1a_file, expected_1a_out);
+  }
+
+  const expected_1a_in = fs.readFileSync(expected_1a_file);
+  const expected_1a:turfHelpers.FeatureCollection<turfHelpers.Point> = JSON.parse(expected_1a_in.toLocaleString());
+  
+  t.deepEqual(expected_1a, matchedPointFeatureCollection_1a);
+
+  matcher.searchRadius = 1000;
+
+  var matchedPoints:turfHelpers.Feature<turfHelpers.Point>[] = [];
+  let matches = await matcher.getPointCandidates(points.features[0], null, 10);
+
+  for(let match of matches) {
+    matchedPoints.push(match.toFeature());
+  }
+  const matchedPointFeatureCollection_1b:turfHelpers.FeatureCollection<turfHelpers.Point> = turfHelpers.featureCollection(matchedPoints);
+  
+  const expected_1b_file = 'test/geojson/points_1b.out.geojson';
+
+  if(BUILD_TEST_OUPUT) {
+    var expected_1b_out:{} = JSON.stringify(matchedPointFeatureCollection_1b);
+    fs.writeFileSync(expected_1b_file, expected_1b_out);
+  }
+
+  const expected_1b_in = fs.readFileSync(expected_1b_file);
+  const expected_1b:{} = JSON.parse(expected_1b_in.toLocaleString());
+  
+  t.deepEqual(expected_1b, matchedPointFeatureCollection_1b);
+
+  
+  t.end();
+});
+

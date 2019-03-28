@@ -8,7 +8,6 @@ import destination from '@turf/destination';
 
 import { getJson, getPbf } from "./util";
 
-import { lonlatsToCoords } from '../src/index';
 const SphericalMercator = require("@mapbox/sphericalmercator");
 const sphericalMercator = new SphericalMercator({
     size: 256
@@ -24,19 +23,6 @@ export enum TileType {
     INTERSECTION = 'intersection',
     GEOMETRY = 'geometry',
     METADATA = 'metadata'
-}
-
-function createIntersectionGeometry(data:SharedStreetsIntersection) {
-  
-    var point = turfHelpers.point([data.lon, data.lat]);
-    return turfHelpers.feature(point.geometry, {id: data.id});
-
-}
-
-function createGeometry(data:SharedStreetsGeometry) {
-
-    var line = turfHelpers.lineString(lonlatsToCoords(data.lonlats));
-    return turfHelpers.feature(line.geometry, {id: data.id});
 }
 
 export async function getTilesForId(id:string) {
@@ -103,16 +89,10 @@ export async function getTile(tilePath:TilePath):Promise<any[]> {
         
         if(tilePath.tileType === TileType.GEOMETRY) {
             var geometries:any[] = sharedstreetsPbf.geometry(arrayBuffer);
-            for(var geometry of geometries) {
-                geometry['feature'] = createGeometry(geometry);
-            }
             return geometries;
         }
         else if(tilePath.tileType === TileType.INTERSECTION) {
             var intersections:any[] = sharedstreetsPbf.intersection(arrayBuffer);
-            for(var intersection of intersections) {
-                intersection['feature'] = createIntersectionGeometry(intersection);
-            }
             return intersections;
         }
         else if(tilePath.tileType === TileType.REFERENCE) {
@@ -158,8 +138,6 @@ export function getHierarchyFromPath(tilePath:string):number {
 export class TilePathParams {
     source:string;
     tileHierarchy:number;
-    tileType:TileType;
-
     constructor(params:TilePathParams=null) {
         if(params) 
             this.setParams(params);
@@ -168,12 +146,13 @@ export class TilePathParams {
     setParams(params:TilePathParams) {
         this.source = params.source;
         this.tileHierarchy = params.tileHierarchy;
-        this.tileType = params.tileType;
     }   
 }
 
 export class TilePath extends TilePathParams{
     tileId:string;
+    tileType:TileType;
+
 
     constructor(path:string=null) {
         super();
@@ -193,10 +172,12 @@ export class TilePath extends TilePathParams{
 
 export class TilePathGroup extends TilePathParams  {
     tileIds:string[];
+    tileTypes:TileType[];
 
     constructor(paths:TilePath[]=null){
         super();
         this.tileIds = [];
+        this.tileTypes = [];
 
         if(paths) {
             for(var path of paths) {
@@ -206,14 +187,28 @@ export class TilePathGroup extends TilePathParams  {
     }
 
     *[Symbol.iterator]() {
-        for(var tileId of this.tileIds) {
-            var tilePath:TilePath = new TilePath();
-            tilePath.setParams(this);
-
-            tilePath.tileId = tileId;
-
-            yield tilePath;
+        for(var tileType of this.tileTypes) { 
+            for(var tileId of this.tileIds) {
+                var tilePath:TilePath = new TilePath();
+                tilePath.setParams(this);
+                tilePath.tileId = tileId;
+                tilePath.tileType = tileType;
+    
+                yield tilePath;
+            }
         }
+    }
+
+    addType(tileType:TileType) {
+        var typeSet:Set<TileType> = new Set(this.tileTypes);
+        typeSet.add(tileType);
+        this.tileTypes = [...typeSet.values()];
+    }
+
+    addTileId(tileId:string) {
+        var idSet:Set<string> = new Set(this.tileIds);
+        idSet.add(tileId);
+        this.tileIds = [...idSet.values()];
     }
 
     addPath(path:TilePath) {
@@ -222,26 +217,29 @@ export class TilePathGroup extends TilePathParams  {
         else 
             this.source = path.source;
 
-        if(this.tileType != undefined && this.tileType !== path.tileType)
-            throw "Path source does not match group";
-        else 
-            this.tileType = path.tileType;
-
         if(this.tileHierarchy != undefined && this.tileHierarchy !== path.tileHierarchy)
             throw "Path source does not match group";
         else 
             this.tileHierarchy = path.tileHierarchy;
 
-        var idSet:Set<string> = new Set(this.tileIds);
-        idSet.add(path.tileId);
-        this.tileIds = [...idSet.values()];
+        this.addType(path.tileType);
+        this.addTileId(path.tileId);
     }
 
-    static fromPolygon(polygon, params:TilePathParams):TilePathGroup {
+    static fromPolygon(polygon:turfHelpers.Feature<turfHelpers.Polygon>, params:TilePathParams):TilePathGroup {
 
         var tilePathGroup = new TilePathGroup();
         tilePathGroup.setParams(params);
         tilePathGroup.tileIds = getTileIdsForPolygon(polygon);
+
+        return tilePathGroup;
+    }
+
+    static fromPoint(point:turfHelpers.Feature<turfHelpers.Point>, buffer:number, params:TilePathParams):TilePathGroup {
+
+        var tilePathGroup = new TilePathGroup();
+        tilePathGroup.setParams(params);
+        tilePathGroup.tileIds = getTileIdsForPoint(point, buffer);
 
         return tilePathGroup;
     }
