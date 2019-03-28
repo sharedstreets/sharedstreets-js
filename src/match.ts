@@ -116,17 +116,17 @@ class PointCandidate implements SortableCanddate {
 	pointOnLine:turfHelpers.Feature<turfHelpers.Point>;
 	snappedPoint:turfHelpers.Feature<turfHelpers.Point>;
 
-	geometryId:string = null;
-	referenceId:string = null;
-	roadClass:RoadClass = null;
-	direction:ReferenceDirection = null;
-	streetname:string = null;
-	referenceLength:number = null;
-	location:number = null;
-	bearing:number = null;
-	interceptAngle:number = null;
-	sideOfStreet:ReferenceSideOfStreet = null;
-	oneway:boolean= null;
+	geometryId:string;
+	referenceId:string;
+	roadClass:RoadClass;
+	direction:ReferenceDirection;
+	streetname:string;
+	referenceLength:number;
+	location:number;
+	bearing:number;
+	interceptAngle:number;
+	sideOfStreet:ReferenceSideOfStreet;
+	oneway:boolean;
 
 	calcScore():number {
 		
@@ -162,7 +162,6 @@ class PointCandidate implements SortableCanddate {
 			referenceLength: this.referenceLength,
 			geometryId:		this.geometryId,
 			referenceId:	this.referenceId,
-			streetname:		this.streetname,
 			direction:		this.direction,
 			bearing:		this.bearing,
 			snappedSide: 	snappedSide,
@@ -177,38 +176,38 @@ class PointCandidate implements SortableCanddate {
 
 export class PathSegment {
 
-	referenceId:string = null;
-	geometryId:string  = null;
-	roadClass:RoadClass = null;
-	streetname:string = null;
+	referenceId:string;
+	geometryId:string;
+	roadClass:RoadClass;
+	streetname:string;
 
-	fromIntersectionId:string  = null;
-	toIntersectionId:string = null;
+	fromIntersectionId:string;
+	toIntersectionId:string;
 
-	fromStreetnames:string[] = null;
-	toStreetnames:string[] = null;
+	fromStreetnames:string[];
+	toStreetnames:string[];
 
-	referenceLength:number = null;
-	point:number = null;
-	section:number[] = null;
-	direction:ReferenceDirection = null;
+	referenceLength:number;
+	point:number;
+	section:number[];
+	direction:ReferenceDirection;
 }
 
 export class PathCandidate implements SortableCanddate {
 
-	score:number = null;
-	originalFeatureLength:number = null;
-	pathLength:number = null;
+	score:number;
+	originalFeatureLength:number;
+	pathLength:number;
 
-	startPoint:PointCandidate = null;
-	endPoint:PointCandidate = null;
+	startPoint:PointCandidate;
+	endPoint:PointCandidate;
 
-	segments:PathSegment[] = null;
+	segments:PathSegment[];
 
-	originalFeature:turfHelpers.Feature<turfHelpers.LineString> = null;
-	matchedPath:turfHelpers.Feature<turfHelpers.LineString> = null;
+	originalFeature:turfHelpers.Feature<turfHelpers.LineString>;
+	matchedPath:turfHelpers.Feature<turfHelpers.LineString>;
 
-	sideOfStreet:ReferenceSideOfStreet = null;
+	sideOfStreet:ReferenceSideOfStreet;
 
 	getOriginalFeatureLength() {
 
