@@ -228,7 +228,44 @@ export class TileIndex {
     
     }
 
-        route(startRef:SharedStreetsReference, startPosition:number, endRef:SharedStreetsReference, endPosition:number, endCoord:turfHelpers.Coord, pathLength:number, lengthVariance:number) {
+    async geom(referenceId:string, p1:number, p2:number):Promise<turfHelpers.Feature<turfHelpers.Geometry>> {
+    
+        if(this.objectIndex.has(referenceId)) {
+            var ref:SharedStreetsReference = <SharedStreetsReference>this.objectIndex.get(referenceId);
+            var geom:SharedStreetsGeometry = <SharedStreetsGeometry>this.objectIndex.get(ref.geometryId);
+
+            var geomFeature:turfHelpers.Feature<turfHelpers.LineString> = JSON.parse(JSON.stringify(this.featureIndex.get(ref.geometryId)));
+
+            if(geom.backReferenceId && geom.backReferenceId === referenceId) {                
+                geomFeature.geometry.coordinates = geomFeature.geometry.coordinates.reverse()
+            }
+
+            if(p1 < 0)
+                p1 = 0;
+            if(p2 < 0)
+                p2 = 0;
+
+            if(p1 == null && p2 == null) {
+                return geomFeature;
+            }
+            else if(p1 && p2 == null) {
+                return along(geomFeature, p1, {"units":"meters"});
+            } 
+            else if(p1 != null && p2 != null) {
+                try {
+                    return lineSliceAlong(geomFeature, p1, p2, {"units":"meters"});
+                }
+                catch(e){
+                    console.log(e);
+                }
+            }
+        }
+
+        // TODO find missing IDs via look up
+        return null;
+    }
+
+    route(startRef:SharedStreetsReference, startPosition:number, endRef:SharedStreetsReference, endPosition:number, endCoord:turfHelpers.Coord, pathLength:number, lengthVariance:number) {
 
             var startVertexId = this.getGraphVertex(startRef.locationReferences[0].intersectionId);
             var endVertexId = this.getGraphVertex(endRef.locationReferences[endRef.locationReferences.length-1].intersectionId);

@@ -12,6 +12,7 @@ import * as tiles from "./src/tiles";
 import { TileIndex } from "./src/tile_index";
 import { TilePathGroup, TileType, TilePathParams } from "./src/tiles";
 import { Matcher } from "./src/match";
+import { CleanedPoints, CleanedLines } from "./src/geom";
 
 
 const test = require('tape');
@@ -398,8 +399,11 @@ test("match points", async (t:any) => {
 
    // test polygon (dc area)
    const content = fs.readFileSync('test/geojson/points_1.in.geojson');
-   var points:turfHelpers.FeatureCollection<turfHelpers.Point> = JSON.parse(content.toLocaleString());
+   var pointsIn:turfHelpers.FeatureCollection<turfHelpers.Point> = JSON.parse(content.toLocaleString());
+   var cleanedPoints = new CleanedPoints(pointsIn);
    
+   var points:turfHelpers.FeatureCollection<turfHelpers.Point> = turfHelpers.featureCollection(cleanedPoints.clean);
+
    var params = new TilePathParams();
    params.source = 'osm/planet-180430';
    params.tileHierarchy = 6;
@@ -409,7 +413,7 @@ test("match points", async (t:any) => {
   
   var matchedPoints:turfHelpers.Feature<turfHelpers.Point>[] = [];
   for(let searchPoint of points.features) {
-    let matches = await matcher.getPointCandidates(points.features[0], null, 3);
+    let matches = await matcher.getPointCandidates(searchPoint, null, 3);
     for(let match of matches) {
       matchedPoints.push(match.toFeature());
     }
@@ -453,6 +457,43 @@ test("match points", async (t:any) => {
 
   
   t.end();
+});
+
+
+test("match lines", async (t:any) => { 
+
+  // test polygon (dc area)
+  const content = fs.readFileSync('test/geojson/line_1.in.geojson');
+  var linesIn:turfHelpers.FeatureCollection<turfHelpers.LineString> = JSON.parse(content.toLocaleString());
+  
+  var cleanedLines = new CleanedLines(linesIn);  
+  var lines:turfHelpers.FeatureCollection<turfHelpers.LineString> = turfHelpers.featureCollection(cleanedLines.clean);
+
+  var params = new TilePathParams();
+  params.source = 'osm/planet-180430';
+  params.tileHierarchy = 6;
+
+ // test matcher point candidates
+ var matcher = new Matcher(params);
+ 
+ var matchedLines = await matcher.matchFeatureCollection(lines);
+
+console.log(JSON.stringify(matches_1a));
+ const BUILD_TEST_OUPUT = true;
+
+ const expected_1a_file = 'test/geojson/line_1a.out.geojson';
+ if(BUILD_TEST_OUPUT) {
+   var expected_1a_out:string = JSON.stringify(matchedLines.matched);
+   fs.writeFileSync(expected_1a_file, expected_1a_out);
+ }
+
+ const expected_1a_in = fs.readFileSync(expected_1a_file);
+ const expected_1a:{} = JSON.parse(expected_1a_in.toLocaleString());
+
+ var matches_1a = await matcher.matchFeatureCollection(lines);
+ t.deepEqual(expected_1a, matchedLines.matched);
+
+ t.end();
 });
 
 

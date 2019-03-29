@@ -11,12 +11,13 @@ import nearestPointOnLine from '@turf/nearest-point-on-line';
 
 import { rmse } from './util';
 
-import { reverseLineString, cleanGeometry, cleanPoints } from './geom';
+import { reverseLineString } from './geom';
 import { TileIndex } from './tile_index';
 import { TilePathParams, TileType } from './tiles';
 import { Feature, LineString } from '@turf/buffer/node_modules/@turf/helpers';
 import { RoadClass, SharedStreetsReference } from 'sharedstreets-types';
 import { SharedStreetsGeometry } from 'sharedstreets-pbf/proto/sharedstreets';
+import { forwardReference, backReference } from './index';
 
 // import { start } from 'repl';
 // import { normalize } from 'path';
@@ -541,7 +542,7 @@ export class Matcher {
 
 	}
 
-	async getCandidatesForRef(featureRef:SharedStreetsReference, originalFeature:turfHelpers.Feature<turfHelpers.LineString>, formOfWay):Promise<PathCandidate[]> {
+	async getPathCandidatesForRef(featureRef:SharedStreetsReference, originalFeature:turfHelpers.Feature<turfHelpers.LineString>, formOfWay):Promise<PathCandidate[]> {
 
 		var refLength = 0;
 		for(var refLr of featureRef.locationReferences) {
@@ -590,7 +591,7 @@ export class Matcher {
 				pathCandidate.originalFeature = originalFeature;
 
 				// co-linear potins along the same reference -- so simple!
-				if(c1.referenceId === c2.referenceId) {
+				if(c1.geometryId === c2.geometryId) {
 	
 					var segmentRef:SharedStreetsReference = <SharedStreetsReference>this.tileIndex.objectIndex.get(c1.referenceId);	
 	
@@ -786,6 +787,169 @@ export class Matcher {
 		return candidates;
 				
 	}	
+
+	async getPathCandidatesForDirectedFeature(originalFeature:turfHelpers.Feature<turfHelpers.LineString>, direction:ReferenceDirection):Promise<PathCandidate[]> {
+		
+		var formOfWay = null;
+
+		if(originalFeature.properties.filterParameters && originalFeature.properties.filterParameters.formOfWay) {
+			formOfWay = originalFeature.properties.filterParameters.formOfWay;
+		}
+
+		var reference:SharedStreetsReference;
+
+		if(direction == ReferenceDirection.FORWARD)
+			reference = forwardReference(originalFeature);
+		else
+			reference = backReference(originalFeature);
+
+		var sortCandidates = (l) => {
+
+			return l.sort((p1:PathCandidate, p2:PathCandidate) => {
+			p1.calcScore();
+			p2.calcScore();	
+
+			if(p1 && p2 && p1.score > p2.score) {
+				return 1;
+			}
+			else if(p1 && p2 && p1.score < p2.score) {
+				return -1;
+			}
+			else {
+				if(p1 && p2 && p1.sideOfStreet == ReferenceSideOfStreet.UNKNOWN && p2.sideOfStreet != ReferenceSideOfStreet.UNKNOWN)
+					return 1;
+				if(p1 && p2 && p2.sideOfStreet == ReferenceSideOfStreet.UNKNOWN && p1.sideOfStreet != ReferenceSideOfStreet.UNKNOWN)
+					return -1;	
+				else
+					return 0;
+			}
+
+		})};
+
+		var referenceCandidates = await this.getPathCandidatesForRef(reference, originalFeature, formOfWay);		
+		
+		var sortedReferenceCandidates = sortCandidates(referenceCandidates);
+	
+		return sortedReferenceCandidates;
+
+	}
+
+	async getPathCandidateForFeature(originalFeature:turfHelpers.Feature<turfHelpers.LineString>):Promise<PathCandidate[]> {
+
+		var matchedCandidates:PathCandidate[] = [];
+
+		var forwardCandidates:PathCandidate[] = await this.getPathCandidatesForDirectedFeature(originalFeature, ReferenceDirection.FORWARD);
+
+		if(this.ignoreDirection) {
+			var backwardCandidates:PathCandidate[] = await this.getPathCandidatesForDirectedFeature(originalFeature, ReferenceDirection.BACKWARD);
+		
+			if(backwardCandidates.length > 0 && forwardCandidates.length == 0) {
+				// for one-way matches just return backward candidates
+				matchedCandidates.push(backwardCandidates[0]);
+			}
+			else if(backwardCandidates.length == 0 && forwardCandidates.length > 0) {
+				// for one-way matches just return backward candidates
+				matchedCandidates.push(forwardCandidates[0]);
+			}
+			else if(backwardCandidates.length > 0 && forwardCandidates.length > 0) {
+				
+				if(forwardCandidates[0].sideOfStreet != ReferenceSideOfStreet.UNKNOWN && backwardCandidates[0].sideOfStreet == ReferenceSideOfStreet.UNKNOWN) {
+					matchedCandidates.push(forwardCandidates[0]);
+				}
+				else if(forwardCandidates[0].sideOfStreet == ReferenceSideOfStreet.UNKNOWN && backwardCandidates[0].sideOfStreet != ReferenceSideOfStreet.UNKNOWN) {
+					matchedCandidates.push(backwardCandidates[0]);
+				}
+				else {
+					// for bi-directional matches make sure forward and back macth share the same geometry or are parallel
+					if(forwardCandidates[0].isColinear(backwardCandidates[0]) || forwardCandidates[0].isParallel(backwardCandidates[0], this.bearingTolerance)) {
+						matchedCandidates.push(forwardCandidates[0]);
+						matchedCandidates.push(backwardCandidates[0]);
+					}
+				}
+			}
+		
+		}
+		else if (forwardCandidates.length > 0 ){
+			// for one-way matches just return forward candidates
+			matchedCandidates.push(forwardCandidates[0]);
+		}
+
+		return matchedCandidates;
+	}
+
+	async matchFeatureCollection(lines:turfHelpers.FeatureCollection<turfHelpers.LineString>) {
+
+		var matchedReferences:PathCandidate[] = [];
+		var unmatchedFeatures:turfHelpers.FeatureCollection<turfHelpers.LineString> =  turfHelpers.featureCollection([]);
+		var matchedFeatures:turfHelpers.FeatureCollection<turfHelpers.LineString> = turfHelpers.featureCollection([]);
+
+		for(var originalFeature of lines.features) {
+			
+			var featureParts:turfHelpers.Feature<turfHelpers.LineString>[] = [];
+
+			var featureLength = length(originalFeature, {units: 'meters'});
+
+			if(featureLength > MAX_FEATURE_LENGTH) {
+
+				var numParts = Math.ceil(featureLength / MAX_FEATURE_LENGTH);
+				var partLength = featureLength / numParts;
+
+				for(var i = 0; i < numParts; i++) {
+					var linePart = lineSliceAlong(originalFeature, partLength * i, partLength * (i + 1), {units: 'meters'});
+
+					// make sure first coord of each part matches last coord of previous part
+					if(featureParts.length > 0){
+						var featurePartCoords = featureParts[featureParts.length -1].geometry.coordinates.length;
+						var lastCoord = featureParts[featureParts.length -1].geometry.coordinates[featurePartCoords - 1];
+						linePart.geometry.coordinates[0] = lastCoord;
+					}
+					linePart.properties = Object.assign({}, originalFeature.properties);
+					featureParts.push(linePart);
+				}
+			}
+			else {
+				featureParts.push(originalFeature);
+			}
+
+			for(var featurePart of featureParts ) {
+
+				
+
+				var refs = await this.getPathCandidateForFeature(featurePart);
+				if(refs.length == 0) {
+					unmatchedFeatures.features.push(featurePart);
+				} 
+
+				matchedReferences = matchedReferences.concat(refs);
+
+			}
+		}
+
+		for(var ref of matchedReferences) {
+			var firstIntersection = true;
+
+			for(var segment of ref.segments) {
+
+				var segmentGeom = null;
+
+				if(segment.section)
+					segmentGeom = await this.tileIndex.geom(segment.referenceId, segment.section[0], segment.section[1]);
+				else if(segment.point)
+					segmentGeom = await this.tileIndex.geom(segment.referenceId, segment.point, null);
+				else 
+					segmentGeom = await this.tileIndex.geom(segment.referenceId, null, null);
+
+				if(segmentGeom != null) {
+					segmentGeom.properties = Object.assign({}, segment);
+					segmentGeom.properties['side'] = ref.sideOfStreet;
+					segmentGeom.properties['score'] = ref.score;
+					matchedFeatures.features.push(segmentGeom)
+				}
+			}
+		}
+
+		return { matched:matchedFeatures, unmatched:unmatchedFeatures };
+	}
 
 	// async getReferenceCandidates(originalFeature:turfHelpers.Feature<turfHelpers.LineString>, direction:ReferenceDirection):Promise<PathCandidate[]> {
 		
