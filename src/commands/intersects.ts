@@ -54,7 +54,7 @@ export default class Intersects extends Command {
       this.log(chalk.bold.keyword('green')('  🔍  Searching data...'));
 
   
-    var data = await tileIndex.intersects(polygon, TileType.GEOMETRY, params);
+    var data = await tileIndex.intersects(polygon, TileType.GEOMETRY, 0, params);
 
     if(flags.stats) {
 

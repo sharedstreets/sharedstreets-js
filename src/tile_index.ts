@@ -11,20 +11,14 @@ import envelope from '@turf/envelope';
 import lineSliceAlong from '@turf/line-slice-along';
 
 import geojsonRbush, { RBush } from 'geojson-rbush';
-import { TilePath, getTile, TileType, TilePathGroup, getTileIdsForPolygon, TilePathParams, getTileIdsForPoint } from './tiles';
-import { Geometries } from '@turf/buffer/node_modules/@turf/helpers';
-import { extend } from 'benchmark';
+
 import { SharedStreetsIntersection, SharedStreetsGeometry, SharedStreetsReference } from 'sharedstreets-types';
 
 import { lonlatsToCoords } from '../src/index';
+import { TilePath, getTile, TileType, TilePathGroup, getTileIdsForPolygon, TilePathParams, getTileIdsForPoint } from './tiles';
+import { Graph } from './graph';
 
-import { PathSearch } from './routing';
-const jkstra = require('jkstra');
-
-const SHST_TILE_URL = 'https://tiles.sharedstreets.io/';
-const SHST_TILE_CACHE_DIR = './shst/cache/tiles/';
-const SHST_GRAPH_CACHE_DIR = './shst/cache/graphs/';
-
+const SHST_ID_API_URL = 'https://api.sharedstreets.io/v0.1.0/id/';
 
 // maintains unified spaital and id indexes for tiled data
 
@@ -49,62 +43,19 @@ export class TileIndex {
     featureIndex:Map<string, turfHelpers.Feature<turfHelpers.Geometry>>;
     metadataIndex:Map<string, {}>;
 
-    jkstraGraph;
-    graphVertices:{};  
-    nextVertexId:number;
-
     intersectionIndex:RBush<turfHelpers.Geometry, turfHelpers.Properties>;
     geometryIndex:RBush<turfHelpers.Geometry, turfHelpers.Properties>;
 
     constructor() {
 
-        this.jkstraGraph = new jkstra.Graph();
-        this.graphVertices = {};  
-        this.nextVertexId = 1;
-
         this.tiles = new Set();
         this.objectIndex = new Map();
         this.featureIndex = new Map();
+
         this.intersectionIndex = geojsonRbush(9);
         this.geometryIndex = geojsonRbush(9);
     }
 
-
-    addGraphEdge(reference) {
-
-        let fromIntersection = this.addGraphVertex(reference.locationReferences[0]);
-        let toIntersection = this.addGraphVertex(reference.locationReferences[reference.locationReferences.length-1]);
-        let segementLength = 0;
-
-        for(var i in reference.locationReferences) {
-            if(reference.locationReferences[i].distanceToNextRef)
-                segementLength = segementLength + reference.locationReferences[i].distanceToNextRef;
-        }
-
-        var startRef =reference.locationReferences[0];
-        var startPoint = [startRef.lon, startRef.lat];
-
-        this.jkstraGraph.addEdge(fromIntersection, toIntersection, {id: reference.id, length: segementLength, start: startPoint}); 
-
-    }
-
-    addGraphVertex(locationRef) {
-
-        var id = locationRef.intersectionId;
-
-        if(!this.graphVertices[id])
-            this.graphVertices[id] = this.jkstraGraph.addVertex(this.nextVertexId++);
-        
-
-        return this.graphVertices[id];
-
-    }
-
-    getGraphVertex(id) {
-
-        return this.graphVertices[id];
-
-    }
 
     isIndexed(tilePath:TilePath):Boolean {
         if(this.tiles.has(tilePath.toPathString()))
@@ -156,7 +107,6 @@ export class TileIndex {
         else if(tilePath.tileType === TileType.REFERENCE) {
             for(var reference of data) {
                 this.objectIndex.set(reference.id, reference);
-                this.addGraphEdge(reference);
             }
         }
         else if(tilePath.tileType === TileType.METADATA) {
@@ -168,9 +118,14 @@ export class TileIndex {
         this.tiles.add(tilePath.toPathString());
     }
 
-    async intersects(polygon:turfHelpers.Feature<turfHelpers.Polygon>, searchType:TileType, params:TilePathParams, additionalTypes:TileType[]=null):Promise<turfHelpers.FeatureCollection<turfHelpers.Geometry>> {
+    async getGraph(polygon:turfHelpers.Feature<turfHelpers.Polygon>, params:TilePathParams):Promise<Graph> {
+        
+        return null;
+    }
 
-        var tilePaths = TilePathGroup.fromPolygon(polygon, params);
+    async intersects(polygon:turfHelpers.Feature<turfHelpers.Polygon>, searchType:TileType, buffer:number, params:TilePathParams, additionalTypes:TileType[]=null):Promise<turfHelpers.FeatureCollection<turfHelpers.Geometry>> {
+
+        var tilePaths = TilePathGroup.fromPolygon(polygon, buffer, params);
 
         if(searchType === TileType.GEOMETRY)
             tilePaths.addType(TileType.GEOMETRY);
@@ -263,55 +218,6 @@ export class TileIndex {
 
         // TODO find missing IDs via look up
         return null;
-    }
-
-    route(startRef:SharedStreetsReference, startPosition:number, endRef:SharedStreetsReference, endPosition:number, endCoord:turfHelpers.Coord, pathLength:number, lengthVariance:number) {
-
-            var startVertexId = this.getGraphVertex(startRef.locationReferences[0].intersectionId);
-            var endVertexId = this.getGraphVertex(endRef.locationReferences[endRef.locationReferences.length-1].intersectionId);
-
-            var pathSearch = new PathSearch(this.jkstraGraph);
-
-            var results = pathSearch.findPath(startVertexId, endVertexId, endCoord, pathLength * (1-lengthVariance), pathLength * (1+lengthVariance), { edgeCost: (e) => { 
-                        // adjust edge cost for partial edges
-                        if(e.data.id == startRef.id)
-                            return (e.data.length / 100) - startPosition; 
-                        else if(e.data.id == endRef.id)
-                            return endPosition;
-                        else 
-                            return (e.data.length / 100); 
-                    },
-                    edgeFilter: (e) => {
-                        // only consider start/end edge for start/end vertices
-                        if(e.from.data == startVertexId.data) {
-                            if(e.data.id == startRef.id)
-                                return true;
-                            else
-                                return false;
-                        }
-                        else if(e.to.data == endVertexId.data) {
-                            if(e.data.id == endRef.id)
-                                return true;
-                            else
-                                return false;
-                        }   
-                        else 
-                            return true;
-                    }});
-            
-            var bestPath = [];
-            var bestVariarence = -1;
-            if(results) {
-                for(var result of results) {
-                    var currentVarienace = Math.abs((pathLength / result.length) -1); 
-                    if(bestVariarence < 0 || currentVarienace < bestVariarence) {
-                        bestVariarence = currentVarienace;
-                        bestPath = result.path;
-                    }
-                }
-            }
-            
-            return bestPath;
     }
 }
 

@@ -5,8 +5,11 @@ import {SharedStreetsIntersection, SharedStreetsGeometry } from 'sharedstreets-t
 import * as turfHelpers from '@turf/helpers';
 import bbox from "@turf/bbox";
 import destination from '@turf/destination';
+import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'fs';
 
 import { getJson, getPbf } from "./util";
+
+const chalk = require('chalk');
 
 const SphericalMercator = require("@mapbox/sphericalmercator");
 const sphericalMercator = new SphericalMercator({
@@ -15,8 +18,11 @@ const sphericalMercator = new SphericalMercator({
 
 const DEFAULT_ZLEVEL = 12;
 
-const SHST_TILE_URL = 'https://tiles.sharedstreets.io/';
 const SHST_ID_API_URL = 'https://api.sharedstreets.io/v0.1.0/id/';
+const SHST_TILE_URL = 'https://tiles.sharedstreets.io/';
+
+const USE_LOCAL_CACHE = true;
+const SHST_TILE_CACHE_DIR = './shst/cache/tiles/';
 
 export enum TileType {
     REFERENCE = 'reference',
@@ -76,14 +82,25 @@ export function getTileIdsForBounds(bounds:number[], bufferEdge:boolean):string[
     return tileIds;
 }
 
-export async function getTile(tilePath:TilePath):Promise<any[]> {
 
-    // TODO use local file caching
+export async function getTile(tilePath:TilePath):Promise<any[]> {
 
     // TODO use generator/yield pattern + protobuf decodeDelimited
 
+    var arrayBuffer:Uint8Array;
+    if(USE_LOCAL_CACHE && existsSync(SHST_TILE_CACHE_DIR + tilePath.toPathString())) {
+        arrayBuffer = new Uint8Array(readFileSync(SHST_TILE_CACHE_DIR + tilePath.toPathString()));
+        console.log(chalk.keyword('lightgreen')("     reading from cached: " + SHST_TILE_CACHE_DIR + tilePath.toPathString()));
+    }
+    else {
+        arrayBuffer = await getPbf(SHST_TILE_URL + tilePath.toPathString());
 
-    var arrayBuffer:Uint8Array = await getPbf(SHST_TILE_URL + tilePath.toPathString());
+        if(USE_LOCAL_CACHE) {
+            mkdirSync(SHST_TILE_CACHE_DIR + tilePath.source, { recursive: true });
+            writeFileSync(SHST_TILE_CACHE_DIR + tilePath.toPathString(), arrayBuffer);
+            console.log(chalk.keyword('lightgreen')("     writing to cache: " + SHST_TILE_CACHE_DIR + tilePath.toPathString()));   
+        }
+    }
 
     if(arrayBuffer) {
         
@@ -187,6 +204,10 @@ export class TilePathGroup extends TilePathParams  {
     }
 
     *[Symbol.iterator]() {
+
+        this.tileTypes.sort();
+        this.tileIds.sort();
+
         for(var tileType of this.tileTypes) { 
             for(var tileId of this.tileIds) {
                 var tilePath:TilePath = new TilePath();
@@ -226,7 +247,7 @@ export class TilePathGroup extends TilePathParams  {
         this.addTileId(path.tileId);
     }
 
-    static fromPolygon(polygon:turfHelpers.Feature<turfHelpers.Polygon>, params:TilePathParams):TilePathGroup {
+    static fromPolygon(polygon:turfHelpers.Feature<turfHelpers.Polygon>, buffer:number, params:TilePathParams):TilePathGroup {
 
         var tilePathGroup = new TilePathGroup();
         tilePathGroup.setParams(params);

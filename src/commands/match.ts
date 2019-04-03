@@ -4,11 +4,15 @@ import { readFileSync, writeFileSync } from 'fs';
 import { TilePathParams, TileType, TilePathGroup } from '../tiles'
 
 import { TileIndex } from '../tile_index'
-import { Matcher } from '../match'
+import { Matcher } from '../matcher'
 
 
 import * as turfHelpers from '@turf/helpers';
 import geomLength from '@turf/length';
+import bbox from '@turf/bbox';
+import bboxPolygon  from '@turf/bbox-polygon';
+
+import { CleanedLines } from '../geom';
 
 const chalk = require('chalk');
 
@@ -19,8 +23,8 @@ function mapOgProperties(og_props:{}, new_props:{}) {
   }
 }
 
-export default class Intersects extends Command {
-  static description = 'queries streets by polygon data and returns GeoJSON output of all intersecting features'
+export default class Match extends Command {
+  static description = 'matches point and line features to sharedstreets refs'
 
   static examples = [
     `$ shst match points.geojson --out=matched_points.geojson --portProperties
@@ -47,7 +51,7 @@ export default class Intersects extends Command {
 
   async run() {
 
-    const {args, flags} = this.parse(Intersects)
+    const {args, flags} = this.parse(Match)
 
     this.log(chalk.bold.keyword('green')('  🌏  Loading geojson data...'));
 
@@ -68,7 +72,7 @@ export default class Intersects extends Command {
     params.source = 'osm/planet-180430';
     params.tileHierarchy = 6;
 
-    if(data.features[0].geometry.type  === 'LineString') {
+    if(data.features[0].geometry.type  === 'LineString' || data.features[0].geometry.type  === 'MultiLineString') {
       await matchLines(outFile, params, data, flags);
     }
     else if(data.features[0].geometry.type === 'Point') {
@@ -81,6 +85,7 @@ async function matchPoints(outFile, params, points, flags) {
 
   console.log(chalk.bold.keyword('green')('  ✨  Matching ' + points.features.length + ' points...'));
   // test matcher point candidates
+  
   var matcher = new Matcher(params);
 
   var matchedPoints:turfHelpers.Feature<turfHelpers.Point>[] = [];
@@ -124,19 +129,22 @@ async function matchPoints(outFile, params, points, flags) {
 
 async function matchLines(outFile, params, lines, flags) {
 
-  console.log(chalk.bold.keyword('green')('  ✨  Matching ' + lines.features.length + ' lines...'));
-  // test matcher point candidates
-  var matcher = new Matcher(params);
+  var cleanedlines = new CleanedLines(lines);
+  
+  console.log(chalk.bold.keyword('green')('  ✨  Matching ' + cleanedlines.clean.length + ' lines...'));
+  
+  var bbox = bbox(line);
+  var bboxPolygon = bboxPolygon(bbox);
+  var matcher = new Matcher(params, bboxPolygon);
 
   var matchedLines:turfHelpers.Feature<turfHelpers.LineString>[] = [];
   var unmatchedLines:turfHelpers.Feature<turfHelpers.LineString>[] = [];
 
-  for(var line of lines.features) {
+  for(var line of cleanedlines.clean) {
 
     var bearing:number =null;
   
     var matches = await matcher.matchFeatureCollection(turfHelpers.featureCollection([line]));
-    console.log(JSON.stringify(matches))
     if(matches.matched.features.length > 0) {
       var matchedFeature = matches.matched.features[0];
       
@@ -162,6 +170,13 @@ async function matchLines(outFile, params, lines, flags) {
     var unmatchedFeatureCollection:turfHelpers.FeatureCollection<turfHelpers.LineString> = turfHelpers.featureCollection(unmatchedLines);
     var unmatchedJsonOut = JSON.stringify(unmatchedFeatureCollection);
     writeFileSync(outFile + ".unmatched.geojson", unmatchedJsonOut);
+  }
+
+  if(cleanedlines.invalid.length ) {
+    console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + cleanedlines.invalid + ' in lines: ' + outFile + ".invalid.geojson"));
+    var invalidFeatureCollection:turfHelpers.FeatureCollection<turfHelpers.LineString> = turfHelpers.featureCollection(cleanedlines.invalid);
+    var invalidJsonOut = JSON.stringify(invalidFeatureCollection);
+    writeFileSync(outFile + ".unmatched.geojson", invalidJsonOut);
   }
 
 }

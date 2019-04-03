@@ -18,6 +18,7 @@ import { Feature, LineString } from '@turf/buffer/node_modules/@turf/helpers';
 import { RoadClass, SharedStreetsReference } from 'sharedstreets-types';
 import { SharedStreetsGeometry } from 'sharedstreets-pbf/proto/sharedstreets';
 import { forwardReference, backReference } from './index';
+import { Graph } from './graph';
 
 // import { start } from 'repl';
 // import { normalize } from 'path';
@@ -171,7 +172,6 @@ class PointCandidate implements SortableCanddate {
 		});
 
 		return feature;
-
 	}
 }
 
@@ -320,9 +320,14 @@ export class Matcher {
 
 	tileParams:TilePathParams;
 
-    constructor(params:TilePathParams) {
+	graph:Graph;
+
+    constructor(params:TilePathParams, extent:turfHelpers.Feature<turfHelpers.Polygon>=null) {
         this.tileParams = params;
-        this.tileIndex = new TileIndex();
+		this.tileIndex = new TileIndex();
+		
+		if(extent)
+			this.graph = new Graph(extent, params, this.tileIndex);
     }
 
 	directionForRefId(refId:string):ReferenceDirection {
@@ -651,8 +656,14 @@ export class Matcher {
 						var startIntersectionId = startRef.locationReferences[0].intersectionId;
 						var endIntersectionId = endRef.locationReferences[startRef.locationReferences.length - 1].intersectionId;
 	
-
-						var route = await this.tileIndex.route(startRef, c1.location, endRef, c2.location, c2.toFeature().geometry.coordinates, pathCandidate.getOriginalFeatureLength(), this.lengthTolerance);
+						
+						if(!this.graph) {
+							var bbox = bbox(originalFeature);
+  							var bboxPolygon = bboxPolygon(bbox);
+							this.graph = new Graph(bbox, this.tileParams);
+						}	
+						
+						var route = []; //await this.graph.match(originalFeature);
 						
 						if(route.length == 0)
 							continue
