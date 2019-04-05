@@ -11,7 +11,7 @@ import * as turfHelpers from '@turf/helpers';
 import * as tiles from "./src/tiles";
 import { TileIndex } from "./src/tile_index";
 import { TilePathGroup, TileType, TilePathParams } from "./src/tiles";
-import { Matcher } from "./src/match";
+import { Matcher } from "./src/matcher";
 import { CleanedPoints, CleanedLines } from "./src/geom";
 
 
@@ -362,10 +362,10 @@ test("cache -- load data", async (t:any) => {
   await tileIndex.indexTilesByPathGroup(tilePathGroup);
   t.equal(tileIndex.tiles.size, 4);
 
-  var data = await tileIndex.intersects(polygon, TileType.GEOMETRY, 0, params);
+  var data = await tileIndex.intersects(polygon, TileType.GEOMETRY, params);
   t.equal(data.features.length, 2102);
 
-  var data = await tileIndex.intersects(polygon, TileType.INTERSECTION, 0, params);
+  var data = await tileIndex.intersects(polygon, TileType.INTERSECTION, params);
   t.equal(data.features.length,1162);
 
   t.end();

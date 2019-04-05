@@ -84,6 +84,7 @@
     "bignumber.js": "6.x",
     "chalk": "^2.4.2",
     "geojson-rbush": "^3.1.1",
+    "hapi": "^18.1.0",
     "jkstra": "^0.0.6",
     "leveldown": "^5.0.0",
     "levelup": "^4.0.1",

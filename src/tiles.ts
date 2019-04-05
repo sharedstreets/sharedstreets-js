@@ -28,7 +28,8 @@ export enum TileType {
     REFERENCE = 'reference',
     INTERSECTION = 'intersection',
     GEOMETRY = 'geometry',
-    METADATA = 'metadata'
+    METADATA = 'metadata',
+    EVENTS = 'events'
 }
 
 export async function getTilesForId(id:string) {
@@ -81,7 +82,6 @@ export function getTileIdsForBounds(bounds:number[], bufferEdge:boolean):string[
 
     return tileIds;
 }
-
 
 export async function getTile(tilePath:TilePath):Promise<any[]> {
 

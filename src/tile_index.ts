@@ -123,9 +123,9 @@ export class TileIndex {
         return null;
     }
 
-    async intersects(polygon:turfHelpers.Feature<turfHelpers.Polygon>, searchType:TileType, buffer:number, params:TilePathParams, additionalTypes:TileType[]=null):Promise<turfHelpers.FeatureCollection<turfHelpers.Geometry>> {
+    async intersects(polygon:turfHelpers.Feature<turfHelpers.Polygon>, searchType:TileType, params:TilePathParams, additionalTypes:TileType[]=null):Promise<turfHelpers.FeatureCollection<turfHelpers.Geometry>> {
 
-        var tilePaths = TilePathGroup.fromPolygon(polygon, buffer, params);
+        var tilePaths = TilePathGroup.fromPolygon(polygon, 0, params);
 
         if(searchType === TileType.GEOMETRY)
             tilePaths.addType(TileType.GEOMETRY);
