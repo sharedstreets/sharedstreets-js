@@ -1,25 +1,24 @@
 import {Command, flags} from '@oclif/command'
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
 
 import { TilePathParams, TileType, TilePathGroup } from '../tiles'
 
 import { TileIndex } from '../tile_index'
-import { Matcher } from '../matcher'
+import { PointMatcher } from '../point_matcher'
 
 
 import * as turfHelpers from '@turf/helpers';
-import geomLength from '@turf/length';
-import bbox from '@turf/bbox';
-import bboxPolygon  from '@turf/bbox-polygon';
 
 import { CleanedLines } from '../geom';
+import { Graph } from '../graph';
+import  envelope from '@turf/envelope';
 
 const chalk = require('chalk');
 
 function mapOgProperties(og_props:{}, new_props:{}) {
   for(var prop of Object.keys(og_props)) {
     new_props['og_' + prop] = og_props[prop];
-    console.log(new_props)
+    //console.log(new_props)
   }
 }
 
@@ -59,6 +58,12 @@ export default class Match extends Command {
 
     var outFile = flags.out;
 
+    if(!inFile || !existsSync(inFile)) {
+      this.log(chalk.bold.keyword('orange')('  💾  Input file not found...'));
+      return;
+    }
+
+
     if(!outFile) 
       outFile = inFile;
 
@@ -69,8 +74,8 @@ export default class Match extends Command {
     var data:turfHelpers.FeatureCollection<turfHelpers.Geometry> = JSON.parse(content.toLocaleString());
   
     var params = new TilePathParams();
-    params.source = 'osm/planet-180430';
-    params.tileHierarchy = 6;
+    params.source = 'osm/planet-181224';
+    params.tileHierarchy = 6
 
     if(data.features[0].geometry.type  === 'LineString' || data.features[0].geometry.type  === 'MultiLineString') {
       await matchLines(outFile, params, data, flags);
@@ -86,7 +91,7 @@ async function matchPoints(outFile, params, points, flags) {
   console.log(chalk.bold.keyword('green')('  ✨  Matching ' + points.features.length + ' points...'));
   // test matcher point candidates
   
-  var matcher = new Matcher(params);
+  var matcher = new PointMatcher(null, params);
 
   var matchedPoints:turfHelpers.Feature<turfHelpers.Point>[] = [];
   var unmatchedPoints:turfHelpers.Feature<turfHelpers.Point>[] = [];
@@ -133,9 +138,8 @@ async function matchLines(outFile, params, lines, flags) {
   
   console.log(chalk.bold.keyword('green')('  ✨  Matching ' + cleanedlines.clean.length + ' lines...'));
   
-  var bbox = bbox(line);
-  var bboxPolygon = bboxPolygon(bbox);
-  var matcher = new Matcher(params, bboxPolygon);
+  var extent = envelope(lines);
+  var matcher = new Graph(extent, params);
 
   var matchedLines:turfHelpers.Feature<turfHelpers.LineString>[] = [];
   var unmatchedLines:turfHelpers.Feature<turfHelpers.LineString>[] = [];
@@ -144,35 +148,53 @@ async function matchLines(outFile, params, lines, flags) {
 
     var bearing:number =null;
   
-    var matches = await matcher.matchFeatureCollection(turfHelpers.featureCollection([line]));
-    if(matches.matched.features.length > 0) {
-      var matchedFeature = matches.matched.features[0];
-      
-      if(flags.portProperties)
-        mapOgProperties(line.properties, matchedFeature.properties);
-      
-        matchedLines.push(matchedFeature);
+    var matches1 = await matcher.match(line);
+
+    line.geometry.coordinates.reverse()
+    var matches2 = await matcher.match(line);
+    
+    var bestMatch = null;
+    if(matches1.length > 0 && matches2.length > 0) {
+      if(matches1[0].score > matches2[0].score)
+        bestMatch = matches1[0];
+      else 
+        bestMatch = matches2[0];
+    }
+    else if( matches1.length > 0) {
+      bestMatch = matches1[0];
+    }
+    else if( matches2.length > 0) {
+      bestMatch = matches2[0];
+    }
+
+    if(bestMatch && bestMatch.matchedPath) {      
+      //if(flags.portProperties)
+        mapOgProperties(line.properties, bestMatch.matchedPath.properties);
+
+        bestMatch.matchedPath.properties['score'] = bestMatch.score;
+        matchedLines.push(bestMatch.matchedPath);
+
     }
     else {
       unmatchedLines.push(line);
     }
   }
 
-  if(matchedLines.length) {
+  if(matchedLines && matchedLines.length) {
     console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + matchedLines.length + ' matched lines: ' + outFile + ".matched.geojson"));
     var matchedFeatureCollection:turfHelpers.FeatureCollection<turfHelpers.LineString> = turfHelpers.featureCollection(matchedLines);
     var matchedJsonOut = JSON.stringify(matchedFeatureCollection);
     writeFileSync(outFile + ".matched.geojson", matchedJsonOut);
   }
 
-  if(unmatchedLines.length ) {
+  if(unmatchedLines && unmatchedLines.length ) {
     console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + unmatchedLines.length + ' unmatched lines: ' + outFile + ".unmatched.geojson"));
     var unmatchedFeatureCollection:turfHelpers.FeatureCollection<turfHelpers.LineString> = turfHelpers.featureCollection(unmatchedLines);
     var unmatchedJsonOut = JSON.stringify(unmatchedFeatureCollection);
     writeFileSync(outFile + ".unmatched.geojson", unmatchedJsonOut);
   }
 
-  if(cleanedlines.invalid.length ) {
+  if(cleanedlines.invalid && cleanedlines.invalid.length ) {
     console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + cleanedlines.invalid + ' in lines: ' + outFile + ".invalid.geojson"));
     var invalidFeatureCollection:turfHelpers.FeatureCollection<turfHelpers.LineString> = turfHelpers.featureCollection(cleanedlines.invalid);
     var invalidJsonOut = JSON.stringify(invalidFeatureCollection);

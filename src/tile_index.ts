@@ -23,18 +23,14 @@ const SHST_ID_API_URL = 'https://api.sharedstreets.io/v0.1.0/id/';
 // maintains unified spaital and id indexes for tiled data
 
 function createIntersectionGeometry(data:SharedStreetsIntersection) {
-  
     var point = turfHelpers.point([data.lon, data.lat]);
     return turfHelpers.feature(point.geometry, {id: data.id});
-
 }
 
 function createGeometry(data:SharedStreetsGeometry) {
-
     var line = turfHelpers.lineString(lonlatsToCoords(data.lonlats));
     return turfHelpers.feature(line.geometry, {id: data.id});
 }
-
 
 export class TileIndex {
 
@@ -119,7 +115,6 @@ export class TileIndex {
     }
 
     async getGraph(polygon:turfHelpers.Feature<turfHelpers.Polygon>, params:TilePathParams):Promise<Graph> {
-        
         return null;
     }
 
@@ -183,8 +178,8 @@ export class TileIndex {
     
     }
 
-    async geom(referenceId:string, p1:number, p2:number):Promise<turfHelpers.Feature<turfHelpers.Geometry>> {
-    
+    async geom(referenceId:string, p1:number, p2:number):Promise<turfHelpers.Feature<turfHelpers.LineString|turfHelpers.Point>> {
+        
         if(this.objectIndex.has(referenceId)) {
             var ref:SharedStreetsReference = <SharedStreetsReference>this.objectIndex.get(referenceId);
             var geom:SharedStreetsGeometry = <SharedStreetsGeometry>this.objectIndex.get(ref.geometryId);
@@ -211,7 +206,7 @@ export class TileIndex {
                     return lineSliceAlong(geomFeature, p1, p2, {"units":"meters"});
                 }
                 catch(e){
-                    console.log(e);
+                    return null;
                 }
             }
         }

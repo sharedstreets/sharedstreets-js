@@ -13,28 +13,35 @@ import envelope from '@turf/envelope';
 import * as tiles from "./src/tiles";
 import { TileIndex } from "./src/tile_index";
 import { TilePathGroup, TileType, TilePathParams } from "./src/tiles";
-import { Matcher } from "./src/matcher";
 import { CleanedPoints, CleanedLines } from "./src/geom";
 import { polygon } from "@turf/envelope/node_modules/@turf/helpers";
 import { Graph } from "./src/graph";
 
 const test = require('tape');
  
-test("graph build", async (t:any) => { 
+test("sharedstreets -- intersection", async (t:any) => {
  
   var params = new TilePathParams();
-  params.source = 'osm/planet-180430';
-  params.tileHierarchy = 6;
+  params.source = 'osm/planet-181224';
+  params.tileHierarchy = 7;
 
-   // test polygon (dc area)
-   const content = fs.readFileSync('test/geojson/line_1.in.geojson');
-   var lineIn:turfHelpers.FeatureCollection<turfHelpers.LineString> = JSON.parse(content.toLocaleString());
-   var graph = new Graph(envelope(lineIn), params);
-   await graph.buildGraph();
+  // test polygon (dc area)
+  const content = fs.readFileSync('test.geojson');
+  var lineIn:turfHelpers.FeatureCollection<turfHelpers.LineString> = JSON.parse(content.toLocaleString());
+  var graph = new Graph(envelope(lineIn), params);
+  await graph.buildGraph();
 
-   t.equal(graph.id, 'd626d5b0-0dec-3e6f-97ff-d9712228a282');
+  //t.equal(graph.id, 'd626d5b0-0dec-3e6f-97ff-d9712228a282');
+  //var results = await graph.match(lineIn.features[0]);
+  //lineIn.features[0].geometry.coordinates.reverse();
+  var results2 = await graph.match(lineIn.features[0]);
+  console.log(JSON.stringify(results2));
+  // for(var result of results) {
+  //   console.log(JSON.stringify(result.toDebugView()));
+  // }
+  for(var result of results2) {
+    console.log(JSON.stringify(result.toDebugView()));
+  }
+  t.end();
 
-   graph.match(lineIn.features[0]);
-
-   t.end();
  });

@@ -5,7 +5,7 @@ let linearProto = require('./src/proto/linear.js');
 
 var fs = require('fs');
 
-import { ReferenceSideOfStreet, ReferenceDirection } from './matcher'
+import { ReferenceSideOfStreet, ReferenceDirection } from './point_matcher'
 
 //import { getTileIdsForPolygon, LocalCache } from "../utils/cache";
 

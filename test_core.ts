@@ -11,7 +11,6 @@ import * as turfHelpers from '@turf/helpers';
 import * as tiles from "./src/tiles";
 import { TileIndex } from "./src/tile_index";
 import { TilePathGroup, TileType, TilePathParams } from "./src/tiles";
-import { Matcher } from "./src/match";
 import { CleanedPoints, CleanedLines } from "./src/geom";
 
 

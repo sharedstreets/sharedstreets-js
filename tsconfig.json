@@ -10,7 +10,6 @@
 
     /* Module Resolution Options */
     "esModuleInterop": true,                   /* Enables emit interoperability between CommonJS and ES Modules via creation of namespace objects for all imports. Implies 'allowSyntheticDefaultImports'. */
-
     /* Additional Checks */
     "noUnusedLocals": false,                /* Report errors on unused locals. */
     "noUnusedParameters": false,            /* Report errors on unused parameters. */
