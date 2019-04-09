@@ -248,8 +248,9 @@ export class Graph {
                     nodeIdElems.push({nd:[{_attr:{ref:nodeId}}]});
                 }   
             
+                var oneWay = obj.backReferenceId ? 'yes' : 'no';
                 var roadClass = obj.roadClass.toLocaleLowerCase();
-                osmRootElem.push({way:[{_attr:{id:edge.edgeId}},{tag:{_attr:{k:'highway', v:roadClass}}},{tag:{_attr:{k:'oneway', v:'yes'}}},...nodeIdElems]});
+                osmRootElem.push({way:[{_attr:{id:edge.edgeId}},{tag:{_attr:{k:'highway', v:roadClass}}},{tag:{_attr:{k:'oneway', v:oneWay}}},...nodeIdElems]});
 
                 nextEdgeId++;
             }
