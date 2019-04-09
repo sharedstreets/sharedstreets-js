@@ -26,7 +26,7 @@ test("sharedstreets -- intersection", async (t:any) => {
   params.tileHierarchy = 7;
 
   // test polygon (dc area)
-  const content = fs.readFileSync('test.geojson');
+  const content = fs.readFileSync('test/geojson/test_route.geojson');
   var lineIn:turfHelpers.FeatureCollection<turfHelpers.LineString> = JSON.parse(content.toLocaleString());
   var graph = new Graph(envelope(lineIn), params);
   await graph.buildGraph();

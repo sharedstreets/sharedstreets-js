@@ -35,6 +35,12 @@ enum MatchType {
     HMM = 'hmm'
 }
 
+enum GraphMode {
+    CAR = 'car',
+    BIKE = 'bike',
+    PEDESTRIAN = 'ped'
+}
+
 // interface typecheck for SharedStreetsGeometry
 function geomInstance(object: any): object is SharedStreetsGeometry {
     return 'forwardReferenceId' in object;
@@ -116,12 +122,15 @@ export class Graph {
     pointMatcher:PointMatcher; // need a local copy for point lookup
     tilePathGroup:TilePathGroup;
     tileIndex:TileIndex;
+    graphMode:GraphMode
 
-    constructor(extent:turfHelpers.Feature<turfHelpers.Polygon>, params:TilePathParams, existingTileIndex:TileIndex=null) {
+    constructor(extent:turfHelpers.Feature<turfHelpers.Polygon>, params:TilePathParams, existingTileIndex:TileIndex=null, graphMode:GraphMode=GraphMode.CAR) {
 
         this.tilePathGroup = TilePathGroup.fromPolygon(extent, 1000, params);
         this.tilePathGroup.addType(TileType.GEOMETRY);
         this.tilePathGroup.addType(TileType.REFERENCE);
+
+        this.graphMode = graphMode;
 
         var paths:string[] = [];
         for(var path of this.tilePathGroup) {
@@ -138,7 +147,7 @@ export class Graph {
         this.pointMatcher = new PointMatcher(extent, params, this.tileIndex);
 
         // create id from tile path hash  
-        this.id = uuidHash(paths.join(" "));
+        this.id = uuidHash(this.graphMode + ' ' + paths.join(" "));
     }
 
     async createGraphXml() {
@@ -239,7 +248,8 @@ export class Graph {
                     nodeIdElems.push({nd:[{_attr:{ref:nodeId}}]});
                 }   
             
-                osmRootElem.push({way:[{_attr:{id:edge.edgeId}},{tag:{_attr:{k:'highway', v:'primary'}}},{tag:{_attr:{k:'oneway', v:'yes'}}},...nodeIdElems]});
+                var roadClass = obj.roadClass.toLocaleLowerCase();
+                osmRootElem.push({way:[{_attr:{id:edge.edgeId}},{tag:{_attr:{k:'highway', v:roadClass}}},{tag:{_attr:{k:'oneway', v:'yes'}}},...nodeIdElems]});
 
                 nextEdgeId++;
             }
@@ -286,8 +296,17 @@ export class Graph {
 
             //extract 
             console.log(chalk.keyword('lightgreen')("     building graph from: " + xmlPath));
-            console.log('./node_modules/osrm/lib/binding/osrm-extract ' + xmlPath + ' -p ./node_modules/osrm/profiles/car.lua')
-            execSync('./node_modules/osrm/lib/binding/osrm-extract ' + xmlPath + ' -p ./node_modules/osrm/profiles/car.lua');
+            
+            var profile;
+
+            if(this.graphMode === GraphMode.CAR)
+                profile = './node_modules/osrm/profiles/car.lua';
+            else if(this.graphMode === GraphMode.BIKE)
+                profile = './node_modules/osrm/profiles/bicycle.lua';
+            else if(this.graphMode === GraphMode.PEDESTRIAN)
+                profile = './node_modules/osrm/profiles/foot.lua';
+
+            execSync('./node_modules/osrm/lib/binding/osrm-extract ' + xmlPath + ' -p ' + profile);
 
             var osrmPath = xmlPath + '.osrm';
 
