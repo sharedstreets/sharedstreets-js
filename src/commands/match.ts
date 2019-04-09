@@ -172,6 +172,7 @@ async function matchLines(outFile, params, lines, flags) {
         mapOgProperties(line.properties, bestMatch.matchedPath.properties);
 
         bestMatch.matchedPath.properties['score'] = bestMatch.score;
+        bestMatch.matchedPath.properties['matchType'] = bestMatch.matchType;
         matchedLines.push(bestMatch.matchedPath);
 
     }
