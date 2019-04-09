@@ -8,7 +8,11 @@
   },
   "files": [
     "build/index.js",
-    "src/index.ts"
+    "src/index.ts",
+    ".oclif.manifest.json",
+    "/bin",
+    "/lib",
+    "/templates"
   ],
   "oclif": {
     "commands": "./src/commands",
@@ -19,6 +23,7 @@
   },
   "scripts": {
     "pretest": "tsc",
+    "prepack": "rm -rf lib && tsc && oclif-dev manifest",
     "test": "tsc && colortape build/test_core.js",
     "test-matcher": "tsc && colortape build/test_matcher.js",
     "test-graph": "tsc && colortape build/test_graph.js",
@@ -64,7 +69,6 @@
   "dependencies": {
     "@mapbox/sphericalmercator": "^1.1.0",
     "@oclif/command": "^1.5.12",
-    "@oclif/config": "^1.12.11",
     "@oclif/plugin-help": "^2.1.6",
     "@turf/along": "^6.0.1",
     "@turf/bbox": "^6.0.1",
