@@ -19,7 +19,7 @@
   },
   "scripts": {
     "pretest": "tsc",
-    "test-core": "tsc && colortape build/test_core.js",
+    "test": "tsc && colortape build/test_core.js",
     "test-matcher": "tsc && colortape build/test_matcher.js",
     "test-graph": "tsc && colortape build/test_graph.js",
     "docs": "tsc && documentation readme build/index.js --section=API",
