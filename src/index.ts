@@ -13,6 +13,8 @@ import {
 } from "sharedstreets-types";
 import { isArray } from "util";
 
+export { Graph } from './graph'
+
 /**
  * Shared Streets Java implementation
  *
@@ -286,7 +288,7 @@ export function forwardReference (
   } = {},
 ): SharedStreetsReference {
 
-  const lineLength = Math.round(length(line, {units: "meters"}) * 100); 
+  const lineLength = Math.round(length(line, {units: "meters"}) * 100);
 
   const formOfWay = getFormOfWay(line, options);
   const geomId = geometryId(line);
@@ -299,23 +301,23 @@ export function forwardReference (
 
   for(var i = 0; i < segmentCount + 1; i++){
     var refProperties:{
-      outboundBearing?:number, 
+      outboundBearing?:number,
       inboundBearing?:number,
       distanceToNextRef?:number } = {};
 
-    if(i < segmentCount){ 
+    if(i < segmentCount){
       refProperties.outboundBearing = outboundBearing(line, lineLength, i * (lineLength / segmentCount));
-      refProperties.distanceToNextRef = Math.round((lineLength / segmentCount) * 100); 
+      refProperties.distanceToNextRef = Math.round((lineLength / segmentCount) * 100);
     }
-    if(i > 0){ 
+    if(i > 0){
       refProperties.inboundBearing = inboundBearing(line, lineLength, i * (lineLength / segmentCount));
     }
-    
+
     var lrCoord;
-    
+
     if(i == 0)
       lrCoord = getStartCoord(line);
-    else if(i == segmentCount) 
+    else if(i == segmentCount)
       lrCoord = getEndCoord(line);
     else {
       var pos = i * (lineLength / segmentCount);
@@ -444,9 +446,9 @@ export function metadata(
  * if line is less than 20 meters long bearing is from start to end of line
  * outboundBearing; // => 208
  */
-export function outboundBearing(line: Feature<LineString>, len:number, dist:number): number {  
+export function outboundBearing(line: Feature<LineString>, len:number, dist:number): number {
   // LRs describe the compass bearing of the street geometry for the 20 meters immediately following the LR.
-  if(len > 20) { 
+  if(len > 20) {
     const start = along(line, dist, {units: "meters"});
     const end = along(line, dist + 20, {units: "meters"});
     // Calculate outbound & inbound
@@ -480,14 +482,14 @@ export function inboundBearing(line: Feature<LineString>, len:number, dist:numbe
     const end = along(line, dist, {units: "meters"});
 
     return bearingToAzimuth(Math.round(bearing(start, end)));
-  } 
+  }
   else  {
     const start = along(line, 0, {units: "meters"});
     const end = along(line, len, {units: "meters"});
 
     return bearingToAzimuth(Math.round(bearing(start, end)));
   }
-  
+
 }
 
 /**
