@@ -155,16 +155,16 @@ async function matchLines(outFile, params, lines, flags) {
     
     var bestMatch = null;
     if(matches1 && matches2 ) {
-      if(matches1[0].score > matches2[0].score)
-        bestMatch = matches1[0];
+      if(matches1.score > matches2.score)
+        bestMatch = matches1;
       else 
-        bestMatch = matches2[0];
+        bestMatch = matches2;
     }
     else if(matches1) {
-      bestMatch = matches1[0];
+      bestMatch = matches1;
     }
     else if(matches2) {
-      bestMatch = matches2[0];
+      bestMatch = matches2;
     }
 
     if(bestMatch && bestMatch.matchedPath) {      

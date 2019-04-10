@@ -625,13 +625,16 @@ export class Graph {
             var segCoords = []
             for(var segment of bestPathCandidate.segments) {
                 var segGeom = await this.tileIndex.geom(segment.referenceId, segment.section[0],  segment.section[1]);   
-                segCoords.push(segGeom.geometry.coordinates)
+                if(segGeom)
+                    segCoords.push(segGeom.geometry.coordinates)
             }
-            var segmentGeoms:turfHelpers.Feature<turfHelpers.MultiLineString> = turfHelpers.multiLineString([]);
-            segmentGeoms.geometry.coordinates = [...segCoords];
-            bestPathCandidate.matchedPath = segmentGeoms;
+            
+            if(segCoords.length > 0) {
+                var segmentGeoms:turfHelpers.Feature<turfHelpers.MultiLineString> = turfHelpers.multiLineString([]);
+                segmentGeoms.geometry.coordinates = [...segCoords];
+                bestPathCandidate.matchedPath = segmentGeoms;
+            }   
         }
-
         return bestPathCandidate;
     }
 }
