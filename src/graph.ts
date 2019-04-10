@@ -9,6 +9,7 @@ import { execSync } from 'child_process';
 import { PointMatcher, ReferenceSideOfStreet, PointCandidate, ReferenceDirection } from './point_matcher';
 import { RoadClass } from 'sharedstreets-pbf/proto/sharedstreets';
 import length from '@turf/length';
+import distance from '@turf/distance';
 import envelope from '@turf/envelope';
 
 const { exec } = require('child_process');
@@ -393,13 +394,28 @@ export class Graph {
                     pathSegment.fromIntersectionId = edgeGeom.fromIntersectionId;
 
                     pathCandidate.segments.push(pathSegment);
-
+                    
+                    var startDist = distance(startPoint, startCandidates[i].pointOnLine, {"units":"meters"});
+                    var endDist = distance(endPoint, endCandidates[j].pointOnLine, {"units":"meters"});
+                    pathCandidate.score = rmse([startDist, endDist, pathCandidate.getLengthDelta()]);
+                    //console.log( pathCandidate.score)
                     pathCandidates.push(pathCandidate);
 
-                    return pathCandidates;
                 }
             }
         }
+
+        if(pathCandidates.length > 0) {
+            pathCandidates.sort((a, b) => {
+                return a.score - b.score;
+            })
+    
+            //if(pathCandidates[0].score < options['radius'];
+                return [pathCandidates[0]];
+            //else 
+            //    return [];
+        }
+       
 
         // fall back to hmm for probabilistic path discovery
         if(!this.osrm)
