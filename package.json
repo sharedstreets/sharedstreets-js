@@ -6,6 +6,9 @@
   "bin": {
     "shst": "./bin/run"
   },
+  "files": [
+    "*"
+  ],
   "oclif": {
     "commands": "./src/commands",
     "bin": "shst",
