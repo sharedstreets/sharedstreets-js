@@ -6,14 +6,6 @@
   "bin": {
     "shst": "./bin/run"
   },
-  "files": [
-    "build/index.js",
-    "src/index.ts",
-    ".oclif.manifest.json",
-    "/bin",
-    "/lib",
-    "/templates"
-  ],
   "oclif": {
     "commands": "./src/commands",
     "bin": "shst",
