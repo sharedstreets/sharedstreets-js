@@ -39,9 +39,9 @@ test("sharedstreets -- intersection", async (t:any) => {
   // for(var result of results) {
   //   console.log(JSON.stringify(result.toDebugView()));
   // }
-  for(var result of results2) {
-    console.log(JSON.stringify(result.toDebugView()));
-  }
+
+    console.log(JSON.stringify(results2.toDebugView()));
+
   t.end();
 
  });
