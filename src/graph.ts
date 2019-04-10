@@ -624,11 +624,13 @@ export class Graph {
         if(bestPathCandidate) {
             var segCoords = []
             for(var segment of bestPathCandidate.segments) {
+                
+                // TODO appears to be bug in Turf line-slice 
                 var segGeom = this.tileIndex.featureIndex.get(segment.geometryId);//await this.tileIndex.geom(, segment.section[0],  segment.section[1]);   
                 if(segGeom)
                     segCoords.push(segGeom.geometry.coordinates)
-                else 
-                    console.log(segment.referenceId);
+                //else 
+                //    console.log(segment.referenceId);
             }
             
             if(segCoords.length > 0) {
