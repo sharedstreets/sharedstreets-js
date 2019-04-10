@@ -328,7 +328,7 @@ export class Graph {
         }
     }
 
-    async match(feature:turfHelpers.Feature<turfHelpers.LineString>, ) {
+    async match(feature:turfHelpers.Feature<turfHelpers.LineString>) {
         
         var options = {};
         
@@ -345,7 +345,9 @@ export class Graph {
             options['useDirect'] = true;
             
         var pathCandidates:PathCandidate[] = [];
-        
+        var bestPathCandidate:PathCandidate = null;
+
+
         this.pointMatcher.searchRadius = options['radius'] * 2;
 
         // do default shst edge look up first
@@ -409,12 +411,9 @@ export class Graph {
             pathCandidates.sort((a, b) => {
                 return a.score - b.score;
             })
-    
-            //if(pathCandidates[0].score < options['radius'];
-                return [pathCandidates[0]];
-            //else 
-            //    return [];
+                bestPathCandidate = pathCandidates[0];
         }
+
        
 
         // fall back to hmm for probabilistic path discovery
@@ -610,7 +609,7 @@ export class Graph {
 
                             if(matchWorked && !alreadyIncludedPaths.has(refIdHash)) {
                                 alreadyIncludedPaths.add(refIdHash);
-                                pathCandidates.push(pathCandidate);
+                                bestPathCandidate = pathCandidate;
                             }   
                         }            
                     }
@@ -618,10 +617,22 @@ export class Graph {
             }
         }
         catch(e) {
-            //console.log(e);
+            // no-op failed to match
         }
 
-        return pathCandidates;
+        
+        if(bestPathCandidate) {
+            var segCoords = []
+            for(var segment of bestPathCandidate.segments) {
+                var segGeom = await this.tileIndex.geom(segment.referenceId, segment.section[0],  segment.section[1]);   
+                segCoords.push(segGeom.geometry.coordinates)
+            }
+            var segmentGeoms:turfHelpers.Feature<turfHelpers.MultiLineString> = turfHelpers.multiLineString([]);
+            segmentGeoms.geometry.coordinates = [...segCoords];
+            bestPathCandidate.matchedPath = segmentGeoms;
+        }
+
+        return bestPathCandidate;
     }
 }
 

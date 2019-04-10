@@ -154,27 +154,25 @@ async function matchLines(outFile, params, lines, flags) {
     var matches2 = await matcher.match(line);
     
     var bestMatch = null;
-    if(matches1.length > 0 && matches2.length > 0) {
+    if(matches1 && matches2 ) {
       if(matches1[0].score > matches2[0].score)
         bestMatch = matches1[0];
       else 
         bestMatch = matches2[0];
     }
-    else if( matches1.length > 0) {
+    else if(matches1) {
       bestMatch = matches1[0];
     }
-    else if( matches2.length > 0) {
+    else if(matches2) {
       bestMatch = matches2[0];
     }
 
     if(bestMatch && bestMatch.matchedPath) {      
-      //if(flags.portProperties)
-        mapOgProperties(line.properties, bestMatch.matchedPath.properties);
-
+        bestMatch.matchedPath.properties['segments'] =  bestMatch.segments;
         bestMatch.matchedPath.properties['score'] = bestMatch.score;
         bestMatch.matchedPath.properties['matchType'] = bestMatch.matchType;
+        mapOgProperties(line.properties, bestMatch.matchedPath.properties);
         matchedLines.push(bestMatch.matchedPath);
-
     }
     else {
       unmatchedLines.push(line);
