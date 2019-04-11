@@ -19,6 +19,7 @@ const stream = require('stream');
 const levelup = require('levelup');
 const leveldown = require('leveldown');
 const chalk = require('chalk');
+const path = require('path');
 const util = require('util');
 import * as fs from "fs";
 import Match from './commands/match';
@@ -29,7 +30,7 @@ const uuidHash = require('uuid-by-string');
 const MIN_CONFIDENCE = 0.5;
 const OPTIMIZE_GRAPH = true;
 const USE_LOCAL_CACHE = true;
-const SHST_GRAPH_CACHE_DIR = './shst/cache/graphs/';
+const SHST_GRAPH_CACHE_DIR = 'shst/cache/graphs/';
 
 enum MatchType {
     DIRECT = 'direct',
@@ -154,11 +155,11 @@ export class Graph {
     async createGraphXml() {
 
         // build xml representation of graph + leveldb id map
-        var graphPath = SHST_GRAPH_CACHE_DIR + this.id;
+        var graphPath = path.join(SHST_GRAPH_CACHE_DIR, this.id);
 
         var nextNodeId:number = 1;
         var nextEdgeId:number = 1;
-        var xmlPath = graphPath + '/graph.xml';
+        var xmlPath = path.join(graphPath, '/graph.xml');
 
         // create xml stream
         const pipeline = util.promisify(stream.pipeline);
@@ -273,13 +274,13 @@ export class Graph {
 
     async buildGraph() {
 
-        var graphPath = SHST_GRAPH_CACHE_DIR + this.id;
-        var dbPath = graphPath + '/db';
+        var graphPath = path.join(SHST_GRAPH_CACHE_DIR, this.id);
+        var dbPath = path.join(graphPath, '/db');
 
         await this.tileIndex.indexTilesByPathGroup(this.tilePathGroup)
 
         if(USE_LOCAL_CACHE && existsSync(dbPath)) {
-            var osrmPath = graphPath + '/graph.xml.osrm';
+            var osrmPath = path.join(graphPath, '/graph.xml.osrm');
             //console.log(chalk.keyword('lightgreen')("     loading pre-built graph from: " + osrmPath));
             this.db = new LevelDB(dbPath);
             if(OPTIMIZE_GRAPH)
@@ -302,24 +303,24 @@ export class Graph {
             var profile;
 
             if(this.graphMode === GraphMode.CAR)
-                profile = './node_modules/osrm/profiles/car.lua';
+                profile = 'node_modules/osrm/profiles/car.lua';
             else if(this.graphMode === GraphMode.BIKE)
-                profile = './node_modules/osrm/profiles/bicycle.lua';
+                profile = 'node_modules/osrm/profiles/bicycle.lua';
             else if(this.graphMode === GraphMode.PEDESTRIAN)
-                profile = './node_modules/osrm/profiles/foot.lua';
+                profile = 'node_modules/osrm/profiles/foot.lua';
 
-            execSync('./node_modules/osrm/lib/binding/osrm-extract ' + xmlPath + ' -p ' + profile);
+            execSync('node_modules/osrm/lib/binding/osrm-extract ' + xmlPath + ' -p ' + profile);
 
             var osrmPath = xmlPath + '.osrm';
 
             if(OPTIMIZE_GRAPH) {
                 console.log(chalk.keyword('lightgreen')("     optimizing graph (this takes awhile)..."));
-                execSync('./node_modules/osrm/lib/binding/osrm-contract ' + osrmPath);
+                execSync('node_modules/osrm/lib/binding/osrm-contract ' + osrmPath);
                 this.osrm = new OSRM({path:osrmPath});
             }
             else {
-                execSync('./node_modules/osrm/lib/binding/osrm-partition ' + osrmPath);
-                execSync('./node_modules/osrm/lib/binding/osrm-customize ' + osrmPath);
+                execSync('node_modules/osrm/lib/binding/osrm-partition ' + osrmPath);
+                execSync('node_modules/osrm/lib/binding/osrm-customize ' + osrmPath);
                 console.log(chalk.keyword('lightgreen')("     skipping graph optimization..."));
                 this.osrm = new OSRM({path:osrmPath, algorithm:"MLD"});
             }
