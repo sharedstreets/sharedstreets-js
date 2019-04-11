@@ -280,7 +280,7 @@ export class Graph {
 
         if(USE_LOCAL_CACHE && existsSync(dbPath)) {
             var osrmPath = graphPath + '/graph.xml.osrm';
-            console.log(chalk.keyword('lightgreen')("     loading pre-built graph from: " + osrmPath));
+            //console.log(chalk.keyword('lightgreen')("     loading pre-built graph from: " + osrmPath));
             this.db = new LevelDB(dbPath);
             if(OPTIMIZE_GRAPH)
                 this.osrm = new OSRM({path:osrmPath});

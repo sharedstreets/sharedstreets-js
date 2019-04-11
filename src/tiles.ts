@@ -90,7 +90,7 @@ export async function getTile(tilePath:TilePath):Promise<any[]> {
     var arrayBuffer:Uint8Array;
     if(USE_LOCAL_CACHE && existsSync(SHST_TILE_CACHE_DIR + tilePath.toPathString())) {
         arrayBuffer = new Uint8Array(readFileSync(SHST_TILE_CACHE_DIR + tilePath.toPathString()));
-        console.log(chalk.keyword('lightgreen')("     reading from cached: " + SHST_TILE_CACHE_DIR + tilePath.toPathString()));
+        //console.log(chalk.keyword('lightgreen')("     reading from cached: " + SHST_TILE_CACHE_DIR + tilePath.toPathString()));
     }
     else {
 
