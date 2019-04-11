@@ -28,8 +28,10 @@ function createIntersectionGeometry(data:SharedStreetsIntersection) {
 }
 
 function createGeometry(data:SharedStreetsGeometry) {
+    
     var line = turfHelpers.lineString(lonlatsToCoords(data.lonlats));
-    return turfHelpers.feature(line.geometry, {id: data.id});
+    var feature = turfHelpers.feature(line.geometry, {id: data.id});
+    return feature;
 }
 
 export class TileIndex {
@@ -205,9 +207,10 @@ export class TileIndex {
                 try {
                     return lineSliceAlong(geomFeature, p1, p2, {"units":"meters"});
                 }
-                catch(e){
-                    return null;
+                catch(e) {
+                    //console.log(p1, p2)
                 }
+                
             }
         }
 

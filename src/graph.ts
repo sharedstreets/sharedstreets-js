@@ -336,7 +336,7 @@ export class Graph {
             options['radius'] = 10;
 
         if(!options['snapToIntersections'])
-            options['snapToIntersections'] = false;
+            options['snapToIntersections'] = true;
 
         if(!options['useHMM'])
             options['useHMM'] = true;
@@ -622,16 +622,43 @@ export class Graph {
 
         
         if(bestPathCandidate) {
-            var segCoords = []
-            for(var segment of bestPathCandidate.segments) {
-                
-                // TODO appears to be bug in Turf line-slice 
-                var segGeom = this.tileIndex.featureIndex.get(segment.geometryId);//await this.tileIndex.geom(, segment.section[0],  segment.section[1]);   
-                if(segGeom)
-                    segCoords.push(segGeom.geometry.coordinates)
-                //else 
-                //    console.log(segment.referenceId);
+            var cleanedPath = [];
+            var segCoords = [];
+            for(var i = 0; i < bestPathCandidate.segments.length; i++) {
+                var segment = bestPathCandidate.segments[i];
+                if(segment.section[0] < segment.section[1] &&  segment.section[1] <= segment.referenceLength &&  segment.section[0] >= 0) {
+                    
+                    if(options['snapToIntersections']) {
+                        
+                        if(i == 0 && segment.referenceLength - segment.section[0] < options['radius'])
+                            continue;
+                        
+                        if(i == 0 && segment.section[0] < options['radius'])
+                            segment.section[0] = 0;
+
+                        if(i == bestPathCandidate.segments.length -1 && segment.section[1] < options['radius'])
+                            continue;
+
+                        if(i == bestPathCandidate.segments.length -1 && segment.referenceLength - segment.section[1] < options['radius'])
+                            segment.section[1] = segment.referenceLength;
+
+                        if( i > 0 && i < bestPathCandidate.segments.length -1) {
+                            segment.section[0] = 0;
+                            segment.section[1] = segment.referenceLength;
+                        }
+                    }
+
+                    if(segment.section[0] == segment.section[1]) 
+                        continue;
+
+                    var segGeom = await this.tileIndex.geom(segment.referenceId, segment.section[0],  segment.section[1]);   
+                    if(segGeom) {
+                        cleanedPath.push(segment);
+                        segCoords.push(segGeom.geometry.coordinates)
+                    }
+                }
             }
+            bestPathCandidate.segments = cleanedPath;
             
             if(segCoords.length > 0) {
                 var segmentGeoms:turfHelpers.Feature<turfHelpers.MultiLineString> = turfHelpers.multiLineString([]);

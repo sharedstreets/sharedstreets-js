@@ -14,6 +14,7 @@ import { Graph } from '../graph';
 import  envelope from '@turf/envelope';
 
 const chalk = require('chalk');
+const cliProgress = require('cli-progress');
 
 function mapOgProperties(og_props:{}, new_props:{}) {
   for(var prop of Object.keys(og_props)) {
@@ -38,8 +39,12 @@ export default class Match extends Command {
 
     // flag with a value (-o, --out=FILE)
     out: flags.string({char: 'o', description: 'output file'}),
-    portProperties: flags.boolean({char: 'p', description: 'port existing feature properties preceeded by "og_"', default: false}),
-    bearingField: flags.string({description: 'name of optional point property containing bearing in decimal degrees', default:'bearing'}),
+    'port-properties': flags.boolean({char: 'p', description: 'port existing feature properties preceeded by "pp_"', default: true}),
+    'to-field': flags.string({description: 'name of optional line properity describing "to" intersection id, releative to line direction'}),
+    'from-field': flags.string({description: 'name of optional line properity describing "from" intersection id, releative to line direction'}),
+    'oneway-field': flags.string({description: 'name of optional line properity describing "one-way" segments, use the related "oneway-value"'}),
+    'oneway-value': flags.string({description: 'name of optional value of "oneway-field" indicating a oneway street'}),
+    'bearing-field': flags.string({description: 'name of optional point property containing bearing in decimal degrees', default:'bearing'}),
     stats: flags.boolean({char: 's'})
 
     // flag with no value (-f, --force)
@@ -62,7 +67,6 @@ export default class Match extends Command {
       this.log(chalk.bold.keyword('orange')('  💾  Input file not found...'));
       return;
     }
-
 
     if(!outFile) 
       outFile = inFile;
@@ -99,14 +103,14 @@ async function matchPoints(outFile, params, points, flags) {
   for(var searchPoint of points.features) {
 
     var bearing:number =null;
-    if(searchPoint.properties && searchPoint.properties[flags.bearingField])
-      bearing = parseFloat(searchPoint.properties[flags.bearingField]);
+    if(searchPoint.properties && searchPoint.properties[flags['bearing-field']])
+      bearing = parseFloat(searchPoint.properties[flags['bearing-field']]);
 
     var matches = await matcher.getPointCandidates(searchPoint, bearing, 3);
     if(matches.length > 0) {
       var matchedFeature = matches[0].toFeature();
       
-      if(flags.portProperties)
+      if(flags['port-properties'])
         mapOgProperties(searchPoint.properties, matchedFeature.properties);
       
         matchedPoints.push(matchedFeature);
@@ -131,7 +135,6 @@ async function matchPoints(outFile, params, points, flags) {
   }
 }
 
-
 async function matchLines(outFile, params, lines, flags) {
 
   var cleanedlines = new CleanedLines(lines);
@@ -143,6 +146,14 @@ async function matchLines(outFile, params, lines, flags) {
 
   var matchedLines:turfHelpers.Feature<turfHelpers.LineString>[] = [];
   var unmatchedLines:turfHelpers.Feature<turfHelpers.LineString>[] = [];
+
+  const bar1 = new cliProgress.Bar({},{
+    format: chalk.keyword('blue')(' {bar}') + ' {percentage}% | {value}/{total} ',
+    barCompleteChar: '\u2588',
+    barIncompleteChar: '\u2591'
+  });
+ 
+  bar1.start(cleanedlines.clean.length, 0);
 
   for(var line of cleanedlines.clean) {
 
@@ -171,13 +182,19 @@ async function matchLines(outFile, params, lines, flags) {
         bestMatch.matchedPath.properties['segments'] =  bestMatch.segments;
         bestMatch.matchedPath.properties['score'] = bestMatch.score;
         bestMatch.matchedPath.properties['matchType'] = bestMatch.matchType;
-        mapOgProperties(line.properties, bestMatch.matchedPath.properties);
+       
+        if(flags['port-properties'])
+          mapOgProperties(line.properties, bestMatch.matchedPath.properties);
+       
         matchedLines.push(bestMatch.matchedPath);
     }
     else {
       unmatchedLines.push(line);
     }
+
+    bar1.increment();
   }
+  bar1.stop();
 
   if(matchedLines && matchedLines.length) {
     console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + matchedLines.length + ' matched lines: ' + outFile + ".matched.geojson"));
