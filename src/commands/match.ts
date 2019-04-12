@@ -9,9 +9,10 @@ import { PointMatcher } from '../point_matcher'
 
 import * as turfHelpers from '@turf/helpers';
 
-import { CleanedLines } from '../geom';
-import { Graph } from '../graph';
+import { CleanedLines, reverseLineString } from '../geom';
+import { Graph, PathCandidate } from '../graph';
 import  envelope from '@turf/envelope';
+import { Feature, LineString } from '@turf/buffer/node_modules/@turf/helpers';
 
 const chalk = require('chalk');
 const cliProgress = require('cli-progress');
@@ -40,10 +41,10 @@ export default class Match extends Command {
     // flag with a value (-o, --out=FILE)
     out: flags.string({char: 'o', description: 'output file'}),
     'port-properties': flags.boolean({char: 'p', description: 'port existing feature properties preceeded by "pp_"', default: true}),
-    'to-field': flags.string({description: 'name of optional line properity describing "to" intersection id, releative to line direction'}),
-    'from-field': flags.string({description: 'name of optional line properity describing "from" intersection id, releative to line direction'}),
-    'oneway-field': flags.string({description: 'name of optional line properity describing "one-way" segments, use the related "oneway-value"'}),
-    'oneway-value': flags.string({description: 'name of optional value of "oneway-field" indicating a oneway street'}),
+    'direction-field': flags.string({description: 'name of optional line properity describing "one-way" segments, use the related "oneway-value"'}),
+    'oneway-with-direction-value': flags.string({description: 'name of optional value of "oneway-field" indicating a oneway street'}),
+    'oneway-against-direction-value': flags.string({description: 'name of optional value of "oneway-field" indicating a oneway street'}),
+    'twoway-value': flags.string({description: 'name of optional value of "oneway-field" indicating a oneway street'}),
     'bearing-field': flags.string({description: 'name of optional point property containing bearing in decimal degrees', default:'bearing'}),
     stats: flags.boolean({char: 's'})
 
@@ -74,6 +75,9 @@ export default class Match extends Command {
     if(outFile.toLocaleLowerCase().endsWith(".geojson")  || outFile.toLocaleLowerCase().endsWith(".geojson"))
       outFile = outFile.split(".").slice(0, -1).join(".");
 
+
+    console.log(chalk.bold.keyword('green')('  Filtering oneway and twoway streets using field "' + flags['direction-field'] + '" with values: ' + ' "' + flags['oneway-with-direction-value'] + '", "' + flags['oneway-against-direction-value'] + '", "' +  flags['twoway-value'] + '"'));
+    
     var content = readFileSync(inFile);
     var data:turfHelpers.FeatureCollection<turfHelpers.Geometry> = JSON.parse(content.toLocaleString());
   
@@ -135,6 +139,12 @@ async function matchPoints(outFile, params, points, flags) {
   }
 }
 
+enum MatchDirection {
+  FORWARD, 
+  BACKWARD,
+  BOTH
+}
+
 async function matchLines(outFile, params, lines, flags) {
 
   var cleanedlines = new CleanedLines(lines);
@@ -157,47 +167,71 @@ async function matchLines(outFile, params, lines, flags) {
 
   for(var line of cleanedlines.clean) {
 
-    var bearing:number =null;
-  
-    var matches1 = await matcher.match(line);
+    if(line.properties['cnn'] === '6436101.0')
+      console.log('8141000')
+    const applyProperties = (path:PathCandidate, originalFeature:Feature<LineString>) => {
+      path.matchedPath.properties['segments'] =  path.segments;
+      path.matchedPath.properties['score'] = path.score;
+      path.matchedPath.properties['matchType'] = path.matchType;
+      
+      mapOgProperties(originalFeature.properties, path.matchedPath.properties);
 
-    line.geometry.coordinates.reverse()
-    var matches2 = await matcher.match(line);
-    
-    var bestMatch = null;
-    if(matches1 && matches2 ) {
-      if(matches1.score > matches2.score)
-        bestMatch = matches1;
-      else 
-        bestMatch = matches2;
-    }
-    else if(matches1) {
-      bestMatch = matches1;
-    }
-    else if(matches2) {
-      bestMatch = matches2;
+      return path.matchedPath;
     }
 
-    if(bestMatch && bestMatch.matchedPath) {      
-        bestMatch.matchedPath.properties['segments'] =  bestMatch.segments;
-        bestMatch.matchedPath.properties['score'] = bestMatch.score;
-        bestMatch.matchedPath.properties['matchType'] = bestMatch.matchType;
-       
-        if(flags['port-properties'])
-          mapOgProperties(line.properties, bestMatch.matchedPath.properties);
-       
-        matchedLines.push(bestMatch.matchedPath);
+    var matchDirection:MatchDirection;
+    if(flags['direction-field'] && line.properties[flags['direction-field'].toLocaleLowerCase()]) {
+
+      var lineDirectionValue =  '' + line.properties[flags['direction-field'].toLocaleLowerCase()];
+
+      if(lineDirectionValue == '' + flags['oneway-with-direction-value']) {
+        matchDirection = MatchDirection.FORWARD;
+      }
+      else if(lineDirectionValue == '' + flags['oneway-against-direction-value']) {
+        matchDirection = MatchDirection.BACKWARD;
+      }
+      else if(lineDirectionValue == '' + flags['twoway-value']) {
+        matchDirection = MatchDirection.BOTH;
+      } 
+      else {
+        // TODO handle lines that don't match rules
+        matchDirection = MatchDirection.BOTH;
+      }
     }
     else {
-      unmatchedLines.push(line);
+      matchDirection = MatchDirection.BOTH;
     }
+    
+    var matchedOneDirection:boolean = false;
+    if(matchDirection == MatchDirection.FORWARD || matchDirection == MatchDirection.BOTH) {
+      var matchForward = await matcher.match(line);
+      if(matchForward) {
+        var matchedLine = <turfHelpers.Feature<LineString>>applyProperties(matchForward, line);
+        matchedLines.push(matchedLine);
+        matchedOneDirection=true;
+      }
+    }
+    
+    if(matchDirection == MatchDirection.BACKWARD || matchDirection == MatchDirection.BOTH) {
+      var reversedLine = <turfHelpers.Feature<LineString>>reverseLineString(line);
+      var matchBackward = await matcher.match(reversedLine);
+      if(matchBackward) {
+          var matchedLine = <turfHelpers.Feature<LineString>>applyProperties(matchBackward, reversedLine);
+          matchedLines.push(matchedLine);
+          matchedOneDirection=true;
+      }
+    }
+    
+    if(!matchedOneDirection)
+      unmatchedLines.push(line);
+  
 
     bar1.increment();
   }
   bar1.stop();
 
   if(matchedLines && matchedLines.length) {
-    console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + matchedLines.length + ' matched lines: ' + outFile + ".matched.geojson"));
+    console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + matchedLines.length + ' matched edges: ' + outFile + ".matched.geojson"));
     var matchedFeatureCollection:turfHelpers.FeatureCollection<turfHelpers.LineString> = turfHelpers.featureCollection(matchedLines);
     var matchedJsonOut = JSON.stringify(matchedFeatureCollection);
     writeFileSync(outFile + ".matched.geojson", matchedJsonOut);
@@ -218,3 +252,14 @@ async function matchLines(outFile, params, lines, flags) {
   }
 
 }
+
+// var content = readFileSync('tmp/sf_centerlines.unmatched.geojson');
+// var data:turfHelpers.FeatureCollection<turfHelpers.Geometry> = JSON.parse(content.toLocaleString());
+
+// var params = new TilePathParams();
+// params.source = 'osm/planet-181224';
+// params.tileHierarchy = 6
+
+// if(data.features[0].geometry.type  === 'LineString' || data.features[0].geometry.type  === 'MultiLineString') {
+//   matchLines('tmp/sf_centerlines.test.geojson.out', params, data, {'direction-field':'oneway', 'twoway-value':'B','oneway-with-direction-value':'F', 'oneway-against-direction-value':'T'});
+// }
