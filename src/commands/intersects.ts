@@ -5,6 +5,7 @@ import { TilePathParams, TileType, TilePathGroup } from '../tiles'
 import { TileIndex } from '../tile_index'
 
 import geomLength from '@turf/length';
+import { SharedStreetsGeometry } from 'sharedstreets-pbf/proto/sharedstreets';
 
 const chalk = require('chalk');
 
@@ -58,13 +59,37 @@ export default class Intersects extends Command {
 
     if(flags.stats) {
 
+      var lengthByClass = {};
       var totalLength = 0;
+      var oneWayLength = 0;
       for(var feature of data.features) {
+        var geom = <SharedStreetsGeometry>tileIndex.objectIndex.get(feature.properties.id);
+        var roadClass = geom.roadClass;
+        if(!lengthByClass[roadClass])
+          lengthByClass[roadClass] = 0;
+        
         var segmentLength = geomLength(feature, {units: "meters"});
+        lengthByClass[roadClass] += segmentLength;
         totalLength += segmentLength;
       }
-      totalLength = Math.round(totalLength * 100) / 100;
-      this.log(chalk.keyword('blue')('Total Segment Length: ') + chalk.bold.keyword('blue')(totalLength));
+      
+      this.log(chalk.keyword('blue')('\tSegment length:'));
+
+      var lengthByClassArray = Object.keys(lengthByClass).map(function(key) {
+        return [key, lengthByClass[key]];
+      });
+
+      lengthByClassArray.sort(function(first, second) {
+        return second[1] - first[1];
+      });
+
+      for(var item of lengthByClassArray) {
+        var length = Math.round(item[1]);
+        this.log(chalk.keyword('lightblue')('\t' + item[0] + ': ') + chalk.keyword('lightblue')(length + ' m'));
+      }
+
+      totalLength = Math.round(totalLength);
+      this.log(chalk.bold.keyword('lightblue')('\t' + 'Total Segment Length: ') + chalk.bold.keyword('lightblue')(totalLength + ' m'));
 
     }
     else {

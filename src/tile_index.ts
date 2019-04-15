@@ -17,6 +17,9 @@ import { SharedStreetsIntersection, SharedStreetsGeometry, SharedStreetsReferenc
 import { lonlatsToCoords } from '../src/index';
 import { TilePath, getTile, TileType, TilePathGroup, getTileIdsForPolygon, TilePathParams, getTileIdsForPoint } from './tiles';
 import { Graph } from './graph';
+import { ReferenceSideOfStreet, ReferenceDirection } from './matcher';
+import lineOffset from '@turf/line-offset';
+import { featureCollection } from '@turf/buffer/node_modules/@turf/helpers';
 
 const SHST_ID_API_URL = 'https://api.sharedstreets.io/v0.1.0/id/';
 
@@ -29,12 +32,48 @@ function createIntersectionGeometry(data:SharedStreetsIntersection) {
 
 }
 
-function createGeometry(data:SharedStreetsGeometry) {
+export function getReferenceLength(ref:SharedStreetsReference) {
+    var refLength = 0;
+    for(var locationRef of ref.locationReferences) {
+        if(locationRef.distanceToNextRef)
+        refLength = refLength = locationRef.distanceToNextRef
+    }
+    return refLength / 100;
+}
+
+export function getBinCountFromLength(referenceLength, binSize) {
+    var numBins = Math.floor(referenceLength / binSize) + 1;
+    return numBins;
+}
+
+export function reverseLineString(line:turfHelpers.Feature<turfHelpers.LineString>):turfHelpers.Feature<turfHelpers.LineString>|turfHelpers.LineString {
+	var reverseLineFeature:turfHelpers.Feature<turfHelpers.LineString> = JSON.parse(JSON.stringify(line));
+
+	if(reverseLineFeature.geometry && reverseLineFeature.geometry.coordinates) {
+		reverseLineFeature.geometry.coordinates.reverse();
+    	return reverseLineFeature;
+	}
+	else {
+		var reverseLine:turfHelpers.LineString = JSON.parse(JSON.stringify(line));
+		reverseLine.coordinates.reverse();
+		return reverseLine;
+	}	
+}
+
+export function createGeometry(data:SharedStreetsGeometry) {
 
     var line = turfHelpers.lineString(lonlatsToCoords(data.lonlats));
     return turfHelpers.feature(line.geometry, {id: data.id});
 }
 
+// convert refId + binCount and binPosition to ref
+// [refId]-[binCount]:[binPosition]
+export function generateBinId(referenceId, binCount, binPosition):string {
+    var binId:string = referenceId + "{" + binCount;
+    if(binPosition) 
+        binId = binId + ":" + binPosition;
+    return binId;
+}
 
 export class TileIndex {
 
@@ -42,6 +81,7 @@ export class TileIndex {
     objectIndex:Map<string, {}>;
     featureIndex:Map<string, turfHelpers.Feature<turfHelpers.Geometry>>;
     metadataIndex:Map<string, {}>;
+    binIndex:Map<string, turfHelpers.Feature<turfHelpers.MultiPoint>>;
 
     intersectionIndex:RBush<turfHelpers.Geometry, turfHelpers.Properties>;
     geometryIndex:RBush<turfHelpers.Geometry, turfHelpers.Properties>;
@@ -51,7 +91,7 @@ export class TileIndex {
         this.tiles = new Set();
         this.objectIndex = new Map();
         this.featureIndex = new Map();
-
+        this.binIndex = new Map();
         this.intersectionIndex = geojsonRbush(9);
         this.geometryIndex = geojsonRbush(9);
     }
@@ -119,7 +159,6 @@ export class TileIndex {
     }
 
     async getGraph(polygon:turfHelpers.Feature<turfHelpers.Polygon>, params:TilePathParams):Promise<Graph> {
-        
         return null;
     }
 
@@ -180,12 +219,63 @@ export class TileIndex {
             data = this.intersectionIndex.search(bufferedPoint);
 
         return data;
-    
+    }
+
+
+    referenceToBins(referenceId:string, numBins:number, offset:number, sideOfStreet:ReferenceSideOfStreet):turfHelpers.Feature<turfHelpers.MultiPoint> {
+        var binIndexId = referenceId + ':' + numBins + ':' + offset;
+
+        if(this.binIndex.has(binIndexId))
+            return this.binIndex.get(binIndexId);
+
+        var ref = <SharedStreetsReference>this.objectIndex.get(referenceId);
+        var geom = <SharedStreetsGeometry>this.objectIndex.get(ref.geometryId);
+        var feature = <turfHelpers.Feature<turfHelpers.LineString>>this.featureIndex.get(ref.geometryId);
+
+        var binLength = getReferenceLength(ref) / numBins;
+
+        var binPoints:turfHelpers.Feature<turfHelpers.MultiPoint> = {
+            "type": "Feature",
+            "properties": { "id":referenceId },
+            "geometry": {
+                "type": "MultiPoint",
+                "coordinates": []
+            }
+        }
+
+        try {
+            if(offset) { 
+                if(referenceId === geom.forwardReferenceId)
+                    feature = lineOffset(feature, offset, {units: 'meters'});
+                else {
+                    var reverseGeom = reverseLineString(feature);
+                    feature = lineOffset(reverseGeom, offset, {units: 'meters'});
+                }
+            }
+            for(var binPosition = 0; binPosition < numBins; binPosition++) {
+                try {
+                    var point = along(feature, (binLength * binPosition) + (binLength/2), {units:'meters'});
+                    point.geometry.coordinates[0] = Math.round(point.geometry.coordinates[0] * 10000000) / 10000000;
+                    point.geometry.coordinates[1] = Math.round(point.geometry.coordinates[1] * 10000000) / 10000000;
+                    binPoints.geometry.coordinates.push(point.geometry.coordinates);
+                }
+                catch(e) {
+                    console.log(e);
+                }
+            }
+            this.binIndex.set(binIndexId, binPoints);
+        }
+        catch(e) {
+            console.log(e);
+        }
+
+        return binPoints;
     }
 
     async geom(referenceId:string, p1:number, p2:number):Promise<turfHelpers.Feature<turfHelpers.Geometry>> {
     
         if(this.objectIndex.has(referenceId)) {
+
             var ref:SharedStreetsReference = <SharedStreetsReference>this.objectIndex.get(referenceId);
             var geom:SharedStreetsGeometry = <SharedStreetsGeometry>this.objectIndex.get(ref.geometryId);
 
@@ -215,7 +305,6 @@ export class TileIndex {
                 }
             }
         }
-
         // TODO find missing IDs via look up
         return null;
     }

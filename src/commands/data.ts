@@ -10,6 +10,7 @@ import * as probuf_minimal from "protobufjs/minimal";
 import * as turfHelpers from '@turf/helpers';
 import geomLength from '@turf/length';
 import { SharedStreetsGeometry } from 'sharedstreets-pbf/proto/sharedstreets';
+import perceptron from 'simple-statistics/src/perceptron';
 
 var linearProto = require('../proto/linear.js');
 var fs = require('fs');
@@ -31,6 +32,7 @@ export default class Data extends Command {
     help: flags.help({char: 'h'}),
 
     // flag with a value (-o, --out=FILE)
+    //merge: flags.string({char: 'm', description: 'merge with directory (tile union)'}),
     out: flags.string({char: 'o', description: 'output directory'}),
     stats: flags.boolean({char: 's', description: 'generate stats'}),
     'filter-label': flags.string({description: 'filter data by event label (comma separated list)'}),
@@ -79,13 +81,13 @@ export default class Data extends Command {
       console.log(chalk.keyword('orange')("     output directory already exists: " + outDir));
       return;
     }
-
-    loadTiles(inDir, outDir, flags.stats);
+    
+    filterDirectory(inDir, outDir, flags.stats);
   } 
 }
 
 
-function processTile(inFilePath, outFilePath, stats) {
+function filterTile(inFilePath, outFilePath, stats) {
 
     var buffer = fs.readFileSync(inFilePath);
     var reader = probuf_minimal.Reader.create(buffer);
@@ -96,7 +98,7 @@ function processTile(inFilePath, outFilePath, stats) {
     while (reader.pos < reader.len) {
     
           var result = linearProto.SharedStreetsWeeklyBinnedLinearReferences.decodeDelimited(reader);
-
+          
           var filterPos = [];
           for(var i = 0; i < result.binPosition.length; i++) {
               var binPosition = result.binPosition[i];
@@ -110,11 +112,10 @@ function processTile(inFilePath, outFilePath, stats) {
                   var filterData = [];
                   for(var h = 0; h < bin.dataType.length; h++) {
                       bin.dataType[h] = new String(bin.dataType[h]).toLocaleLowerCase();
-                      if((minCount && minCount > bin.count[h]) || (filterRefIdSet.size > 0 && !filterRefIdSet.has(result.referenceId)) || filterLabelSet.has(bin.dataType[h])) {
-                          filterData.push(h);
+                      if((minCount && minCount > bin.count[h]) || (filterRefIdSet.size == 0 || !filterRefIdSet.has(result.referenceId)) || (filterLabelSet.size > 0 && filterLabelSet.has(bin.dataType[h]))) {
+                                filterData.push(h);
                       }
-
-                      preCount += parseInt(bin.count[h]);
+                    preCount += parseInt(bin.count[h]);
                   }
 
                   for(var hDel of filterData.sort(function(a, b){return b-a})) {
@@ -173,18 +174,16 @@ function processTile(inFilePath, outFilePath, stats) {
           }
     }
     
-    console.log(chalk.keyword('blue')("     pre-filter count: " + preCount));
-    console.log(chalk.keyword('blue')("     post-filter count: " + postCount));
-    console.log();
-
     return results; 
 }
 
-async function loadTiles(inDirectoryPath, outDirectoryPath, stats:boolean) {
+async function filterDirectory(inDirectoryPath, outDirectoryPath, stats:boolean) {
 
     var files = fs.readdirSync(inDirectoryPath);
 
     for(var file of files) {
+        if(!file.toLocaleLowerCase().endsWith('.pbf'))
+            continue;
 
         var inFilePath = inDirectoryPath + file;
         var outFilePath = null;
@@ -196,12 +195,11 @@ async function loadTiles(inDirectoryPath, outDirectoryPath, stats:boolean) {
           
         if(fs.lstatSync(inFilePath).isDirectory())
             continue;
-        console.log(chalk.keyword('lightblue')("     input file: " + inFilePath));
-        console.log(chalk.keyword('lightblue')("     output file: " + outFilePath));
-      
-        var results = processTile(inFilePath, outFilePath, stats);
+        
+        console.log(inFilePath);
+        filterTile(inFilePath, outFilePath, stats);
     }
-}
 
+}
 
 

@@ -1,5 +1,3 @@
-
-
 import * as probuf_minimal from "protobufjs/minimal";
 
 import { ReferenceSideOfStreet, ReferenceDirection } from './matcher'
@@ -12,29 +10,35 @@ import turfBboxPolygon from '@turf/bbox-polygon';
 import {quantileRankSorted} from "simple-statistics"
 import { IBooleanFlag } from "@oclif/parser/lib/flags";
 import { each } from "benchmark";
+import { TileIndex, getBinCountFromLength, getReferenceLength } from "./tile_index";
+import { Feature } from "@turf/helpers";
+import { Polygon } from "@turf/buffer/node_modules/@turf/helpers";
+import { TilePathParams, TileType } from "./tiles";
+import { SharedStreetsGeometry, SharedStreetsReference } from "sharedstreets-types";
 
 var linearProto = require('./proto/linear.js');
 
-var fs = require('fs');
-var path = require('path');
+const fs = require('fs');
+const path = require('path');
+const moment = require('moment-timezone');
+
+const chalk = require('chalk');
 
 const tileHierarchy:number = 6;
 const tileSource:string = 'osm';
 const tileBuild:string = 'planet-180430';
 
+const TIMEZONE = 'America/New_York';
+
 
 // convert refId + binCount and binPosition to ref
 // [refId]-[binCount]:[binPosition]
 export function generateBinId(referenceId, binCount, binPosition):string {
-    
     var binId:string = referenceId + "{" + binCount;
-
     if(binPosition) 
         binId = binId + ":" + binPosition;
-
     return binId;
-
-}
+}   
 
 export const weekTest = new RegExp("([12]\\d{3}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01]))");
 
@@ -72,13 +76,10 @@ class SharedStreetsLinearBins {
     bins:{};
 
     constructor(referenceId:string, referenceLength:number, numberOfBins:number) {
-        
         this.referenceId = referenceId;
         this.referenceLength = referenceLength;
         this.numberOfBins = numberOfBins; // defaults to one bin
-
         this.bins = {};
-
     }
 
     getId():string {
@@ -90,7 +91,6 @@ class SharedStreetsLinearBins {
         bin.type = type;
         bin.count = count;
         bin.value = value;
-
         this.bins[binPosition] = bin;
     }
 }
@@ -115,20 +115,25 @@ export class WeeklySharedStreetsLinearBins extends SharedStreetsLinearBins {
             this.bins[binPosition] = {};
         }
 
-        this.bins[binPosition][period] = bin;
+        if(this.bins[binPosition][period]) {
+            this.bins[binPosition][period].count += bin.count;
+            this.bins[binPosition][period].value += bin.value;
+        }
+        else    
+            this.bins[binPosition][period] = bin;
     }
 
-    getFilteredBins(binPosition:number, typeFilter:string, periodFilter:number[]):SharedStreetsBin[] {
+    getFilteredBins(binPosition:number, typeFilter:string, periodFilter:Set<number>):SharedStreetsBin[] {
         
         var filteredBins = [];
 
         if(this.bins[binPosition]) {
             for(var period of Object.keys(this.bins[binPosition])) {
                 if(periodFilter) {
-                    if(parseInt(period) < periodFilter[0] || parseInt(period)  > periodFilter[1])
+                    if(!periodFilter.has(parseInt(period)))
                         continue;
                 }
-                if(typeFilter) {
+                if(typeFilter) {    
                     if(typeFilter !== this.bins[binPosition][period].type)
                         continue;
                 }
@@ -167,7 +172,7 @@ export class WeeklySharedStreetsLinearBins extends SharedStreetsLinearBins {
         return filteredBins;
     }
 
-    getValueForBin(binPosition:number, typeFilter:string, periodFilter:number[]) {
+    getValueForBin(binPosition:number, typeFilter:string, periodFilter:Set<number>) {
 
         var sum = 0;
         var filteredBins = this.getFilteredBins(binPosition, typeFilter, periodFilter);
@@ -195,7 +200,7 @@ export class WeeklySharedStreetsLinearBins extends SharedStreetsLinearBins {
         return hourOfDayCount;
     }
 
-    getCountForBin(binPosition:number, typeFilter:string, periodFilter:number[]) {
+    getCountForBin(binPosition:number, typeFilter:string, periodFilter:Set<number>) {
 
         var sum = 0;
         var filteredBins = this.getFilteredBins(binPosition, typeFilter, periodFilter);
@@ -207,7 +212,7 @@ export class WeeklySharedStreetsLinearBins extends SharedStreetsLinearBins {
         return sum;
     }
 
-    getCountForEdge(typeFilter:string, periodFilter:number[]) {
+    getCountForEdge(typeFilter:string, periodFilter:Set<number>) {
 
         var sum = 0;
 
@@ -223,41 +228,6 @@ export class WeeklySharedStreetsLinearBins extends SharedStreetsLinearBins {
     }
 }
 
-function processTile(reader):WeeklySharedStreetsLinearBins[] {
-    
-    var tileData = [];
-
-    while (reader.pos < reader.len) {
-
-        try {
-            var result = linearProto.SharedStreetsWeeklyBinnedLinearReferences.decodeDelimited(reader).toJSON();
-            
-            var linearBins = new WeeklySharedStreetsLinearBins(result.referenceId, result.referenceLength, result.numberOfBins, PeriodSize.OneHour);
-    
-            for(var i = 0; i < result.binPosition.length; i++) {
-                var binPosition = result.binPosition[i];
-
-                for(var j = 0; j < result.binnedPeriodicData[i].bins.length; j++) {
-
-                    var period = result.binnedPeriodicData[i].periodOffset[j];
-                    var bin = result.binnedPeriodicData[i].bins[j];
-
-                    for(var h in bin.dataType) {
-                        linearBins.addPeriodBin(binPosition, period, bin.dataType[h], parseInt(bin.count[h]), parseInt(bin.value[h]))
-                    }
-                }
-            }
-
-            tileData.push(linearBins);
-        }
-        catch(e) {
-            console.log(e);
-        }
-        
-    }
-
-    return tileData; 
-}
 
 class BinReferenceData {
     geometry;
@@ -266,10 +236,114 @@ class BinReferenceData {
 
 export class EventData {
 
-    dataDirectory:string
 
-    constructor(dir:string) {
+    dataDirectory:string;
+    data:Map<string, Map<string, WeeklySharedStreetsLinearBins>>;
+    tileIndex:TileIndex;
+    summary:Map<string, number>;
+    params:TilePathParams;
+
+    constructor(dir:string, tileIndex:TileIndex=null) {
+
+        this.params = new TilePathParams();
+        this.params.source = 'osm/planet-180430';
+        this.params.tileHierarchy = 6;
+
         this.dataDirectory = dir;
+        this.data = new Map();
+        this.summary = new Map();
+
+        if(tileIndex) 
+            this.tileIndex = tileIndex;
+        else 
+            this.tileIndex = new TileIndex();
+        
+        var weeks = this.getWeeks();
+
+        if(weeks.length > 0) {
+
+            console.log(chalk.bold.keyword('green')('  📅  Found ' + weeks.length + ' weeks of data'));
+            console.log(chalk.bold.keyword('green')('  🌏  Loading tile data...'));
+
+            for(var week of weeks) {
+                this.loadTiles(week);
+            } 
+
+        } else {
+            console.log(chalk.bold.keyword('green')('  📅  No weekly data found.'));
+            this.loadTiles('');
+        }
+       
+        console.log([...this.summary.keys()]);
+    }
+
+    loadTiles(week:string) {
+        console.log("loading: " + week);
+        var weekDirectory = path.join(this.dataDirectory, week);
+        fs.readdirSync(weekDirectory).forEach(file => {
+            if(file.endsWith('.pbf')) {   
+                var buffer = fs.readFileSync(path.join(weekDirectory, file));
+                var reader = probuf_minimal.Reader.create(buffer);
+                this.processWeeklyLinearBinsTile(reader, week);
+            }
+        });
+    }
+
+    processWeeklyLinearBinsTile(reader, week:string) {
+
+        if(!this.data.has(week)) {
+            this.data.set(week, new Map());
+        }
+
+        var offset = 0;
+
+        if(week != '') {
+            var localTimeZone = moment.tz(week + " 12:00", TIMEZONE);
+            localTimeZone.utcOffset()
+            offset = Math.round(localTimeZone.utcOffset() / 60);
+        }   
+        
+        while (reader.pos < reader.len) {
+            try {
+                var result = linearProto.SharedStreetsWeeklyBinnedLinearReferences.decodeDelimited(reader)
+                
+                var linearBins:WeeklySharedStreetsLinearBins;
+                
+                if(this.data.get(week).has(result.referenceId)) 
+                    linearBins = this.data.get(week).get(result.referenceId)
+                else
+                    linearBins = new WeeklySharedStreetsLinearBins(result.referenceId, result.referenceLength, result.numberOfBins, PeriodSize.OneHour);
+        
+                for(var i = 0; i < result.binPosition.length; i++) {
+                    var binPosition = result.binPosition[i];
+
+                    for(var j = 0; j < result.binnedPeriodicData[i].bins.length; j++) {
+
+                        var period = result.binnedPeriodicData[i].periodOffset[j] + offset;
+                        var bin = result.binnedPeriodicData[i].bins[j];
+
+                        for(var h in bin.dataType) {
+
+                            var dataType = bin.dataType[h].toLocaleLowerCase();
+                            var binCount = parseInt(bin.count[h]);
+                            var binValue = parseInt(bin.value[h]);
+
+                            if(!this.summary.has(dataType))
+                                this.summary.set(dataType, binCount);
+                            else
+                                this.summary.set(dataType, this.summary.get(dataType) + binCount);
+
+                            linearBins.addPeriodBin(binPosition, period, dataType, binCount, binValue)
+                        }
+                    }
+                }
+
+                this.data.get(week).set(result.referenceId, linearBins);
+            }
+            catch(e) {
+                console.log(e);
+            }
+        }
     }
 
     getWeeks():string[] {
@@ -280,225 +354,105 @@ export class EventData {
         });
         return weeks;
     }
+    
 
-
-}
-
-
-
-/*
-export async function query(dataPath:string, week:string, periodFilterStr:string, typeFilter:string, offset:number, normalizeByLength:boolean, ) {
-
-    
-        var weekTest = new RegExp("([12]\\d{3}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01]))");
-        var week = undefined;
-        if(event.pathParameters.week === '2017-09-11'  || weekTest.test(event.pathParameters.week))
-            week = event.pathParameters.week;
-    
-        // var tileKeyTest = new RegExp("^[0-9\-]*$");
-        // var tileKeys = undefined;
-        // if(tileKeyTest.test(event.pathParameters.tileKey)) {
-        //     tileKeys = [];
-        //     tileKeys.push(event.pathParameters.tileKey);
-        // }
-         
-        
-        var periodFilter = null
-        if(periodFilterStr) {
-            var periodFilterParts = periodFilterStr.split('-');
-    
-            periodFilter = [];
-            periodFilter[0] = parseInt(periodFilterParts[0]);
-            periodFilter[1] = parseInt(periodFilterParts[1]);
-        }
-    
-        var indexedGeoms = undefined;
-    
-        var referenceIds = new Set<string>();
-    
-        var resultType = "bin";
-    
-        if(event.queryStringParameters && event.queryStringParameters.resultType) {
-    
-            if(event.queryStringParameters.resultType === "bin")
-                resultType = "bin";
-            else if(event.queryStringParameters.resultType === "summary")
-                resultType = "summary";
-            else if(event.queryStringParameters.resultType === "rank")
-                resultType = "rank";
-            else {
-                callback(400, "Invalid request");
-                return;
-            }
-        }
-    
-        if(event.queryStringParameters && event.queryStringParameters.referenceIds) {
-            var referenceIdStrings  = event.queryStringParameters.referenceIds.split(",");
-            for(var referenceId of referenceIdStrings) {
-                referenceIds.add(referenceId);
-            }
-        }
-        else if(bboxPolygon) {
-            var geometries = await cache.within('geometries', bboxPolygon,true, tileSource, tileBuild, tileHierarchy);
-            for(var geometry of geometries) {
-                var geomData = cache.idIndex[geometry.properties.id];
-                referenceIds.add(geomData.forwardReferenceId);
-                if(geomData.backReferenceId)
-                    referenceIds.add(geomData.backReferenceId);
-            }       
-        }
-    
-        try {
-            var results;
-            if(resultType === "bin") {
-                results = {type:"FeatureCollection", features:[]};
-                var selectedCount = 0;
-                for(var tileKey of tileKeys ) {
-                    var data:Uint8Array = await downloadPath(source + '/b/' + week +  '/' + tileKey + '.events.pbf');
-                    var reader = new probuf_minimal.Reader(data)            
-                    var tileData = processTile(reader);
-    
-                    for(var linearBin of tileData) {
-                        
-                        if(!referenceIds.has(linearBin.referenceId))
-                            continue;
-    
-                        var refData = cache.idIndex[linearBin.referenceId];
-                        var geomData = cache.idIndex[refData.geometryId];
-                        var refLength = getReferenceLength(refData);
-                        var binLength = refLength / linearBin.numberOfBins;
-    
-                        var direction = ReferenceDirection.FORWARD;
-                        if(linearBin.referenceId === geomData.backReferenceId)
-                            direction = ReferenceDirection.BACKWARD;
-    
-                        var binPoints = geometryToBins(geomData.feature, 
-                                                        linearBin.referenceId, 
-                                                        refLength, 
-                                                        linearBin.numberOfBins, 
-                                                        offset, 
-                                                        direction,  
-                                                        ReferenceSideOfStreet.RIGHT);
-                        
-                        for(var binPoint of binPoints) {
-                            var binPosition = binPoint.properties.bin;
-    
-                            if(typeFilter)
-                                binPoint.properties['type'] = typeFilter;
-    
-                            var periodRange = periodFilter[1] - periodFilter[0];
-    
-                            var value = linearBin.getValueForBin(binPosition, typeFilter, periodFilter);
-                            var binCount = linearBin.getCountForBin(binPosition, typeFilter, periodFilter);
-                            var binCountByLength =  binCount / binLength;
-                            var periodAverageCount =  binCount / periodRange;
-                        
-                            binPoint.properties['binLength'] = Math.round(binLength * 100) / 100;
-                            binPoint.properties['periodAverageCount'] = Math.round(periodAverageCount * 100) / 100;
-    
-                            if(binCount > 10)
-                                results.features.push(binPoint);
-                        }
-                    }
-                }
-            }
-            else if(resultType === "rank") {
-    
-                results = {type:"FeatureCollection", features:[]};
-                var unfilteredResults = {type:"FeatureCollection", features:[]};
-                
-                var edgeCounts:number[] = [];
-                
-                var selectedCount = 0;
-                for(var tileKey of tileKeys ) {
-                    var data:Uint8Array = await downloadPath(source + '/b/' + week +  '/' + tileKey + '.events.pbf');
-                    var reader = new probuf_minimal.Reader(data)            
-                    var tileData = processTile(reader);
-    
-                    for(var linearBin of tileData) {
-                        
-                        if(!referenceIds.has(linearBin.referenceId))
-                            continue;
-    
-                        var refData = cache.idIndex[linearBin.referenceId];
-                        var geomData = cache.idIndex[refData.geometryId];
-                        var refLength = getReferenceLength(refData);
-    
-                        var direction = ReferenceDirection.FORWARD;
-                        if(linearBin.referenceId === geomData.backReferenceId)
-                            direction = ReferenceDirection.BACKWARD;
-    
-            
-                        var edgeTotal = linearBin.getCountForEdge(typeFilter, periodFilter);
-    
-                        if(normalizeByLength) 
-                            edgeTotal = edgeTotal / refLength;
-    
-                        edgeCounts.push(edgeTotal);
-    
-                        if(edgeTotal > 0) {
-    
-                            var curbGeom;
-    
-                            if(direction === ReferenceDirection.FORWARD)
-                                curbGeom = lineOffset(geomData.feature, offset, {units: 'meters'});
-                            else {
-                                var reverseGeom = geomUtils.reverseLineString(geomData.feature);
-                                curbGeom = lineOffset(reverseGeom, offset, {units: 'meters'});
-                            }
-                        
-                            curbGeom.properties.edgeTotal = edgeTotal;
-                    
-                            unfilteredResults.features.push(curbGeom);
-                        }   
-                    }
-                }
-                
-                var sortedEdgeCounts = edgeCounts.sort();
-    
-                for(var edge of unfilteredResults.features) {
-                    var rank:number = quantileRankSorted(sortedEdgeCounts, edge.properties.edgeTotal);
-                    edge.properties['rank'] = Math.round(rank * 100) / 100;
-                    delete edge.properties['edgeTotal'];
-    
-                    if(edge.properties['rank'] > 0.5) {
-                        results.features.push(edge);
-                    }
-                }
-    
-            }
-            else if(resultType === "summary") {
-    
-                results = {};
-                var selectedCount = 0;
-                for(var tileKey of tileKeys ) {
-                    var data:Uint8Array = await downloadPath(source + '/b/' + week +  '/' + tileKey + '.events.pbf');
-                    var reader = new probuf_minimal.Reader(data)            
-                    var tileData = processTile(reader);
-    
-                    for(var linearBin of Object.values(tileData)) {
-                        if(!referenceIds.has(linearBin.referenceId))
-                            continue;
-    
-                        var hourOfDayCount = linearBin.getCountForHoursOfDay(typeFilter);
-    
-                        for(var hourOfDay of Object.keys(hourOfDayCount)) {
-    
-                            if(!results[hourOfDay])
-                                results[hourOfDay] = 0;
-                            
-                            results[hourOfDay] = results[hourOfDay] + hourOfDayCount[hourOfDay];
-                        }
-                         
-                    }
-                }
-    
-                for(var hourOfDay of Object.keys(results)) {
-                    results[hourOfDay] =  results[hourOfDay] / 8000;
-                }
-            }
-            
-
+    getTypes():string[] {
+        return [...this.summary.keys()];
     }
 
-*/
+
+    async getBins(extent:turfHelpers.Feature<Polygon>, weeks:string[], typeFilter, periodFilter:Set<number>) {
+
+        const getBinsForRefId = (refId) =>  {
+            var shstRef:SharedStreetsReference = <SharedStreetsReference>this.tileIndex.objectIndex.get(refId);
+            
+            if(!typeFilter || typeFilter.length == 0) {
+                typeFilter = [{type:null}]
+            }
+
+            var binData = this.data.get(weeks[0]).get(refId);
+            if(binData)  {
+
+                var refLength = getReferenceLength(shstRef);
+                var binLength = refLength / binData.numberOfBins;
+                var numberOfBins = getBinCountFromLength(refLength, 10);
+
+                var binPointCollection = turfHelpers.featureCollection([]);
+                for(var type of typeFilter) {
+                    var offset = 5;
+                    if(type['offset'])
+                        offset = type['offset'];
+
+                    var bins = this.tileIndex.referenceToBins(refId, numberOfBins, offset, ReferenceSideOfStreet.RIGHT);
+
+                    var binPoints:turfHelpers.Point[] = [];
+                    
+                    for(let i = 0; i <  bins.geometry.coordinates.length; i++) {
+                        
+                        var binPoint = turfHelpers.point(bins.geometry.coordinates[i]);
+                        var binPosition = i + 1;
+
+
+                        var binValue = 0;
+                        var binCount = 0;
+                        for(var week of weeks) {    
+                            var weeklyData = this.data.get(week).get(refId);
+                            if(weeklyData) {
+                                binValue += weeklyData.getValueForBin(binPosition, type['type'], periodFilter);
+                                binCount += weeklyData.getCountForBin(binPosition, type['type'], periodFilter); 
+                            }
+                        }   
+                       
+                        if(binCount > 5) {
+                            var periodAverageCount =  binCount / (periodFilter.size * weeks.length);
+                            // reduce decimal precision for transport
+                            periodAverageCount= Math.round(periodAverageCount * 10000) / 10000;
+        
+                            binPoint.id = generateBinId(refId, numberOfBins, binPosition);
+                            binPoint.properties['periodAverageCount'] = periodAverageCount;
+
+                            if(type['color'])
+                                binPoint.properties['color'] = type['color'];
+        
+                            if(periodAverageCount > 0.01)
+                                binPointCollection.features.push(binPoint);
+                        }  
+                    }
+                }
+                return binPointCollection;
+            } 
+        };
+
+        //var periodRange = periodFilter[1] - periodFilter[0];
+
+        var binPointCollection = turfHelpers.featureCollection([]);
+        var geoms = await this.tileIndex.intersects(extent, TileType.GEOMETRY, this.params, [TileType.REFERENCE])
+        for(var geom of geoms.features) {
+            var shstGeom = <SharedStreetsGeometry>this.tileIndex.objectIndex.get(geom.properties.id);
+
+            if(this.data.has(weeks[0])) {
+                
+                if(shstGeom.forwardReferenceId && this.data.get(weeks[0]).has(shstGeom.forwardReferenceId)) {
+                    var bins = getBinsForRefId(shstGeom.forwardReferenceId);
+                    if(bins)
+                        binPointCollection.features = binPointCollection.features.concat(bins.features);
+                }
+
+                if(shstGeom.backReferenceId && this.data.get(weeks[0]).has(shstGeom.backReferenceId)) {
+                    var bins = getBinsForRefId(shstGeom.backReferenceId);
+                    if(bins)
+                        binPointCollection.features = binPointCollection.features.concat(bins.features);
+                }
+            }
+
+        }
+
+        return binPointCollection;
+    }
+
+    async getSummary(extent:turfHelpers.Feature<Polygon>, week, typeFilter, periodFilter) {
+
+        
+        return {};
+    }
+}

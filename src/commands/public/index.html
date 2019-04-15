@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+
+    
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+    <meta charset='utf-8' />
+    <title>SharedStreets Analysis</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.53.1/mapbox-gl.js'></script>
+    <script src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.0.9/mapbox-gl-draw.js'></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.53.1/mapbox-gl.css' rel='stylesheet' />
+    <link rel='stylesheet' href='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.0.9/mapbox-gl-draw.css' type='text/css' />
+
+
+    <style>
+        body { margin:0; padding:0; }
+        #map { position:absolute; top:0; bottom:0; right: 300px; width:100%; }
+        #sidebar { position:absolute; right:0; top:0; bottom:0; width:300px; padding-top: 20px; }
+    </style>
+  </head>
+  <body>
+    <div>
+        <div id='map'></div>
+        <div id='sidebar'>
+            <div id="head" class="container">
+                <h4>SharedStreets</h4>
+                <b>Pickup/Dropoff Analysis</b>
+
+                <div style="margin-top: 20px;" id="head" class="container">
+                    <p><b>Hours:</b> <input type="text" id="hours" value="0-23"></p>
+                    
+                    <b>Days of week: </b>
+                    <p>
+                        <label><input type="checkbox" name="days" value="0" checked> Mon </label>
+                        <label><input type="checkbox" name="days" value="1" checked> Tue </label>
+                        <label><input type="checkbox" name="days" value="2" checked> Wed </label>
+                        <label><input type="checkbox" name="days" value="3" checked> Thu </label>
+                        <label><input type="checkbox" name="days" value="4" checked> Fri </label>
+                        <label><input type="checkbox" name="days" value="5" checked> Sat </label>
+                        <label><input type="checkbox" name="days" value="6" checked> Sun </label>
+                    </p>
+                
+                    <b>Weeks:</b>
+                    <p>
+                        <label><input type="checkbox" name="weeks" value="2017-09-11" checked> 2017-09-11</label>
+                        <label><input type="checkbox" name="weeks"value="2017-12-11" checked> 2017-12-11</label>
+                        <label><input type="checkbox" name="weeks"value="2018-01-29" checked> 2018-01-29</label>
+                        <label><input type="checkbox" name="weeks"value="2018-03-12" checked> 2018-03-12</label>
+                        <label><input type="checkbox" name="weeks"value="2018-04-30" checked> 2018-04-30</label>
+                        <label><input type="checkbox" name="weeks"value="2018-06-11" checked> 2018-06-11</label>
+                        <label><input type="checkbox" name="weeks"value="2018-07-30" checked> 2018-07-30</label>
+                        <label><input type="checkbox" name="weeks"value="2018-07-30" checked> 2018-09-10</label>
+                    </p>
+
+                    <a href="#" id="downloadJson">Download JSON</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+   
+    
+    <script>
+        var currentJSON = {};
+        var startHour = 0;
+        var endHour = 23;
+        var days = [0,1,2,3,4,5,6];
+        var weeks = [];
+        var periodFilter = [];
+
+        function calcPeriodFilter() {
+
+            periodFilter = days.map((day) => {
+                var dayOffset = day * 24;
+
+                var filter = (startHour + dayOffset);
+
+                if(endHour != null) {
+                    var adjustedEndHour = endHour;
+                    if(endHour < startHour)
+                        adjustedEndHour = endHour + 24;
+                    filter = filter + '-' + (adjustedEndHour + dayOffset);
+                }
+
+                return filter;
+            });
+
+            console.log(periodFilter);
+            requestData();
+        }        
+
+        function processHours() {
+
+            var hourParts = $('#hours').val().split("-");
+            startHour = parseInt(hourParts[0]);
+
+            if(hourParts[1])
+                endHour = parseInt(hourParts[1]);
+            else 
+                endHour = null;
+
+            calcPeriodFilter();
+        }
+
+        function processDays() {
+            days = [];
+            $('input[name=days]:checked').each(function() {
+                days.push(parseInt($(this).val()));
+            });
+            //console.log(days);
+            calcPeriodFilter();
+        }
+        
+        function processWeeks() {
+            weeks = [];
+            $('input[name=weeks]:checked').each(function() {
+                weeks.push($(this).val());
+            });
+            console.log(weeks);
+            requestData();
+        }
+
+        processDays();
+        processWeeks();
+        processHours();
+
+        $(document).ready(function() {        
+
+            $('input[name=days]').change(function() {
+                processDays();
+            });
+
+            $('input[name=weeks]').change(function() {
+                processWeeks();
+            });
+
+            $("#hours").change(function() {
+                processHours();
+            });
+        });
+
+        mapboxgl.accessToken = 'pk.eyJ1IjoidHJhbnNwb3J0cGFydG5lcnNoaXAiLCJhIjoiY2p1ZHg0ZjB3MTN4cDQ0cnZsaHFoYXFqZSJ9.CQMFwPBVDEarrn5Yr5MJ_g';
+        var map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/light-v10',
+            zoom: 13,
+            center: [- 77.0369, 38.9072]
+        });
+
+        var polygon = null;
+
+        function requestData() {
+
+            if(polygon) {
+                var requestData = {
+                    'weeks' : weeks.join(','),
+                    'periodFilter':periodFilter.join(','),
+                    'typeFilter':'pickup:5:blue;dropoff:10:red',
+                    'polygon':polygon
+                };
+
+                $.getJSON( '/api/bins', requestData, (data) => {
+                    map.getSource("binData").setData(data);
+
+                    var json = JSON.stringify(data),
+                    blob = new Blob([json], {type: "octet/stream"}),
+                    url = window.URL.createObjectURL(blob);
+                    
+                    $("#downloadButton").attr("href", url);
+                    $("#downloadButton").attr("target", "_blank");
+                    $("#downloadButton").attr("download", "dc_data.geojson");
+                });
+            }
+        }
+    
+        var draw = new MapboxDraw({
+          displayControlsDefault: false,
+          controls: {
+            polygon: true,
+            trash: false
+          }
+        });
+    
+
+        map.on('load', function() {
+
+            // $('input[type=checkbox]').click(function(){
+            //     alert( "Handler for .click() called." );
+            // });
+            
+            map.addControl(draw, 'top-right');
+                map.on('draw.selectionchange', () => {
+                const mode = draw.getMode();
+                const selected = draw.getSelectedIds()[0];
+        
+                if (selected && mode === 'simple_select') {
+                    draw.changeMode('direct_select', { featureId: selected });
+                }
+            });
+
+            map.addSource("binData",{
+                "type": "geojson",
+                "data": {type:"FeatureCollection", features:[]}
+            });      
+        
+            map.addLayer({
+                "id": "binOverlay",
+                "type": "circle",
+                "source": "binData",
+                "paint": {
+                    'circle-radius': {
+                          'property': 'periodAverageCount',  
+                          'type': 'exponential',
+                          'stops': [[0.01, 1],
+                                    [2, 15]]
+                    
+                      },
+                      'circle-color': ['get', 'color'],
+                      'circle-opacity': 0.5
+                  }
+            });
+      
+            map.on('draw.create', async (e) => {
+                //bbox();
+                if(e && e.features[0]){ 
+                    //var bounds = bbox(e.features[0]);
+                    //bboxString = bounds.join(',');
+
+                    draw.delete(e.features[0].id);
+
+                    polygon = JSON.stringify(e.features[0]);
+
+                    requestData();
+                }
+            // var data = await fetch( serverUrl + 'v0.1.0/geom/within?generateBins=10&bounds=' + this.boundsString + '&authKey=c890c855-b968-4952-8c0a-64cc2ca446c3', { 
+            //     method: 'GET'
+            // });
+            
+            // var geoJson = await data.json();
+            
+            // this.idMap.forEach((id: number, key: string) => {
+            //     this.map.setFeatureState({source: 'binData', id: id}, {'opacity': 1.0}); 
+            // });
+            
+            // var id = 1;
+            // this.idMap.clear();
+
+            // this.points = turfHelpers.featureCollection<turfHelpers.Point>([]);
+
+            // for(var feature of geoJson.features) {
+
+            //     var bin = 1;
+            //     var binCount = feature.geometry.coordinates.length;
+
+            //     for(var coordinate of feature.geometry.coordinates) {
+            //     this.idMap.set(generateBinId(feature.properties.id, bin, binCount), id);
+            //     feature.id = id;
+            //     var point = turfHelpers.point(coordinate);
+            //     point.properties = {};
+            //     point.properties.size = 3
+            //     point.id = id;
+
+            //     this.points.features.push(point);
+
+            //     id++;
+            //     bin++;
+            //     }
+            // }
+            // this.map.getSource("binData").setData(this.points);
+            });
+
+        });
+
+        
+    </script>
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+      </body>
+</html>
