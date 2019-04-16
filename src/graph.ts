@@ -330,7 +330,7 @@ export class Graph {
 
     async matchTrace(feature:turfHelpers.Feature<turfHelpers.LineString>) {
     
-        return new Promise(async (resolveTrace, rejectTrace) => {
+       
               // fall back to hmm for probabilistic path discovery
             if(!this.osrm)
                 await this.buildGraph();
@@ -425,13 +425,14 @@ export class Graph {
                     pathCandidate.segments.push(pathSegment);
                 }
 
-                resolveTrace(pathCandidate);
+                return pathCandidate;
 
             }
             catch(e) {
-                rejectTrace(null);
+                return null;
             }
-        });
+
+ 
     }
 
 
