@@ -32,12 +32,12 @@ const OPTIMIZE_GRAPH = true;
 const USE_LOCAL_CACHE = true;
 const SHST_GRAPH_CACHE_DIR = 'shst/cache/graphs/';
 
-enum MatchType {
+export enum MatchType {
     DIRECT = 'direct',
     HMM = 'hmm'
 }
 
-enum GraphMode {
+export enum GraphMode {
     CAR = 'car',
     BIKE = 'bike',
     PEDESTRIAN = 'ped'
@@ -327,6 +327,107 @@ export class Graph {
             }
         }
     }
+
+    async matchTrace(feature:turfHelpers.Feature<turfHelpers.LineString>) {
+    
+        // fall back to hmm for probabilistic path discovery
+        if(!this.osrm)
+            await this.buildGraph();
+        
+        var hmmOptions = {
+            coordinates: feature.geometry.coordinates,
+            annotations: true,
+            geometries: 'geojson',
+            radiuses: Array(feature.geometry.coordinates.length).fill(20)
+        };
+
+        try {
+            var matches = await new Promise((resolve, reject) => {
+                this.osrm.match(hmmOptions, function(err, response) {
+                    if (err) 
+                        reject(err);
+                    else
+                        resolve(response)
+                });
+            });
+
+            for(var match of matches['matchings']) {
+                //
+                //console.log(match.confidence)
+             
+                
+                // if(match.confidence < MIN_CONFIDENCE)
+                //     continue;
+                // this is kind of convoluted due to the sparse info returned in the OSRM annotations...
+                // write out sequence of nodes and edges as emitted from walking OSRM-returned nodes
+                // finding the actual posistion and directionality of the OSRM-edge within the ShSt graph 
+                // edge means that we have to snap start/end points in the OSRM geom
+                var graphEdgeSequence:GraphEdge[] = [];
+
+                //console.log(JSON.stringify(match.geometry));
+
+                var edgeCandidates;
+                var nodes:number[] = [];
+                var visitedNodes:Set<number> = new Set();
+                // ooof this is brutual -- need to unpack legs and reduce list... 
+                for(var leg of match['legs']) {
+                    //console.log(leg['annotation']['nodes'])
+                    for(var n of leg['annotation']['nodes']){ 
+                        if(!visitedNodes.has(n) || nodes.length == 0)
+                            nodes.push(n);
+
+                        visitedNodes.add(n);
+                    }
+                }
+
+    
+                var visitedEdges:Set<number> = new Set();
+            // then group node pairs into unique edges...
+                for(var nodeId of nodes) {
+                    if(await this.db.has('node:' + nodeId)) {
+                        var node = JSON.parse(await this.db.get('node:' + nodeId));
+                        var nodeEdges = JSON.parse(await this.db.get('node-edges:' + nodeId));
+                        if(!edgeCandidates) {
+                            edgeCandidates = new Set([...nodeEdges.edgeIds]);
+                        }
+                        else {
+                            var newCandiates = new Set([...nodeEdges.edgeIds]);
+                            edgeCandidates = new Set([...edgeCandidates].filter(x => newCandiates.has(x)));            
+                        }
+                    
+                        if(edgeCandidates.size == 1) {
+                            var edgeId = [...edgeCandidates][0];
+                            // reduce repeating edgeIds down to one per edge
+                            if(graphEdgeSequence.length == 0 || graphEdgeSequence[graphEdgeSequence.length-1].edgeId !== edgeId) {
+                                var edge = JSON.parse(await this.db.get('edge:' + edgeId));
+                                graphEdgeSequence.push(edge);
+                            } 
+                            edgeCandidates = new Set([...nodeEdges.edgeIds]);
+                        }
+                    }
+                }  
+
+                var pathCandidate = new PathCandidate();
+                pathCandidate.matchType = MatchType.HMM;
+                pathCandidate.score = match.confidence;
+                pathCandidate.originalFeature = feature;
+                pathCandidate.matchedPath = turfHelpers.feature(match.geometry);
+                pathCandidate.segments = [];
+                for(var geom of graphEdgeSequence) {
+                    var pathSegment:PathSegment = new PathSegment();
+                    pathSegment.geometryId = geom.shstGeometryId;
+                    // TODO calc directionality from graph edge trajectory possible...
+                    pathCandidate.segments.push(pathSegment);
+                }
+
+                return pathCandidate;
+            }
+        }
+        catch(e) {
+            // no-op failed to match
+        }
+    }
+
 
     async match(feature:turfHelpers.Feature<turfHelpers.LineString>) {
         
