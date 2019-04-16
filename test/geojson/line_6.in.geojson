@@ -1,0 +1,69 @@
+{"type":"FeatureCollection", "features":[
+
+
+{
+      "type": "Feature",
+      "properties": {
+        "OBJECTID": 78072,
+        "ASSETID": 59023,
+        "INT_ID_FRO": 18576,
+        "INT_ID_TO": 18624,
+        "STNUM": 8773,
+        "MAPSHEET": "138B197",
+        "ID": 31420,
+        "ADRF": 3801,
+        "ADRT": 3831,
+        "ZIP_R": 90004,
+        "ADLF": 3800,
+        "ADLT": 3898,
+        "ZIP_L": 90004,
+        "TDIR": "W",
+        "STNAME": "BEVERLY",
+        "STSFX": "BLVD",
+        "SFXDIR": null,
+        "STNAME_A": null,
+        "STSFX_A": null,
+        "STATUS": "O",
+        "TEMP_": null,
+        "SECT_ID": "0576000",
+        "DEDRQ": 2,
+        "REMARKS": null,
+        "SV_STATUS": null,
+        "ST_SUBTYPE": 1,
+        "CRTN_DT": "2000-10-18T00:00:00.000Z",
+        "LST_MODF_D": null,
+        "OLD_STREET": "Major Highway - Class II",
+        "PLANNING_S": null,
+        "DEDRQ_DESC": "Yes",
+        "TOOLTIP": "BEVERLY BLVD\\nStreet Designation: Avenue II",
+        "NLA_URL": "navigatela/reports/centerline_mb.cfm?pk=59023&t=0576000",
+        "Planning_A": 59023,
+        "TYPE": 40,
+        "MODIFIED": 0,
+        "Street_Des": "Avenue II",
+        "Street_D_1": "Avenue II"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -118.29169749020073,
+            34.07633471218885
+          ],
+          [
+            -118.29234142928871,
+            34.07633041395482
+          ],
+          [
+            -118.29249002144039,
+            34.076329731508366
+          ],
+          [
+            -118.29296916326467,
+            34.07632753724597
+          ]
+        ]
+      }
+    }
+
+]}

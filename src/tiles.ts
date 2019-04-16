@@ -10,6 +10,7 @@ import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'fs';
 import { getJson, getPbf } from "./util";
 
 const chalk = require('chalk');
+const path = require('path');
 
 const SphericalMercator = require("@mapbox/sphericalmercator");
 const sphericalMercator = new SphericalMercator({
@@ -22,7 +23,7 @@ const SHST_ID_API_URL = 'https://api.sharedstreets.io/v0.1.0/id/';
 const SHST_TILE_URL = 'https://tiles.sharedstreets.io/';
 
 const USE_LOCAL_CACHE = true;
-const SHST_TILE_CACHE_DIR = './shst/cache/tiles/';
+const SHST_TILE_CACHE_DIR = 'shst/cache/tiles/';
 
 export enum TileType {
     REFERENCE = 'reference',
@@ -88,9 +89,10 @@ export async function getTile(tilePath:TilePath):Promise<any[]> {
     // TODO use generator/yield pattern + protobuf decodeDelimited
 
     var arrayBuffer:Uint8Array;
-    if(USE_LOCAL_CACHE && existsSync(SHST_TILE_CACHE_DIR + tilePath.toPathString())) {
-        arrayBuffer = new Uint8Array(readFileSync(SHST_TILE_CACHE_DIR + tilePath.toPathString()));
-        console.log(chalk.keyword('lightgreen')("     reading from cached: " + SHST_TILE_CACHE_DIR + tilePath.toPathString()));
+    var tileFilePath = path.join(SHST_TILE_CACHE_DIR, tilePath.toPathString());
+    if(USE_LOCAL_CACHE && existsSync(tileFilePath)) {
+        arrayBuffer = new Uint8Array(readFileSync(tileFilePath));
+        //console.log(chalk.keyword('lightgreen')("     reading from cached: " + SHST_TILE_CACHE_DIR + tilePath.toPathString()));
     }
     else {
 
@@ -101,9 +103,9 @@ export async function getTile(tilePath:TilePath):Promise<any[]> {
         }       
 
         if(USE_LOCAL_CACHE) {
-            mkdirSync(SHST_TILE_CACHE_DIR + tilePath.source, { recursive: true });
-            writeFileSync(SHST_TILE_CACHE_DIR + tilePath.toPathString(), arrayBuffer);
-            console.log(chalk.keyword('lightgreen')("     writing to cache: " + SHST_TILE_CACHE_DIR + tilePath.toPathString()));   
+            mkdirSync(path.join(SHST_TILE_CACHE_DIR, tilePath.source), { recursive: true });
+            writeFileSync(tileFilePath, arrayBuffer);
+            console.log(chalk.keyword('lightgreen')("     writing to cache: " + tileFilePath));   
         }
     }
 

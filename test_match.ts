@@ -13,6 +13,8 @@ import { TileIndex } from "./src/tile_index";
 import { TilePathGroup, TileType, TilePathParams } from "./src/tiles";
 import { PointMatcher } from "./src/point_matcher";
 import { CleanedPoints, CleanedLines } from "./src/geom";
+import { Graph } from "./src/graph";
+import envelope from "@turf/envelope";
 
 const test = require('tape');
 
@@ -82,10 +84,10 @@ test("match points", async (t:any) => {
  });
  
  
- test("match lines", async (t:any) => { 
+async function graph_test()  { 
  
    // test polygon (dc area)
-   const content = fs.readFileSync('test/geojson/line_1.in.geojson');
+   const content = fs.readFileSync('test/geojson/sf_centerlines.sample.geojson');
    var linesIn:turfHelpers.FeatureCollection<turfHelpers.LineString> = JSON.parse(content.toLocaleString());
    
    var cleanedLines = new CleanedLines(linesIn);  
@@ -95,25 +97,27 @@ test("match points", async (t:any) => {
    params.source = 'osm/planet-180430';
    params.tileHierarchy = 6;
  
-  // test matcher point candidates
-//   var matcher = new Matcher(params);
+  //test matcher point candidates
+  var matcher = new Graph(envelope(lines), params);
   
-//   var matchedLines = await matcher.matchFeatureCollection(lines);
+  var matchedLines = turfHelpers.featureCollection([]);
+  for(var line of lines.features) {
+    matchedLines.features.push((await matcher.match(line)).matchedPath);
+  }
+  
+  const BUILD_TEST_OUPUT = true;
  
-//  console.log(JSON.stringify(matches_1a));
-//   const BUILD_TEST_OUPUT = true;
+  const expected_1a_file = 'test/geojson/sf_centerlines.sample.out.geojson';
+  if(BUILD_TEST_OUPUT) {
+    var expected_1a_out:string = JSON.stringify(matchedLines);
+    fs.writeFileSync(expected_1a_file, expected_1a_out);
+  }
  
-//   const expected_1a_file = 'test/geojson/line_1a.out.geojson';
-//   if(BUILD_TEST_OUPUT) {
-//     var expected_1a_out:string = JSON.stringify(matchedLines.matched);
-//     fs.writeFileSync(expected_1a_file, expected_1a_out);
-//   }
+  const expected_1a_in = fs.readFileSync(expected_1a_file);
+  const expected_1a:{} = JSON.parse(expected_1a_in.toLocaleString());
  
-//   const expected_1a_in = fs.readFileSync(expected_1a_file);
-//   const expected_1a:{} = JSON.parse(expected_1a_in.toLocaleString());
- 
-//   var matches_1a = await matcher.matchFeatureCollection(lines);
-//   t.deepEqual(expected_1a, matchedLines.matched);
- 
-  t.end();
- });
+  //var matches_1a = await matcher.matchFeatureCollection(lines);
+  
+ };
+
+ graph_test();

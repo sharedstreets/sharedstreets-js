@@ -1,15 +1,21 @@
 import destination from '@turf/destination';
-import * as helpers from '@turf/helpers';
 import envelope from '@turf/envelope';
 import * as turfHelpers from '@turf/helpers';
-import { Point, LineString } from '@turf/buffer/node_modules/@turf/helpers';
 
 
 export function envelopeBufferFromPoint(point, radius):turfHelpers.Feature<turfHelpers.Polygon> {
     var nwPoint = destination(point, radius, 315, {'units':'meters'});
     var sePoint = destination(point, radius, 135, {'units':'meters'});
-    return envelope(helpers.featureCollection([nwPoint, sePoint]));
+    return envelope(turfHelpers.featureCollection([nwPoint, sePoint]));
 }   
+
+function cleanProperties(og_props:{}) {
+	var  new_props:{} = {};
+	for(var prop of Object.keys(og_props)) {
+	  new_props[prop.toLocaleLowerCase()] = og_props[prop];
+	}
+	return new_props;
+  }
 
 export function reverseLineString(line:turfHelpers.Feature<turfHelpers.LineString>):turfHelpers.Feature<turfHelpers.LineString>|turfHelpers.LineString {
 	var reverseLineFeature:turfHelpers.Feature<turfHelpers.LineString> = JSON.parse(JSON.stringify(line));
@@ -36,6 +42,7 @@ export class CleanedPoints {
 				inputFeatures = inputFeatures.concat(inputData.features);
 			}
 			else if(inputData.type === "Feature") {
+
 				inputFeatures.push(inputData);
 			}
 			else if(inputData.type === "GeometryCollection") {
@@ -95,6 +102,9 @@ export class CleanedLines {
 			}
 	
 			for(var inputFeature of inputFeatures) {
+
+				// move properties to lowercase
+				inputFeature.properties = cleanProperties(inputFeature.properties);
 	
 				if (inputFeature.geometry.type === "LineString"){
 					if(this.validLength(inputFeature))
