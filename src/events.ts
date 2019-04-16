@@ -278,18 +278,22 @@ export class EventData {
     }
 
     loadTiles(week:string) {
+
         console.log("loading: " + week);
         var weekDirectory = path.join(this.dataDirectory, week);
-        fs.readdirSync(weekDirectory).forEach(file => {
+        for(var file of fs.readdirSync(weekDirectory)) {
             if(file.endsWith('.pbf')) {   
-                var buffer = fs.readFileSync(path.join(weekDirectory, file));
-                var reader = probuf_minimal.Reader.create(buffer);
-                this.processWeeklyLinearBinsTile(reader, week);
+                //console.log(week + "-- file: " + file);
+                var tilePath = path.join(weekDirectory, file);
+                this.processWeeklyLinearBinsTile(tilePath, week);
+                //
             }
-        });
+        }
+
+        console.log("number edges: "  + this.data.get(week).size);
     }
 
-    processWeeklyLinearBinsTile(reader, week:string) {
+    processWeeklyLinearBinsTile(tilePath, week:string) {
 
         if(!this.data.has(week)) {
             this.data.set(week, new Map());
@@ -303,6 +307,9 @@ export class EventData {
             offset = Math.round(localTimeZone.utcOffset() / 60);
         }   
         
+        var buffer = fs.readFileSync(tilePath);
+        var reader = probuf_minimal.Reader.create(buffer);
+
         while (reader.pos < reader.len) {
             try {
                 var result = linearProto.SharedStreetsWeeklyBinnedLinearReferences.decodeDelimited(reader)
@@ -348,10 +355,10 @@ export class EventData {
 
     getWeeks():string[] {
         var weeks:string[] = [];
-        fs.readdirSync(this.dataDirectory).forEach(file => {
+        for(var file of fs.readdirSync(this.dataDirectory)) {
             if(fs.statSync(path.join(this.dataDirectory, file)).isDirectory() && weekTest.test(file))
                 weeks.push(file);
-        });
+        }
         return weeks;
     }
     
@@ -370,11 +377,17 @@ export class EventData {
                 typeFilter = [{type:null}]
             }
 
-            var binData = this.data.get(weeks[0]).get(refId);
-            if(binData)  {
+            var defaultRef = null;
+            for(var week of weeks) {
+                defaultRef = this.data.get(week).has(refId);
+                if(defaultRef)
+                    break;
+            }
+
+            if(defaultRef)  {
 
                 var refLength = getReferenceLength(shstRef);
-                var binLength = refLength / binData.numberOfBins;
+                var binLength = refLength / defaultRef.numberOfBins;
                 var numberOfBins = getBinCountFromLength(refLength, 10);
 
                 var binPointCollection = turfHelpers.featureCollection([]);
@@ -396,14 +409,18 @@ export class EventData {
                         var binValue = 0;
                         var binCount = 0;
                         for(var week of weeks) {    
-                            var weeklyData = this.data.get(week).get(refId);
-                            if(weeklyData) {
-                                binValue += weeklyData.getValueForBin(binPosition, type['type'], periodFilter);
-                                binCount += weeklyData.getCountForBin(binPosition, type['type'], periodFilter); 
+                            if(this.data.has(week)) {
+                                var weeklyData = this.data.get(week).get(refId);
+                                if(weeklyData) {
+                                    binValue += weeklyData.getValueForBin(binPosition, type['type'], periodFilter);
+                                    binCount += weeklyData.getCountForBin(binPosition, type['type'], periodFilter); 
+                                }
                             }
+                            else 
+                                console.log("week not loaded: " + week);
                         }   
-                       
-                        if(binCount > 5) {
+
+                        if(binCount > 2) {
                             var periodAverageCount =  binCount / (periodFilter.size * weeks.length);
                             // reduce decimal precision for transport
                             periodAverageCount= Math.round(periodAverageCount * 10000) / 10000;
@@ -414,9 +431,11 @@ export class EventData {
                             if(type['color'])
                                 binPoint.properties['color'] = type['color'];
         
-                            if(periodAverageCount > 0.01)
+                            if(periodAverageCount > 0.001)
                                 binPointCollection.features.push(binPoint);
                         }  
+                       
+                        
                     }
                 }
                 return binPointCollection;
@@ -426,7 +445,8 @@ export class EventData {
         //var periodRange = periodFilter[1] - periodFilter[0];
 
         var binPointCollection = turfHelpers.featureCollection([]);
-        var geoms = await this.tileIndex.intersects(extent, TileType.GEOMETRY, this.params, [TileType.REFERENCE])
+        var geoms = await this.tileIndex.intersects(extent, TileType.GEOMETRY, this.params, [TileType.REFERENCE]);
+
         for(var geom of geoms.features) {
             var shstGeom = <SharedStreetsGeometry>this.tileIndex.objectIndex.get(geom.properties.id);
 
