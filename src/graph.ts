@@ -329,8 +329,7 @@ export class Graph {
     }
 
     async matchTrace(feature:turfHelpers.Feature<turfHelpers.LineString>) {
-    
-       
+
               // fall back to hmm for probabilistic path discovery
             if(!this.osrm)
                 await this.buildGraph();
@@ -338,8 +337,7 @@ export class Graph {
             var hmmOptions = {
                 coordinates: feature.geometry.coordinates,
                 annotations: true,
-                geometries: 'geojson',
-                radiuses: Array(feature.geometry.coordinates.length).fill(20)
+                geometries: 'geojson'
             };
 
             try {
