@@ -273,58 +273,63 @@ export class Graph {
     }
 
     async buildGraph() {
+        
+        try {
+            var graphPath = path.join(SHST_GRAPH_CACHE_DIR, this.id);
+            var dbPath = path.join(graphPath, '/db');
 
-        var graphPath = path.join(SHST_GRAPH_CACHE_DIR, this.id);
-        var dbPath = path.join(graphPath, '/db');
+            await this.tileIndex.indexTilesByPathGroup(this.tilePathGroup)
 
-        await this.tileIndex.indexTilesByPathGroup(this.tilePathGroup)
-
-        if(USE_LOCAL_CACHE && existsSync(dbPath)) {
-            var osrmPath = path.join(graphPath, '/graph.xml.osrm');
-            //console.log(chalk.keyword('lightgreen')("     loading pre-built graph from: " + osrmPath));
-            this.db = new LevelDB(dbPath);
-            if(OPTIMIZE_GRAPH)
-                this.osrm = new OSRM({path:osrmPath});
-            else
-                this.osrm = new OSRM({path:osrmPath, algorithm:"MLD"});
-        }
-        else {
-            
-            // TODO before building, check if this graph is a subset of an existing graph
-
-            mkdirSync(dbPath, {recursive:true});
-            this.db = new LevelDB(dbPath)
-
-            console.log(chalk.keyword('lightgreen')("     building graph xml..."));
-            var xmlPath = await this.createGraphXml();
-
-            //extract 
-            console.log(chalk.keyword('lightgreen')("     building graph from: " + xmlPath));
-            
-            var profile;
-
-            if(this.graphMode === GraphMode.CAR)
-                profile = 'node_modules/osrm/profiles/car.lua';
-            else if(this.graphMode === GraphMode.BIKE)
-                profile = 'node_modules/osrm/profiles/bicycle.lua';
-            else if(this.graphMode === GraphMode.PEDESTRIAN)
-                profile = 'node_modules/osrm/profiles/foot.lua';
-
-            execSync('node_modules/osrm/lib/binding/osrm-extract ' + xmlPath + ' -p ' + profile);
-
-            var osrmPath:any = xmlPath + '.osrm';
-
-            if(OPTIMIZE_GRAPH) {
-                console.log(chalk.keyword('lightgreen')("     optimizing graph (this takes awhile)..."));
-                execSync('node_modules/osrm/lib/binding/osrm-contract ' + osrmPath);
-                this.osrm = new OSRM({path:osrmPath});
+            if(USE_LOCAL_CACHE && existsSync(dbPath)) {
+                var osrmPath = path.join(graphPath, '/graph.xml.osrm');
+                //console.log(chalk.keyword('lightgreen')("     loading pre-built graph from: " + osrmPath));
+                this.db = new LevelDB(dbPath);
+                if(OPTIMIZE_GRAPH)
+                    this.osrm = new OSRM({path:osrmPath});
+                else
+                    this.osrm = new OSRM({path:osrmPath, algorithm:"MLD"});
             }
             else {
-                execSync('node_modules/osrm/lib/binding/osrm-partition ' + osrmPath);
-                execSync('node_modules/osrm/lib/binding/osrm-customize ' + osrmPath);
-                console.log(chalk.keyword('lightgreen')("     skipping graph optimization..."));
-                this.osrm = new OSRM({path:osrmPath, algorithm:"MLD"});
+                
+                // TODO before building, check if this graph is a subset of an existing graph
+
+                mkdirSync(dbPath, {recursive:true});
+                this.db = new LevelDB(dbPath)
+
+                console.log(chalk.keyword('lightgreen')("     building graph xml..."));
+                var xmlPath = await this.createGraphXml();
+
+                //extract 
+                console.log(chalk.keyword('lightgreen')("     building graph from: " + xmlPath));
+                
+                var profile;
+
+                if(this.graphMode === GraphMode.CAR)
+                    profile = 'node_modules/osrm/profiles/car.lua';
+                else if(this.graphMode === GraphMode.BIKE)
+                    profile = 'node_modules/osrm/profiles/bicycle.lua';
+                else if(this.graphMode === GraphMode.PEDESTRIAN)
+                    profile = 'node_modules/osrm/profiles/foot.lua';
+
+                execSync('node_modules/osrm/lib/binding/osrm-extract ' + xmlPath + ' -p ' + profile);
+
+                var osrmPath:any = xmlPath + '.osrm';
+
+                if(OPTIMIZE_GRAPH) {
+                    console.log(chalk.keyword('lightgreen')("     optimizing graph (this takes awhile)..."));
+                    execSync('node_modules/osrm/lib/binding/osrm-contract ' + osrmPath);
+                    this.osrm = new OSRM({path:osrmPath});
+                }
+                else {
+                    execSync('node_modules/osrm/lib/binding/osrm-partition ' + osrmPath);
+                    execSync('node_modules/osrm/lib/binding/osrm-customize ' + osrmPath);
+                    console.log(chalk.keyword('lightgreen')("     skipping graph optimization..."));
+                    this.osrm = new OSRM({path:osrmPath, algorithm:"MLD"});
+                }
             }
+        }
+        catch(e) {
+            throw "Unable to build graph: " + e;
         }
     }
 
@@ -332,7 +337,7 @@ export class Graph {
 
               // fall back to hmm for probabilistic path discovery
             if(!this.osrm)
-                await this.buildGraph();
+                throw "Graph not buit. call buildGraph() before running queries."
             
             var hmmOptions = {
                 coordinates: feature.geometry.coordinates,
