@@ -274,6 +274,10 @@ export class Graph {
 
     async buildGraph() {
         
+        // check if graph is already built;
+        if(this.osrm)
+            return;
+
         try {
             var graphPath = path.join(SHST_GRAPH_CACHE_DIR, this.id);
             var dbPath = path.join(graphPath, '/db');
