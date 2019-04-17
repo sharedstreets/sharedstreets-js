@@ -351,7 +351,7 @@ export class Graph {
                 });
 
                 var graphEdgeSequence:GraphEdge[] = [];
-
+                this.tileIndex.featureIndex.get("geomId")
                 if(matches['matchings'] && matches['matchings'].length > 0) {
                     var match = matches['matchings'][0];
                     //console.log(match.confidence)
@@ -414,14 +414,20 @@ export class Graph {
                 pathCandidate.matchType = MatchType.HMM;
                 pathCandidate.score = match.confidence;
                 pathCandidate.originalFeature = feature;
-                pathCandidate.matchedPath = turfHelpers.feature(match.geometry);
                 pathCandidate.segments = [];
+
+                var segmentGeoms:turfHelpers.Feature<turfHelpers.MultiLineString> = turfHelpers.multiLineString([]);
                 for(var geom of graphEdgeSequence) {
                     var pathSegment:PathSegment = new PathSegment();
                     pathSegment.geometryId = geom.shstGeometryId;
                     // TODO calc directionality from graph edge trajectory possible...
                     pathCandidate.segments.push(pathSegment);
+
+                    var segementGeom = <turfHelpers.Feature<turfHelpers.LineString>>this.tileIndex.featureIndex.get(geom.shstGeometryId);
+                    segmentGeoms.geometry.coordinates.push(segementGeom.geometry.coordinates)
                 }
+                if(pathCandidate.segments.length > 0)
+                    pathCandidate.matchedPath = segmentGeoms;
 
                 return pathCandidate;
 
