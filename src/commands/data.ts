@@ -125,7 +125,7 @@ class Stats {
     }
     
     this.topRefCount.get(ref).set(type, this.topRefCount.get(ref).get(type) + count);
-   }
+  }
    print() {
     for(var stage of this.dataCount.keys()) {
       for(var type of this.dataCount.get(stage).keys()) {
@@ -134,23 +134,21 @@ class Stats {
       }
     }
 
-    // TODO make top 50 refs stats an option...
-    //
-    // var refSort = [];
-    // for(var ref of this.topRefCount.keys()) {
-    //   for(var type of this.topRefCount.get(ref).keys()) {
-    //     var key = ref + ":" + type;
-    //     var value = this.topRefCount.get(ref).get(type);
-    //     refSort.push([key, value]);
-    //   }
-    // }
-    // refSort.sort((a, b) => {
-    //   return b[1] - a[1];
-    // });
+    var refSort = [];
+    for(var ref of this.topRefCount.keys()) {
+      for(var type of this.topRefCount.get(ref).keys()) {
+        var key = ref + ":" + type;
+        var value = this.topRefCount.get(ref).get(type);
+        refSort.push([key, value]);
+      }
+    }
+    refSort.sort((a, b) => {
+      return b[1] - a[1];
+    });
 
-    // for(var i = 0; i < 50; i++) {
-    //   console.log(refSort[i][0] + ' ' + refSort[i][1])
-    // }
+    for(var i = 0; i < 50; i++) {
+      console.log(refSort[i][0] + ' ' + refSort[i][1])
+    }
   }
 }
 
@@ -484,3 +482,5 @@ async function merge(inDirectoryPath1, inDirectoryPath2, outDirectoryPath, stats
 
 }
 
+//filter('toronto/u/2018-03-12/', null, true);
+// merge('test_merge2/a/', 'test_merge2/b/', 'test_merge2/c/', true);

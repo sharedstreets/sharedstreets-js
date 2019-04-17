@@ -289,7 +289,6 @@ export class EventData {
                 //
             }
         }
-
         console.log("number edges: "  + this.data.get(week).size);
     }
 
