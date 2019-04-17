@@ -79,8 +79,12 @@ test("sharedstreets -- traces", async (t:any) => {
   for(var trip of tripsIn.features) {
     console.log("1");
     var results1 = await graph.matchTrace(trip);
-    if(results1['segments'])
+    if(results1 && results1['segments']) {
       console.log("segments: " + results1['segments'].length );
+      console.log(JSON.stringify(results1['matchedPath']));
+    }
+    else
+      console.log("no match");
     console.log("2");
   }
   
