@@ -541,7 +541,8 @@ export class Graph {
         if(!bestPathCandidate) {
             // fall back to hmm for probabilistic path discovery
             if(!this.osrm)
-                await this.buildGraph();
+                throw "Graph not buit. call buildGraph() before running queries."
+            
             
             var hmmOptions = {
                 coordinates: feature.geometry.coordinates,
