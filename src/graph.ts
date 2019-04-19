@@ -340,7 +340,8 @@ export class Graph {
             }
         }
         catch(e) {
-            throw "Unable to build graph: " + e;
+            console.log("Unable to build graph: " + e);
+            console.log("Try deleting existing cached graph: " + graphPath);
         }
     }
 
