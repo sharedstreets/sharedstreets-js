@@ -158,7 +158,10 @@ async function matchLines(outFile, params, lines, flags) {
   var extent = envelope(lines);
   var matcher = new Graph(extent, params);
   await matcher.buildGraph();
-  matcher.searchRadius = flags['search-radius'];
+
+  if(flags['search-radius'])
+    matcher.searchRadius = flags['search-radius'];
+
   matcher.snapIntersections = flags['snap-intersections'];
 
   var matchedLines:turfHelpers.Feature<turfHelpers.LineString>[] = [];
@@ -275,5 +278,5 @@ async function matchLines(outFile, params, lines, flags) {
 
 
 // if(data.features[0].geometry.type  === 'LineString' || data.features[0].geometry.type  === 'MultiLineString') {
-//matchLines('tmp/sf_centerlines.geojson.out', params, data, {'direction-field':'oneway', 'twoway-value':'B','oneway-with-direction-value':'F', 'oneway-against-direction-value':'T'});
+// matchLines('tmp/sf_centerlines.geojson.out', params, data, {'direction-field':'oneway', 'twoway-value':'B','oneway-with-direction-value':'F', 'oneway-against-direction-value':'T'});
 // }
