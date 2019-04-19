@@ -221,6 +221,31 @@ export class TileIndex {
         return data;
     }
 
+    referenceToOffsetLine(referenceId:string, offset:number, sideOfStreet:ReferenceSideOfStreet):turfHelpers.Feature<turfHelpers.LineString> {
+       
+        var ref = <SharedStreetsReference>this.objectIndex.get(referenceId);
+        var geom = <SharedStreetsGeometry>this.objectIndex.get(ref.geometryId);
+        var feature = <turfHelpers.Feature<turfHelpers.LineString>>this.featureIndex.get(ref.geometryId);
+
+        try {
+            if(offset) { 
+                if(referenceId === geom.forwardReferenceId){
+                    feature = JSON.parse(JSON.stringify(feature));
+                    feature = lineOffset(feature, offset, {units: 'meters'});
+                }
+                else {
+                    var reverseGeom = reverseLineString(feature);
+                    feature = lineOffset(reverseGeom, offset, {units: 'meters'});
+                }
+            } 
+                
+            return feature;
+        }
+        catch(e) {
+            console.log(e);
+        }
+    }
+
 
     referenceToBins(referenceId:string, numBins:number, offset:number, sideOfStreet:ReferenceSideOfStreet):turfHelpers.Feature<turfHelpers.MultiPoint> {
         var binIndexId = referenceId + ':' + numBins + ':' + offset;

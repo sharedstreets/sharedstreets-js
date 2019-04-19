@@ -366,6 +366,147 @@ export class EventData {
         return [...this.summary.keys()];
     }
 
+    async getRank(extent:turfHelpers.Feature<Polygon>, weeks:string[], typeFilter, periodFilter:Set<number>) {
+        
+        var results = turfHelpers.featureCollection([]);
+           
+        for(var type of typeFilter) {
+
+            var offset = 5;
+            if(type['offset'])
+                offset = type['offset'];
+
+            const getEdgeForRefId = (refId) => {
+
+                var shstRef:SharedStreetsReference = <SharedStreetsReference>this.tileIndex.objectIndex.get(refId);
+                var refLength = getReferenceLength(shstRef);
+
+                if(!typeFilter || typeFilter.length == 0) {
+                    typeFilter = [{type:null}]
+                }
+
+                var hasData = null;
+                for(var week of weeks) {
+                    hasData = this.data.get(week).has(refId);
+                    if(hasData)
+                        break;
+                }
+                var geoms = [];
+                if(hasData) {   
+                        var edgeCount = 0;
+                        for(var week of weeks) {    
+                            if(this.data.has(week)) {
+                                var weeklyData = this.data.get(week).get(refId);
+                                if(weeklyData) {
+                                    edgeCount += weeklyData.getCountForEdge(typeFilter['type'], periodFilter);
+                                }
+                            }
+                        }
+
+                        if(edgeCount > 0) {
+                            var geom = this.tileIndex.referenceToOffsetLine(refId, offset, ReferenceSideOfStreet.RIGHT);
+                            geom.properties['edgeCount'] = edgeCount / refLength;
+                            //geom.properties['edgeCount'] = edgeCount / refLength;
+                            
+                            if(type['type'])
+                                geom.properties['type'] = type['type'];
+                            
+                            geoms.push(geom);
+                        }
+                
+                }
+                return geoms;
+            }
+
+            var edgeCollection = turfHelpers.featureCollection([]);
+            var edgeCounts = [];
+            var geoms = await this.tileIndex.intersects(extent, TileType.GEOMETRY, this.params, [TileType.REFERENCE]);
+
+            for(var geom of geoms.features) {
+
+                var shstGeom = <SharedStreetsGeometry>this.tileIndex.objectIndex.get(geom.properties.id);
+                
+                if(shstGeom.forwardReferenceId) {
+                    var edges = getEdgeForRefId(shstGeom.forwardReferenceId);
+                    if(edges.length > 0) {
+                        for(var edge of edges) {
+                            edgeCounts.push(edge.properties['edgeCount']);
+                            edgeCollection.features.push(edge);
+                        }
+                    }       
+                }
+
+                if(shstGeom.backReferenceId) {
+                    var edges = getEdgeForRefId(shstGeom.backReferenceId);
+                    if(edges.length > 0) {
+                        for(var edge of edges) {
+                            edgeCounts.push(edge.properties['edgeCount']);
+                            edgeCollection.features.push(edge);
+                        }
+                    }       
+                }
+            }
+
+            var sortedEdgeCounts = edgeCounts.sort();
+            for(var unfilteredEdge of edgeCollection.features) {
+                var rank:number = quantileRankSorted(sortedEdgeCounts, unfilteredEdge.properties['edgeCount']);
+                unfilteredEdge.properties['rank'] = Math.round(rank * 100) / 100;
+                //delete unfilteredEdge.properties['edgeCount'];
+
+                //if(unfilteredEdge.properties['rank'] > 0.75) {
+                    results.features.push(unfilteredEdge);
+                //}
+            }
+        }
+
+        return results;
+            //         var refData = cache.idIndex[linearBin.referenceId];
+            //         var geomData = cache.idIndex[refData.geometryId];
+            //         var refLength = getReferenceLength(refData);
+
+            //         var direction = ReferenceDirection.FORWARD;
+            //         if(linearBin.referenceId === geomData.backReferenceId)
+            //             direction = ReferenceDirection.BACKWARD;
+
+        
+            //         var edgeTotal = linearBin.getCountForEdge(typeFilter, periodFilter);
+
+            //         if(normalizeByLength) 
+            //             edgeTotal = edgeTotal / refLength;
+
+            //         edgeCounts.push(edgeTotal);
+
+            //         if(edgeTotal > 0) {
+
+            //             var curbGeom;
+
+            //             if(direction === ReferenceDirection.FORWARD)
+            //                 curbGeom = lineOffset(geomData.feature, offset, {units: 'meters'});
+            //             else {
+            //                 var reverseGeom = geomUtils.reverseLineString(geomData.feature);
+            //                 curbGeom = lineOffset(reverseGeom, offset, {units: 'meters'});
+            //             }
+                    
+            //             curbGeom.properties.edgeTotal = edgeTotal;
+                
+            //             unfilteredResults.features.push(curbGeom);
+            //         }   
+            //     }
+            // }
+            
+            // var sortedEdgeCounts = edgeCounts.sort();
+
+            // for(var edge of unfilteredResults.features) {
+            //     var rank:number = quantileRankSorted(sortedEdgeCounts, edge.properties.edgeTotal);
+            //     edge.properties['rank'] = Math.round(rank * 100) / 100;
+            //     delete edge.properties['edgeTotal'];
+
+            //     if(edge.properties['rank'] > 0.5) {
+            //         results.features.push(edge);
+            //     }
+            // }    
+    }
+
 
     async getBins(extent:turfHelpers.Feature<Polygon>, weeks:string[], typeFilter, periodFilter:Set<number>) {
 
@@ -377,8 +518,9 @@ export class EventData {
             }
 
             var defaultRef = null;
+
             for(var week of weeks) {
-                defaultRef = this.data.get(week).has(refId);
+                defaultRef = this.data.get(week).get(refId);
                 if(defaultRef)
                     break;
             }
@@ -404,7 +546,6 @@ export class EventData {
                         var binPoint = turfHelpers.point(bins.geometry.coordinates[i]);
                         var binPosition = i + 1;
 
-
                         var binValue = 0;
                         var binCount = 0;
                         for(var week of weeks) {    
@@ -429,14 +570,15 @@ export class EventData {
 
                             if(type['color'])
                                 binPoint.properties['color'] = type['color'];
+                            
+                            binPoint.properties['type'] = type['type'];
         
                             if(periodAverageCount > 0.001)
                                 binPointCollection.features.push(binPoint);
-                        }  
-                       
-                        
+                        }              
                     }
                 }
+
                 return binPointCollection;
             } 
         };
@@ -448,22 +590,18 @@ export class EventData {
 
         for(var geom of geoms.features) {
             var shstGeom = <SharedStreetsGeometry>this.tileIndex.objectIndex.get(geom.properties.id);
-
-            if(this.data.has(weeks[0])) {
-                
-                if(shstGeom.forwardReferenceId && this.data.get(weeks[0]).has(shstGeom.forwardReferenceId)) {
-                    var bins = getBinsForRefId(shstGeom.forwardReferenceId);
-                    if(bins)
-                        binPointCollection.features = binPointCollection.features.concat(bins.features);
-                }
-
-                if(shstGeom.backReferenceId && this.data.get(weeks[0]).has(shstGeom.backReferenceId)) {
-                    var bins = getBinsForRefId(shstGeom.backReferenceId);
-                    if(bins)
-                        binPointCollection.features = binPointCollection.features.concat(bins.features);
-                }
+            
+            if(shstGeom.forwardReferenceId) {
+                var bins = getBinsForRefId(shstGeom.forwardReferenceId);
+                if(bins)
+                    binPointCollection.features = binPointCollection.features.concat(bins.features);
             }
 
+            if(shstGeom.backReferenceId) {
+                var bins = getBinsForRefId(shstGeom.backReferenceId);
+                if(bins)
+                    binPointCollection.features = binPointCollection.features.concat(bins.features);
+            }
         }
 
         return binPointCollection;

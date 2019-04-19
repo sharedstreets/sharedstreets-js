@@ -221,14 +221,27 @@ async function server(dirPath:string) {
     });
 
     server.route({
+
         method:'GET',
         config: {
             cors: corsHeaders
           },
         path:'/api/rank',
-        handler:function(request,h) {
-            var weeks = eventData.getWeeks();
-            return weeks;
+
+        handler: async function(request,h) {
+
+            var extent;
+            if(request.query.bbox)
+                extent = bboxToPolygon(request.query.bbox);
+            else    
+                extent = JSON.parse(request.query.polygon);
+
+            var typeFilters = typeFilterParser(request.query.typeFilter);
+            var periodFilter = periodFilterParser(request.query.periodFilter);
+            var weeks = weekFilterParser(request.query.weeks);
+            var rank = await eventData.getRank(extent, weeks, typeFilters, periodFilter);
+
+            return rank;
         }
     });
 
@@ -258,4 +271,4 @@ async function server(dirPath:string) {
     console.log('Server running at: http://localhost:3000/'); // server.info.uri
 }
 
-//server('toronto/l/');
+server('tmp/u/');
