@@ -84,7 +84,7 @@ test("match points", async (t:any) => {
  });
  
  
-async function graph_test()  { 
+ test("match lines 1", async (t:any) => { 
  
    // test polygon (dc area)
    const content = fs.readFileSync('test/geojson/sf_centerlines.sample.geojson');
@@ -99,13 +99,15 @@ async function graph_test()  {
  
   //test matcher point candidates
   var matcher = new Graph(envelope(lines), params);
+  await matcher.buildGraph();
   
   var matchedLines = turfHelpers.featureCollection([]);
   for(var line of lines.features) {
-    matchedLines.features.push((await matcher.match(line)).matchedPath);
+    var pathCandidate = await matcher.match(line);
+    matchedLines.features.push(pathCandidate.matchedPath);
   }
   
-  const BUILD_TEST_OUPUT = true;
+  const BUILD_TEST_OUPUT = false;
  
   const expected_1a_file = 'test/geojson/sf_centerlines.sample.out.geojson';
   if(BUILD_TEST_OUPUT) {
@@ -115,9 +117,68 @@ async function graph_test()  {
  
   const expected_1a_in = fs.readFileSync(expected_1a_file);
   const expected_1a:{} = JSON.parse(expected_1a_in.toLocaleString());
- 
-  //var matches_1a = await matcher.matchFeatureCollection(lines);
-  
- };
+  t.deepEqual(matchedLines, expected_1a);
 
- graph_test();
+  t.end();
+ });
+
+ test("match lines 2 -- snapping and directed edges", async (t:any) => { 
+ 
+  // test polygon (dc area)
+  const content = fs.readFileSync('test/geojson/line-directed-test.in.geojson');
+  var linesIn:turfHelpers.FeatureCollection<turfHelpers.LineString> = JSON.parse(content.toLocaleString());
+
+  console.log("1");
+  var cleanedLines = new CleanedLines(linesIn);  
+  var lines:turfHelpers.FeatureCollection<turfHelpers.LineString> = turfHelpers.featureCollection(cleanedLines.clean);
+
+  var params = new TilePathParams();
+  params.source = 'osm/planet-180430';
+  params.tileHierarchy = 6;
+
+ //test matcher point candidates
+ var matcher = new Graph(envelope(lines), params);
+ await matcher.buildGraph();
+ 
+ var matchedLines = turfHelpers.featureCollection([]);
+ for(var line of lines.features) {
+   var pathCandidate = await matcher.match(line);
+   matchedLines.features.push(pathCandidate.matchedPath);
+ }
+ 
+ const BUILD_TEST_OUPUT = false;
+
+ const expected_1a_file = 'test/geojson/line-directed-test-snapped.out.geojson';
+ if(BUILD_TEST_OUPUT) {
+   var expected_1a_out:string = JSON.stringify(matchedLines);
+   fs.writeFileSync(expected_1a_file, expected_1a_out);
+ }
+ 
+
+ const expected_1a_in = fs.readFileSync(expected_1a_file);
+ const expected_1a:{} = JSON.parse(expected_1a_in.toLocaleString());
+ t.deepEqual(matchedLines, expected_1a);
+
+ matcher.snapIntersections = false;
+
+ var matchedLines = turfHelpers.featureCollection([]);
+ for(var line of lines.features) {
+   var pathCandidate = await matcher.match(line);
+   matchedLines.features.push(pathCandidate.matchedPath);
+ }
+
+
+ const expected_1b_file = 'test/geojson/line-directed-test-unsnapped.out.geojson';
+ if(BUILD_TEST_OUPUT) {
+   var expected_1b_out:string = JSON.stringify(matchedLines);
+   fs.writeFileSync(expected_1b_file, expected_1b_out);
+ }
+
+ const expected_1b_in = fs.readFileSync(expected_1b_file);
+ const expected_1b:{} = JSON.parse(expected_1b_in.toLocaleString());
+ t.deepEqual(matchedLines, expected_1b);
+
+
+ t.end();
+});
+

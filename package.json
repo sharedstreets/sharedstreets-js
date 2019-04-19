@@ -20,7 +20,7 @@
     "pretest": "tsc",
     "prepack": "rm -rf lib && tsc && oclif-dev manifest",
     "test": "tsc && colortape build/test_core.js",
-    "test-matcher": "tsc && colortape build/test_matcher.js",
+    "test-match": "tsc && colortape build/test_match.js",
     "test-graph": "tsc && colortape build/test_graph.js",
     "docs": "tsc && documentation readme build/index.js --section=API",
     "bench": "tsc && node bench.js"

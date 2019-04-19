@@ -19,7 +19,7 @@ const cliProgress = require('cli-progress');
 
 function mapOgProperties(og_props:{}, new_props:{}) {
   for(var prop of Object.keys(og_props)) {
-    new_props['og_' + prop] = og_props[prop];
+    new_props['pp_' + prop] = og_props[prop];
     //console.log(new_props)
   }
 }
@@ -28,7 +28,7 @@ export default class Match extends Command {
   static description = 'matches point and line features to sharedstreets refs'
 
   static examples = [
-    `$ shst match points.geojson --out=matched_points.geojson --portProperties
+    `$ shst match points.geojson --out=matched_points.geojson --port-properties
   🌏  Loading points...
   ✨  Matching 3 points...
   🎉  Matched 2 points... (1 unmached)
@@ -39,13 +39,16 @@ export default class Match extends Command {
     help: flags.help({char: 'h'}),
 
     // flag with a value (-o, --out=FILE)
-    out: flags.string({char: 'o', description: 'output file'}),
-    'port-properties': flags.boolean({char: 'p', description: 'port existing feature properties preceeded by "pp_"', default: true}),
-    'direction-field': flags.string({description: 'name of optional line properity describing "one-way" segments, use the related "oneway-value"'}),
-    'oneway-with-direction-value': flags.string({description: 'name of optional value of "oneway-field" indicating a oneway street'}),
-    'oneway-against-direction-value': flags.string({description: 'name of optional value of "oneway-field" indicating a oneway street'}),
+    out: flags.string({char: 'o', description: 'file output name creates files [file-output-name].matched.geojson and [file-output-name].unmatched.geojson'}),
+    'skip-port-properties': flags.boolean({char: 'p', description: 'skip porting existing feature properties preceeded by "pp_"', default: false}),
+    'follow-line-direction': flags.boolean({description: 'only match using line direction', default: false}),
+    'direction-field': flags.string({description: 'name of optional line properity describing segment directionality, use the related "oneway-*-value" and "twoway-value" properities'}),
+    'oneway-with-direction-value': flags.string({description: 'name of optional value of "oneway-field" indicating a oneway street with line direction'}),
+    'oneway-against-direction-value': flags.string({description: 'name of optional value of "oneway-field" indicating a oneway street against line direction'}),
     'twoway-value': flags.string({description: 'name of optional value of "oneway-field" indicating a oneway street'}),
     'bearing-field': flags.string({description: 'name of optional point property containing bearing in decimal degrees', default:'bearing'}),
+    'search-radius': flags.integer({description: 'search radius for for snapping points, lines and traces', default:10}),
+    'snap-intersections': flags.boolean({description: 'snap line end-points to nearest intersection', default:false}),
     stats: flags.boolean({char: 's'})
 
     // flag with no value (-f, --force)
@@ -76,7 +79,8 @@ export default class Match extends Command {
       outFile = outFile.split(".").slice(0, -1).join(".");
 
 
-    console.log(chalk.bold.keyword('green')('  Filtering oneway and twoway streets using field "' + flags['direction-field'] + '" with values: ' + ' "' + flags['oneway-with-direction-value'] + '", "' + flags['oneway-against-direction-value'] + '", "' +  flags['twoway-value'] + '"'));
+    if(flags['direction-field'])
+      console.log(chalk.bold.keyword('green')('  Filtering oneway and twoway streets using field "' + flags['direction-field'] + '" with values: ' + ' "' + flags['oneway-with-direction-value'] + '", "' + flags['oneway-against-direction-value'] + '", "' +  flags['twoway-value'] + '"'));
     
     var content = readFileSync(inFile);
     var data:turfHelpers.FeatureCollection<turfHelpers.Geometry> = JSON.parse(content.toLocaleString());
@@ -100,7 +104,7 @@ async function matchPoints(outFile, params, points, flags) {
   // test matcher point candidates
   
   var matcher = new PointMatcher(null, params);
-
+  matcher.searchRadius = flags['search-radius'];
   var matchedPoints:turfHelpers.Feature<turfHelpers.Point>[] = [];
   var unmatchedPoints:turfHelpers.Feature<turfHelpers.Point>[] = [];
 
@@ -114,7 +118,7 @@ async function matchPoints(outFile, params, points, flags) {
     if(matches.length > 0) {
       var matchedFeature = matches[0].toFeature();
       
-      if(flags['port-properties'])
+      if(!flags['skip-port-properties'])
         mapOgProperties(searchPoint.properties, matchedFeature.properties);
       
         matchedPoints.push(matchedFeature);
@@ -153,6 +157,9 @@ async function matchLines(outFile, params, lines, flags) {
   
   var extent = envelope(lines);
   var matcher = new Graph(extent, params);
+  await matcher.buildGraph();
+  matcher.searchRadius = flags['search-radius'];
+  matcher.snapIntersections = flags['snap-intersections'];
 
   var matchedLines:turfHelpers.Feature<turfHelpers.LineString>[] = [];
   var unmatchedLines:turfHelpers.Feature<turfHelpers.LineString>[] = [];
@@ -167,14 +174,13 @@ async function matchLines(outFile, params, lines, flags) {
 
   for(var line of cleanedlines.clean) {
 
-    if(line.properties['cnn'] === '6436101.0')
-      console.log('8141000')
     const applyProperties = (path:PathCandidate, originalFeature:Feature<LineString>) => {
       path.matchedPath.properties['segments'] =  path.segments;
       path.matchedPath.properties['score'] = path.score;
       path.matchedPath.properties['matchType'] = path.matchType;
       
-      mapOgProperties(originalFeature.properties, path.matchedPath.properties);
+      if(!flags['skip-port-properties'])
+        mapOgProperties(originalFeature.properties, path.matchedPath.properties);
 
       return path.matchedPath;
     }
@@ -197,6 +203,9 @@ async function matchLines(outFile, params, lines, flags) {
         // TODO handle lines that don't match rules
         matchDirection = MatchDirection.BOTH;
       }
+    }
+    else if (flags['follow-line-direction']) {
+      matchDirection = MatchDirection.FORWARD;
     }
     else {
       matchDirection = MatchDirection.BOTH;
@@ -253,13 +262,18 @@ async function matchLines(outFile, params, lines, flags) {
 
 }
 
-// var content = readFileSync('tmp/sf_centerlines.unmatched.geojson');
+// var content = readFileSync('tmp/HERE_intersection_test.js');
 // var data:turfHelpers.FeatureCollection<turfHelpers.Geometry> = JSON.parse(content.toLocaleString());
 
 // var params = new TilePathParams();
 // params.source = 'osm/planet-181224';
 // params.tileHierarchy = 6
 
+// //matchLines('tmp/HERE_intersection_test.js.out', params, data, {});
+// var content = readFileSync('tmp/sf_centerlines.geojson');
+// var data:turfHelpers.FeatureCollection<turfHelpers.Geometry> = JSON.parse(content.toLocaleString());
+
+
 // if(data.features[0].geometry.type  === 'LineString' || data.features[0].geometry.type  === 'MultiLineString') {
-//   matchLines('tmp/sf_centerlines.test.geojson.out', params, data, {'direction-field':'oneway', 'twoway-value':'B','oneway-with-direction-value':'F', 'oneway-against-direction-value':'T'});
+//matchLines('tmp/sf_centerlines.geojson.out', params, data, {'direction-field':'oneway', 'twoway-value':'B','oneway-with-direction-value':'F', 'oneway-against-direction-value':'T'});
 // }

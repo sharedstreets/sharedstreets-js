@@ -27,6 +27,7 @@ import { rmse } from './util';
 
 const uuidHash = require('uuid-by-string');
 
+const DEFAULT_SEARCH_RADIUS = 10;
 const MIN_CONFIDENCE = 0.5;
 const OPTIMIZE_GRAPH = true;
 const USE_LOCAL_CACHE = true;
@@ -124,7 +125,13 @@ export class Graph {
     pointMatcher:PointMatcher; // need a local copy for point lookup
     tilePathGroup:TilePathGroup;
     tileIndex:TileIndex;
-    graphMode:GraphMode
+    graphMode:GraphMode;
+
+    // options
+    searchRadius = DEFAULT_SEARCH_RADIUS;
+    snapIntersections = true;
+    useHMM = true;
+    useDirect = true;
 
     constructor(extent:turfHelpers.Feature<turfHelpers.Polygon>, params:TilePathParams, existingTileIndex:TileIndex=null, graphMode:GraphMode=GraphMode.CAR) {
 
@@ -320,7 +327,7 @@ export class Graph {
                 var osrmPath:any = xmlPath + '.osrm';
 
                 if(OPTIMIZE_GRAPH) {
-                    console.log(chalk.keyword('lightgreen')("     optimizing graph (this takes awhile)..."));
+                    console.log(chalk.keyword('lightgreen')("     optimizing graph..."));
                     execSync('node_modules/osrm/lib/binding/osrm-contract ' + osrmPath);
                     this.osrm = new OSRM({path:osrmPath});
                 }
@@ -451,25 +458,13 @@ export class Graph {
 
     async match(feature:turfHelpers.Feature<turfHelpers.LineString>) {
         
-        var options = {};
-        
-        if(!options['radius'])
-            options['radius'] = 10;
-
-        if(!options['snapToIntersections'])
-            options['snapToIntersections'] = true;
-
-        if(!options['useHMM'])
-            options['useHMM'] = true;
-
-        if(!options['useDirect'])
-            options['useDirect'] = true;
-            
+        //var options = {};
+                    
         var pathCandidates:PathCandidate[] = [];
         var bestPathCandidate:PathCandidate = null;
 
 
-        this.pointMatcher.searchRadius = options['radius'] * 2;
+        this.pointMatcher.searchRadius = this.searchRadius * 2;
 
         // do default shst edge look up first
         var startPoint = turfHelpers.point(feature.geometry.coordinates[0]);
@@ -552,7 +547,7 @@ export class Graph {
                 coordinates: feature.geometry.coordinates,
                 annotations: true,
                 geometries: 'geojson',
-                radiuses: Array(feature.geometry.coordinates.length).fill(options['radius'])
+                radiuses: Array(feature.geometry.coordinates.length).fill(this.searchRadius)
             };
 
             try {
@@ -755,20 +750,20 @@ export class Graph {
                 var segment = bestPathCandidate.segments[i];
                 
                 // adding fudge factor for decimal precision issues
-                if(segment.section[0] < segment.section[1] + options['radius'] &&  segment.section[1] <= segment.referenceLength + options['radius'] &&  segment.section[0] + options['radius'] >= 0) {
+                if(segment.section[0] < segment.section[1] + this.searchRadius &&  segment.section[1] <= segment.referenceLength + this.searchRadius &&  segment.section[0] + this.searchRadius >= 0) {
                     
-                    if(options['snapToIntersections']) {
+                    if(this.snapIntersections && (segment.section[1] - segment.section[0]) > this.searchRadius) {
                         
-                        if(i == 0 && segment.referenceLength - segment.section[0] < options['radius'])
+                        if(i == 0 && segment.referenceLength - segment.section[0] < this.searchRadius)
                             continue;
                         
-                        if(i == 0 && segment.section[0] < options['radius'])
+                        if(i == 0 && segment.section[0] < this.searchRadius)
                             segment.section[0] = 0;
 
-                        if(i == bestPathCandidate.segments.length -1 && segment.section[1] < options['radius'])
+                        if(i == bestPathCandidate.segments.length -1 && segment.section[1] < this.searchRadius)
                             continue;
 
-                        if(i == bestPathCandidate.segments.length -1 && segment.referenceLength - segment.section[1] < options['radius'])
+                        if(i == bestPathCandidate.segments.length -1 && segment.referenceLength - segment.section[1] < this.searchRadius)
                             segment.section[1] = segment.referenceLength;
 
                         if( i > 0 && i < bestPathCandidate.segments.length -1) {
