@@ -3,7 +3,7 @@
   <head>
     <!-- Required meta tags -->
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-a-fit=no">
 
 
     
@@ -20,8 +20,8 @@
 
     <style>
         body { margin:0; padding:0; }
-        #map { position:absolute; top:0; bottom:0; right: 300px; width:100%; }
-        #sidebar { position:absolute; right:0; top:0; bottom:0; width:300px; padding-top: 20px; }
+        #map { position:absolute; top:0; bottom:0; right: 400px; width:100%; }
+        #sidebar { position:absolute; right:0; top:0; bottom:0; width:400px; padding-top: 20px; }
     </style>
   </head>
   <body>
@@ -33,10 +33,16 @@
                 <b>Pickup/Dropoff Analysis</b>
 
                 <div style="margin-top: 20px;" id="head" class="container">
-                    <b>Display:</b>
-                    <p>
-                            <select name="type"><option value="rank">Ranked Blockface</option><option value="bins">Hourly Average Count</option></select>
-                    </p>
+
+                    <canvas id="bar-chart" width="600" height="350"></canvas>
+
+                    <div id="typeSelector">
+                        <b>Display:</b>
+                        <p>
+                            <select name="type"><option value="rank">Ranked Blockface</option><option value="bins" selected>Hourly Average Count</option></select>
+                        </p>
+                    </div>
+                    
 
                     <p><b>Hours:</b> <input type="text" id="hours" value="0-23"></p>
                     
@@ -69,7 +75,7 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-   
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.3.0/Chart.min.js"></script>
     
     <script>
         var currentJSON = {};
@@ -137,6 +143,7 @@
 
         $(document).ready(function() {   
             
+            $("#typeSelector").hide();
             $("#downloadJson").hide();
             $("#loadingData").hide();
 
@@ -172,7 +179,7 @@
             container: 'map',
             style: 'mapbox://styles/mapbox/light-v10',
             zoom: 13,
-            center: [-79.3832, 43.6532] 
+            center: [-77.0369, 38.9072]  //-79.3832, 43.6532  -77.0369, 38.9072
         });
 
         var polygon = null;
@@ -192,6 +199,10 @@
                 };
 
                 var queryType = $('select[name=type]').val();
+
+                $.getJSON( '/api/summary', requestData, (data) => {
+                    buildChart(data);
+                });
 
                 $.getJSON( '/api/' +  queryType, requestData, (data) => {
 
@@ -299,7 +310,67 @@
 
         });
 
-        
+        var bar_chart;
+        function buildChart(data) {
+
+            var hours = ["0", "1", "2", "3", "4", "4","6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"];
+            var datasets = [];
+            datasets.push({
+                label: "Pickups",
+                data: data['pickup'],
+                backgroundColor: "#00f",
+                hoverBorderWidth: 0
+            });
+
+            datasets.push({
+                label: "Dropoffs",
+                data: data['dropoff'],
+                backgroundColor: "#f00",
+                hoverBorderWidth: 0
+            });
+
+            var dataObj = {
+                labels: hours,
+                datasets: datasets
+            };
+
+            if(bar_chart) {
+                bar_chart.config.data = dataObj;
+                bar_chart.update();
+            }
+            else {
+                var bar_ctx = document.getElementById('bar-chart');
+                var numberWithCommas = function(x) {
+                    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                };
+
+                bar_chart = new Chart(bar_ctx, {
+                    type: 'bar',
+                    data: dataObj,
+                    options:{ 
+                        animation:false,
+                        scales: {
+                        xAxes: [{ 
+                            stacked: true, 
+                            gridLines: { display: false },
+                            }],
+                        yAxes: [{ 
+                            stacked: true,
+                            ticks: {
+                                    beginAtZero: true,
+                                    steps: 10,
+                                    stepValue: 0.0001,
+                                    suggestedMax: 0.01
+                                } 
+                            }],
+                        },
+                        legend: {display: true}
+                    },
+                    
+                }
+                );
+            }
+        }
     </script>
 
     <!-- Optional JavaScript -->

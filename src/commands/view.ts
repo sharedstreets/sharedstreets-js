@@ -30,8 +30,7 @@ export default class View extends Command {
   static description = 'tools for viewing SharedStreets data sets'
 
   static examples = [
-    `$$$
-    `
+    `$$$`
   ]
 
   static flags = {
@@ -252,11 +251,17 @@ async function server(dirPath:string) {
           },
         path:'/api/summary',
         handler: async function(request,h) {
-            var extent = bboxToPolygon(request.query.bbox);
+            var extent;
+            if(request.query.bbox)
+                extent = bboxToPolygon(request.query.bbox);
+            else    
+                extent = JSON.parse(request.query.polygon);
+
             var typeFilters = typeFilterParser(request.query.typeFilter);
             var periodFilter = periodFilterParser(request.query.periodFilter);
-            var weeks = eventData.getSummary(extent, '', typeFilters, periodFilter);
-            return weeks;
+            var weeks = weekFilterParser(request.query.weeks)
+            var summary = eventData.getSummary(extent, weeks, typeFilters, periodFilter);
+            return summary;
         }
     });
 
@@ -271,4 +276,4 @@ async function server(dirPath:string) {
     console.log('Server running at: http://localhost:3000/'); // server.info.uri
 }
 
-server('tmp/u/');
+//server('tmp/u/');

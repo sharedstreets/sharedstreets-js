@@ -28,7 +28,7 @@ const tileHierarchy:number = 6;
 const tileSource:string = 'osm';
 const tileBuild:string = 'planet-180430';
 
-const TIMEZONE = 'America/New_York';
+//const TIMEZONE = 'America/New_York';
 
 
 // convert refId + binCount and binPosition to ref
@@ -144,21 +144,27 @@ export class WeeklySharedStreetsLinearBins extends SharedStreetsLinearBins {
         return filteredBins;
     }
 
-    getHourOfDaySummary(typeFilter:string) {
+    getHourOfDaySummary(typeFilter:string, periodFilter:Set<number>) {
 
         var filteredBins = new Map<number,SharedStreetsBin[]>();
 
         for(var binPosition of Object.keys(this.bins)) {
             for(var period of Object.keys(this.bins[binPosition])) {
 
-                var hourOfDay = (parseInt(period) % 23);
-                if(hourOfDay > 23)
-                    hourOfDay = hourOfDay - 23;
+                var hourOfDay = (parseInt(period) % 24);
+                if(hourOfDay > 24)
+                    hourOfDay = hourOfDay - 24;
                 if(hourOfDay <= 0)
-                    hourOfDay = hourOfDay + 23;
+                    hourOfDay = hourOfDay + 24;
                 
+
                 if(typeFilter) {
                     if(typeFilter !== this.bins[binPosition][period].type)
+                        continue;
+                }
+
+                if(periodFilter) {
+                    if(!periodFilter.has(parseInt(period)))
                         continue;
                 }
 
@@ -184,9 +190,9 @@ export class WeeklySharedStreetsLinearBins extends SharedStreetsLinearBins {
         return sum;
     }
 
-    getCountForHoursOfDay(typeFilter) {
+    getCountForHoursOfDay(typeFilter, periodFilter:Set<number>) {
 
-        var summary = this.getHourOfDaySummary(typeFilter);
+        var summary = this.getHourOfDaySummary(typeFilter, periodFilter);
 
         var hourOfDayCount = {};
 
@@ -301,9 +307,9 @@ export class EventData {
         var offset = 0;
 
         if(week != '') {
-            var localTimeZone = moment.tz(week + " 12:00", TIMEZONE);
-            localTimeZone.utcOffset()
-            offset = Math.round(localTimeZone.utcOffset() / 60);
+            // var localTimeZone = moment.tz(week + " 12:00", TIMEZONE);
+            // localTimeZone.utcOffset()
+            // offset = Math.round(localTimeZone.utcOffset() / 60);
         }   
         
         var buffer = fs.readFileSync(tilePath);
@@ -549,15 +555,13 @@ export class EventData {
                         var binValue = 0;
                         var binCount = 0;
                         for(var week of weeks) {    
-                            if(this.data.has(week)) {
+                            if(this.data.has(week) && this.data.get(week).has(refId)) {
                                 var weeklyData = this.data.get(week).get(refId);
                                 if(weeklyData) {
                                     binValue += weeklyData.getValueForBin(binPosition, type['type'], periodFilter);
                                     binCount += weeklyData.getCountForBin(binPosition, type['type'], periodFilter); 
                                 }
                             }
-                            else 
-                                console.log("week not loaded: " + week);
                         }   
 
                         if(binCount > 2) {
@@ -592,6 +596,7 @@ export class EventData {
             var shstGeom = <SharedStreetsGeometry>this.tileIndex.objectIndex.get(geom.properties.id);
             
             if(shstGeom.forwardReferenceId) {
+                
                 var bins = getBinsForRefId(shstGeom.forwardReferenceId);
                 if(bins)
                     binPointCollection.features = binPointCollection.features.concat(bins.features);
@@ -607,9 +612,89 @@ export class EventData {
         return binPointCollection;
     }
 
-    async getSummary(extent:turfHelpers.Feature<Polygon>, week, typeFilter, periodFilter) {
+    async getSummary(extent:turfHelpers.Feature<Polygon>, weeks, typeFilter, periodFilter) {
 
-        
-        return {};
+        var summary:Map<string,Map<string, number>> = new Map();
+        var totalBinCount = 0;
+
+        const dailySummary = (refId) => {
+
+            if(!typeFilter || typeFilter.length == 0) {
+                typeFilter = [{type:null}]
+            }
+
+            var defaultRef = null;
+
+            for(var week of weeks) {
+                defaultRef = this.data.get(week).get(refId);
+                if(defaultRef) {
+                    var shstRef = <SharedStreetsReference>this.tileIndex.objectIndex.get(refId);
+                    var refLength = getReferenceLength(shstRef);
+                    var binLength = refLength / defaultRef.numberOfBins;
+
+                    var numberOfBins = getBinCountFromLength(refLength, 10);
+
+                    totalBinCount += numberOfBins;
+
+                    break;
+                }
+                    
+            }
+
+            var data = this.data.get(week).get(shstGeom.forwardReferenceId)
+                if(data) {
+                    for(var type of typeFilter) {
+                        var hourOfDayCount = data.getCountForHoursOfDay(type['type'], periodFilter);
+
+                        for(var hourOfDay of Object.keys(hourOfDayCount)) {
+
+                            if(!summary.has(type['type']))
+                                summary.set(type['type'], new Map());
+                            
+                            if(!summary.get(type['type']).has(hourOfDay))
+                                summary.get(type['type']).set(hourOfDay, 0);
+                        
+                            if(hourOfDayCount[hourOfDay] > 2)
+                                summary.get(type['type']).set(hourOfDay, summary.get(type['type']).get(hourOfDay) + hourOfDayCount[hourOfDay]);
+                        }
+                    }
+                }
+        }
+
+        var geoms = await this.tileIndex.intersects(extent, TileType.GEOMETRY, this.params, [TileType.REFERENCE]);
+
+        for(var geom of geoms.features) {
+            var shstGeom = <SharedStreetsGeometry>this.tileIndex.objectIndex.get(geom.properties.id);
+
+            if(shstGeom.forwardReferenceId) {
+                dailySummary(shstGeom.forwardReferenceId);
+            }
+
+            if(shstGeom.backReferenceId) {
+                dailySummary(shstGeom.backReferenceId);
+            }
+        }
+
+        // pivot and normalize values
+        var result = {}
+        for(var h = 1; h < 25; h++) {
+            var hourString = '' + h;
+            
+            for(var dataType of summary.keys()) {  
+
+                if(!result[dataType])
+                    result[dataType] = [];
+
+                if(summary.has(dataType) && summary.get(dataType).has(hourString)) {
+                    var hourlyRate = summary.get(dataType).get(hourString) / periodFilter.size / totalBinCount;
+                    result[dataType].push(hourlyRate);
+                }
+                else 
+                    result[dataType].push(0);
+
+            }
+        }
+
+        return result;
     }
 }
