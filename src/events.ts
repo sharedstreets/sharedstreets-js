@@ -7,11 +7,13 @@ import lineOffset from "@turf/line-offset";
 import turfBbox from '@turf/bbox';
 import turfBboxPolygon from '@turf/bbox-polygon';
 
+import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
+
 import {quantileRankSorted} from "simple-statistics"
 import { IBooleanFlag } from "@oclif/parser/lib/flags";
 import { each } from "benchmark";
 import { TileIndex, getBinCountFromLength, getReferenceLength } from "./tile_index";
-import { Feature } from "@turf/helpers";
+import { Feature, polygon } from "@turf/helpers";
 import { Polygon } from "@turf/buffer/node_modules/@turf/helpers";
 import { TilePathParams, TileType } from "./tiles";
 import { SharedStreetsGeometry, SharedStreetsReference } from "sharedstreets-types";
@@ -93,6 +95,17 @@ class SharedStreetsLinearBins {
         bin.value = value;
         this.bins[binPosition] = bin;
     }
+}
+
+function lineInsidePolygon(geom:turfHelpers.Feature<turfHelpers.LineString>, poly:turfHelpers.Feature<turfHelpers.Polygon>) {
+    
+    var firstPoint = turfHelpers.point(geom.geometry.coordinates[0]);
+    var lastPoint = geom.geometry.coordinates[geom.geometry.coordinates.length - 1];
+
+    if( booleanPointInPolygon(firstPoint, poly) || booleanPointInPolygon(lastPoint, poly) )
+        return true;
+    else 
+        return false;
 }
 
 export class WeeklySharedStreetsLinearBins extends SharedStreetsLinearBins {
@@ -430,6 +443,9 @@ export class EventData {
 
             for(var geom of geoms.features) {
 
+                if(!lineInsidePolygon(<turfHelpers.Feature<turfHelpers.LineString>>geom, extent))
+                    continue;
+
                 var shstGeom = <SharedStreetsGeometry>this.tileIndex.objectIndex.get(geom.properties.id);
                 
                 if(shstGeom.forwardReferenceId) {
@@ -593,6 +609,10 @@ export class EventData {
         var geoms = await this.tileIndex.intersects(extent, TileType.GEOMETRY, this.params, [TileType.REFERENCE]);
 
         for(var geom of geoms.features) {
+
+            if(!lineInsidePolygon(<turfHelpers.Feature<turfHelpers.LineString>>geom, extent))
+                    continue;
+
             var shstGeom = <SharedStreetsGeometry>this.tileIndex.objectIndex.get(geom.properties.id);
             
             if(shstGeom.forwardReferenceId) {
@@ -664,6 +684,10 @@ export class EventData {
         var geoms = await this.tileIndex.intersects(extent, TileType.GEOMETRY, this.params, [TileType.REFERENCE]);
 
         for(var geom of geoms.features) {
+
+            if(!lineInsidePolygon(<turfHelpers.Feature<turfHelpers.LineString>>geom, extent))
+                    continue;
+                    
             var shstGeom = <SharedStreetsGeometry>this.tileIndex.objectIndex.get(geom.properties.id);
 
             if(shstGeom.forwardReferenceId) {

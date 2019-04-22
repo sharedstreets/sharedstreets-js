@@ -25,7 +25,6 @@ const Hapi = require('hapi');
 const Inert = require('inert');
 
 
-
 export default class View extends Command {
   static description = 'tools for viewing SharedStreets data sets'
 
@@ -276,4 +275,4 @@ async function server(dirPath:string) {
     console.log('Server running at: http://localhost:3000/'); // server.info.uri
 }
 
-//server('tmp/u/');
+//server('./u_1/');

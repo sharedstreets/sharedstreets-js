@@ -62,6 +62,7 @@
     "typescript": "*"
   },
   "dependencies": {
+    "@hapi/basic": "^5.1.0",
     "@mapbox/sphericalmercator": "^1.1.0",
     "@oclif/command": "^1.5.12",
     "@oclif/config": "^1.12.11",
@@ -70,6 +71,7 @@
     "@turf/bbox": "^6.0.1",
     "@turf/bbox-polygon": "^6.0.1",
     "@turf/bearing": "^6.0.1",
+    "@turf/boolean-point-in-polygon": "^6.0.1",
     "@turf/buffer": "^5.1.5",
     "@turf/envelope": "^5.1.5",
     "@turf/helpers": "^6.0.1",
