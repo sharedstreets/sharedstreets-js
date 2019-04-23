@@ -40,12 +40,14 @@ export default class Match extends Command {
 
     // flag with a value (-o, --out=FILE)
     out: flags.string({char: 'o', description: 'file output name creates files [file-output-name].matched.geojson and [file-output-name].unmatched.geojson'}),
+    'tile-source': flags.string({description: 'SharedStreets tile source', default: 'osm/planet-181224'}),
+    'tile-hierarchy': flags.integer({description: 'SharedStreets tile hierarchy', default: 6}),
     'skip-port-properties': flags.boolean({char: 'p', description: 'skip porting existing feature properties preceeded by "pp_"', default: false}),
     'follow-line-direction': flags.boolean({description: 'only match using line direction', default: false}),
-    'direction-field': flags.string({description: 'name of optional line properity describing segment directionality, use the related "oneway-*-value" and "twoway-value" properities'}),
-    'oneway-with-direction-value': flags.string({description: 'name of optional value of "oneway-field" indicating a oneway street with line direction'}),
-    'oneway-against-direction-value': flags.string({description: 'name of optional value of "oneway-field" indicating a oneway street against line direction'}),
-    'twoway-value': flags.string({description: 'name of optional value of "oneway-field" indicating a oneway street'}),
+    'direction-field': flags.string({description: 'name of optional line properity describing segment directionality, use the related "one-way-*-value" and "two-way-value" properities'}),
+    'one-way-with-direction-value': flags.string({description: 'name of optional value of "direction-field" indicating a one-way street with line direction'}),
+    'one-way-against-direction-value': flags.string({description: 'name of optional value of "direction-field" indicating a one-way street against line direction'}),
+    'two-way-value': flags.string({description: 'name of optional value of "direction-field" indicating a two-way street'}),
     'bearing-field': flags.string({description: 'name of optional point property containing bearing in decimal degrees', default:'bearing'}),
     'search-radius': flags.integer({description: 'search radius for for snapping points, lines and traces', default:10}),
     'snap-intersections': flags.boolean({description: 'snap line end-points to nearest intersection', default:false}),
@@ -80,14 +82,14 @@ export default class Match extends Command {
 
 
     if(flags['direction-field'])
-      console.log(chalk.bold.keyword('green')('  Filtering oneway and twoway streets using field "' + flags['direction-field'] + '" with values: ' + ' "' + flags['oneway-with-direction-value'] + '", "' + flags['oneway-against-direction-value'] + '", "' +  flags['twoway-value'] + '"'));
+      console.log(chalk.bold.keyword('green')('  Filtering one-way and two-way streets using field "' + flags['direction-field'] + '" with values: ' + ' "' + flags['one-way-with-direction-value'] + '", "' + flags['one-way-against-direction-value'] + '", "' +  flags['two-way-value'] + '"'));
     
     var content = readFileSync(inFile);
     var data:turfHelpers.FeatureCollection<turfHelpers.Geometry> = JSON.parse(content.toLocaleString());
   
     var params = new TilePathParams();
-    params.source = 'osm/planet-181224';
-    params.tileHierarchy = 6
+    params.source = flags['tile-source'];
+    params.tileHierarchy = flags['tile-hierarchy']
 
     if(data.features[0].geometry.type  === 'LineString' || data.features[0].geometry.type  === 'MultiLineString') {
       await matchLines(outFile, params, data, flags);
@@ -193,13 +195,13 @@ async function matchLines(outFile, params, lines, flags) {
 
       var lineDirectionValue =  '' + line.properties[flags['direction-field'].toLocaleLowerCase()];
 
-      if(lineDirectionValue == '' + flags['oneway-with-direction-value']) {
+      if(lineDirectionValue == '' + flags['one-way-with-direction-value']) {
         matchDirection = MatchDirection.FORWARD;
       }
-      else if(lineDirectionValue == '' + flags['oneway-against-direction-value']) {
+      else if(lineDirectionValue == '' + flags['one-way-against-direction-value']) {
         matchDirection = MatchDirection.BACKWARD;
       }
-      else if(lineDirectionValue == '' + flags['twoway-value']) {
+      else if(lineDirectionValue == '' + flags['two-way-value']) {
         matchDirection = MatchDirection.BOTH;
       } 
       else {
@@ -264,19 +266,3 @@ async function matchLines(outFile, params, lines, flags) {
   }
 
 }
-
-// var content = readFileSync('tmp/HERE_intersection_test.js');
-// var data:turfHelpers.FeatureCollection<turfHelpers.Geometry> = JSON.parse(content.toLocaleString());
-
-// var params = new TilePathParams();
-// params.source = 'osm/planet-181224';
-// params.tileHierarchy = 6
-
-// //matchLines('tmp/HERE_intersection_test.js.out', params, data, {});
-// var content = readFileSync('tmp/sf_centerlines.geojson');
-// var data:turfHelpers.FeatureCollection<turfHelpers.Geometry> = JSON.parse(content.toLocaleString());
-
-
-// if(data.features[0].geometry.type  === 'LineString' || data.features[0].geometry.type  === 'MultiLineString') {
-// matchLines('tmp/sf_centerlines.geojson.out', params, data, {'direction-field':'oneway', 'twoway-value':'B','oneway-with-direction-value':'F', 'oneway-against-direction-value':'T'});
-// }
