@@ -7,8 +7,6 @@ import lineOffset from "@turf/line-offset";
 import turfBbox from '@turf/bbox';
 import turfBboxPolygon from '@turf/bbox-polygon';
 
-import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
-
 import {quantileRankSorted} from "simple-statistics"
 import { IBooleanFlag } from "@oclif/parser/lib/flags";
 import { each } from "benchmark";
@@ -17,6 +15,7 @@ import { Feature, polygon } from "@turf/helpers";
 import { Polygon } from "@turf/buffer/node_modules/@turf/helpers";
 import { TilePathParams, TileType } from "./tiles";
 import { SharedStreetsGeometry, SharedStreetsReference } from "sharedstreets-types";
+import { lineInsidePolygon } from "./geom";
 
 var linearProto = require('./proto/linear.js');
 
@@ -97,16 +96,7 @@ class SharedStreetsLinearBins {
     }
 }
 
-function lineInsidePolygon(geom:turfHelpers.Feature<turfHelpers.LineString>, poly:turfHelpers.Feature<turfHelpers.Polygon>) {
-    
-    var firstPoint = turfHelpers.point(geom.geometry.coordinates[0]);
-    var lastPoint = geom.geometry.coordinates[geom.geometry.coordinates.length - 1];
 
-    if( booleanPointInPolygon(firstPoint, poly) || booleanPointInPolygon(lastPoint, poly) )
-        return true;
-    else 
-        return false;
-}
 
 export class WeeklySharedStreetsLinearBins extends SharedStreetsLinearBins {
 

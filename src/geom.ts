@@ -4,12 +4,24 @@ import envelope from '@turf/envelope';
 import * as turfHelpers from '@turf/helpers';
 import { Point, LineString } from '@turf/buffer/node_modules/@turf/helpers';
 
+import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
 
 export function envelopeBufferFromPoint(point, radius):turfHelpers.Feature<turfHelpers.Polygon> {
     var nwPoint = destination(point, radius, 315, {'units':'meters'});
     var sePoint = destination(point, radius, 135, {'units':'meters'});
     return envelope(helpers.featureCollection([nwPoint, sePoint]));
 }   
+
+export function lineInsidePolygon(geom:turfHelpers.Feature<turfHelpers.LineString>, poly:turfHelpers.Feature<turfHelpers.Polygon>) {
+    
+    var firstPoint = turfHelpers.point(geom.geometry.coordinates[0]);
+    var lastPoint = geom.geometry.coordinates[geom.geometry.coordinates.length - 1];
+
+    if( booleanPointInPolygon(firstPoint, poly) || booleanPointInPolygon(lastPoint, poly) )
+        return true;
+    else 
+        return false;
+}
 
 export function reverseLineString(line:turfHelpers.Feature<turfHelpers.LineString>):turfHelpers.Feature<turfHelpers.LineString>|turfHelpers.LineString {
 	var reverseLineFeature:turfHelpers.Feature<turfHelpers.LineString> = JSON.parse(JSON.stringify(line));
