@@ -274,5 +274,3 @@ async function server(dirPath:string) {
 
     console.log('Server running at: http://localhost:3000/'); // server.info.uri
 }
-
-//server('./u_1/');

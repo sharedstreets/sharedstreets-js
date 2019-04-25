@@ -93,7 +93,12 @@ export async function getTile(tilePath:TilePath):Promise<any[]> {
         console.log(chalk.keyword('lightgreen')("     reading from cached: " + SHST_TILE_CACHE_DIR + tilePath.toPathString()));
     }
     else {
-        arrayBuffer = await getPbf(SHST_TILE_URL + tilePath.toPathString());
+
+        try { 
+            arrayBuffer = await getPbf(SHST_TILE_URL + tilePath.toPathString());
+        } catch(e)  {
+            return [];
+        }
 
         if(USE_LOCAL_CACHE) {
             mkdirSync(SHST_TILE_CACHE_DIR + tilePath.source, { recursive: true });

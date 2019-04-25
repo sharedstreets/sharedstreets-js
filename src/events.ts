@@ -310,6 +310,7 @@ export class EventData {
         var offset = 0;
 
         if(week != '') {
+            // shifted timeszone calc to filter/pre-processing step...
             // var localTimeZone = moment.tz(week + " 12:00", TIMEZONE);
             // localTimeZone.utcOffset()
             // offset = Math.round(localTimeZone.utcOffset() / 60);
@@ -412,7 +413,7 @@ export class EventData {
                             }
                         }
 
-                        if(edgeCount > 0) {
+                        if(edgeCount > 2) {
                             var geom = this.tileIndex.referenceToOffsetLine(refId, offset, ReferenceSideOfStreet.RIGHT);
                             geom.properties['edgeCount'] = edgeCount / refLength;
                             //geom.properties['edgeCount'] = edgeCount / refLength;
@@ -522,6 +523,8 @@ export class EventData {
 
     async getBins(extent:turfHelpers.Feature<Polygon>, weeks:string[], typeFilter, periodFilter:Set<number>) {
 
+        var totalCount:Map<string,number> = new Map();
+
         const getBinsForRefId = (refId) =>  {
             var shstRef:SharedStreetsReference = <SharedStreetsReference>this.tileIndex.objectIndex.get(refId);
             
@@ -532,9 +535,11 @@ export class EventData {
             var defaultRef = null;
 
             for(var week of weeks) {
-                defaultRef = this.data.get(week).get(refId);
-                if(defaultRef)
-                    break;
+                if(this.data.get(week).has(refId)) {
+                    defaultRef = this.data.get(week).get(refId);
+                    if(defaultRef)
+                        break;
+                }
             }
 
             if(defaultRef)  {
@@ -548,6 +553,11 @@ export class EventData {
                     var offset = 5;
                     if(type['offset'])
                         offset = type['offset'];
+
+
+                    if(!totalCount.has(type['type']))
+                        totalCount.set(type['type'], 0);
+
 
                     var bins = this.tileIndex.referenceToBins(refId, numberOfBins, offset, ReferenceSideOfStreet.RIGHT);
 
@@ -566,24 +576,28 @@ export class EventData {
                                 if(weeklyData) {
                                     binValue += weeklyData.getValueForBin(binPosition, type['type'], periodFilter);
                                     binCount += weeklyData.getCountForBin(binPosition, type['type'], periodFilter); 
+
+                                    totalCount.set(type['type'], totalCount.get(type['type']) + weeklyData.getCountForBin(binPosition, type['type'], periodFilter));
                                 }
                             }
                         }   
 
-                        if(binCount > 2) {
+                        if(binCount ) {
                             var periodAverageCount =  binCount / (periodFilter.size * weeks.length);
                             // reduce decimal precision for transport
                             periodAverageCount= Math.round(periodAverageCount * 10000) / 10000;
         
                             binPoint.id = generateBinId(refId, numberOfBins, binPosition);
                             binPoint.properties['periodAverageCount'] = periodAverageCount;
+                            binPoint.properties['refId'] = refId; 
+                            binPoint.properties['binPos'] = binPosition; 
 
                             if(type['color'])
                                 binPoint.properties['color'] = type['color'];
                             
                             binPoint.properties['type'] = type['type'];
         
-                            if(periodAverageCount > 0.001)
+                            if(periodAverageCount )
                                 binPointCollection.features.push(binPoint);
                         }              
                     }
@@ -592,8 +606,6 @@ export class EventData {
                 return binPointCollection;
             } 
         };
-
-        //var periodRange = periodFilter[1] - periodFilter[0];
 
         var binPointCollection = turfHelpers.featureCollection([]);
         var geoms = await this.tileIndex.intersects(extent, TileType.GEOMETRY, this.params, [TileType.REFERENCE]);
@@ -618,6 +630,10 @@ export class EventData {
                     binPointCollection.features = binPointCollection.features.concat(bins.features);
             }
         }
+
+        for(var type of totalCount.keys()) {
+            console.log(' ' + type + ': ' + totalCount.get(type))
+        }  
 
         return binPointCollection;
     }
@@ -664,7 +680,7 @@ export class EventData {
                             if(!summary.get(type['type']).has(hourOfDay))
                                 summary.get(type['type']).set(hourOfDay, 0);
                         
-                            if(hourOfDayCount[hourOfDay] > 2)
+                            if(hourOfDayCount[hourOfDay] > 0)
                                 summary.get(type['type']).set(hourOfDay, summary.get(type['type']).get(hourOfDay) + hourOfDayCount[hourOfDay]);
                         }
                     }
