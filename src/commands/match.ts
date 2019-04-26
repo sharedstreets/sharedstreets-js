@@ -1,11 +1,9 @@
 import {Command, flags} from '@oclif/command'
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 
-import { TilePathParams, TileType, TilePathGroup } from '../tiles'
-
-import { TileIndex } from '../tile_index'
-import { PointMatcher } from '../point_matcher'
-
+import { TilePathParams, TileType, TilePathGroup } from '../index'
+import { TileIndex } from '../index'
+import { PointMatcher } from '../index'
 
 import * as turfHelpers from '@turf/helpers';
 

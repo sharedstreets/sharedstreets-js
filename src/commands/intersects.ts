@@ -1,8 +1,8 @@
 import {Command, flags} from '@oclif/command'
 import { readFileSync, writeFileSync } from 'fs';
 
-import { TilePathParams, TileType, TilePathGroup } from '../tiles'
-import { TileIndex } from '../tile_index'
+import { TilePathParams, TileType, TilePathGroup } from '../index'
+import { TileIndex } from '../index'
 
 import geomLength from '@turf/length';
 

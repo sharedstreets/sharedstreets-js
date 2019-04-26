@@ -8,10 +8,10 @@ import * as sharedstreets from "./src/index";
 
 import * as turfHelpers from '@turf/helpers';
 
-import * as tiles from "./src/tiles";
-import { TileIndex } from "./src/tile_index";
-import { TilePathGroup, TileType, TilePathParams } from "./src/tiles";
-import { PointMatcher } from "./src/point_matcher";
+import { TileIndex } from './src/index';
+import { TilePathGroup, TileType, TilePathParams } from './src/index';
+import { PointMatcher } from './src/index';
+
 import { CleanedPoints, CleanedLines } from "./src/geom";
 import { Graph } from "./src/graph";
 import envelope from "@turf/envelope";

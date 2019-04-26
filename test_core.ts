@@ -8,9 +8,10 @@ import * as sharedstreets from "./src/index";
 
 import * as turfHelpers from '@turf/helpers';
 
-import * as tiles from "./src/tiles";
-import { TileIndex } from "./src/tile_index";
-import { TilePathGroup, TileType, TilePathParams } from "./src/tiles";
+import { TileIndex } from './src/index';
+import { TilePathGroup, TileType, TilePathParams, TilePath } from './src/index';
+
+import { getTileIdsForPolygon, getTileIdsForPoint, getTile } from "./src/tiles"
 import { CleanedPoints, CleanedLines } from "./src/geom";
 
 
@@ -270,22 +271,22 @@ test("tiles -- generate tile ids ", (t:any) => {
       };
 
   // test tiles for polygon
-  var tiles1 = tiles.getTileIdsForPolygon(poloygon);
+  var tiles1 = getTileIdsForPolygon(poloygon);
   t.deepEqual(tiles1, ["12-1171-1566","12-1171-1567"]);
   
   // test buffering
-  var tiles2 = tiles.getTileIdsForPolygon(poloygon, 10000);
+  var tiles2 = getTileIdsForPolygon(poloygon, 10000);
   t.deepEqual(tiles2, ["12-1170-1566","12-1170-1567","12-1171-1566","12-1171-1567","12-1172-1566","12-1172-1567"]);  
 
   // test polygon (dc area)
   var point = turfHelpers.point([ -77.0511531829834, 38.88588861057251]);
 
   // test tiles for point
-  var tiles3 = tiles.getTileIdsForPoint(point, 10);
+  var tiles3 = getTileIdsForPoint(point, 10);
   t.deepEqual(tiles3, ["12-1171-1567"]);
 
   // test buffering  
-  var tiles4 = tiles.getTileIdsForPoint(point, 10000);
+  var tiles4 = getTileIdsForPoint(point, 10000);
   t.deepEqual(tiles4, ["12-1170-1566","12-1170-1567","12-1170-1568","12-1171-1566","12-1171-1567","12-1171-1568","12-1172-1566","12-1172-1567","12-1172-1568"]);  
   
   t.end();
@@ -297,7 +298,7 @@ test("tiles -- build tile paths ", (t:any) => {
     var pathString =  'osm/planet-180430/12-1171-1566.geometry.6.pbf';
     
     // test path parsing 
-    var tilePath = new tiles.TilePath(pathString);
+    var tilePath = new TilePath(pathString);
     t.deepEqual(tilePath, {"tileId":"12-1171-1566","tileType":"geometry","source":"osm/planet-180430","tileHierarchy":6});
     
     // test path string builder
@@ -305,7 +306,7 @@ test("tiles -- build tile paths ", (t:any) => {
     t.equal(pathString, pathString2);
 
     // test path group
-    var pathGroup = new tiles.TilePathGroup([tilePath]);
+    var pathGroup = new TilePathGroup([tilePath]);
     t.deepEqual(pathGroup, { source: 'osm/planet-180430', tileHierarchy: 6, tileTypes: ['geometry'], tileIds: ['12-1171-1566']});
 
     // test path gruop eumeration
@@ -317,9 +318,9 @@ test("tiles -- build tile paths ", (t:any) => {
 
 test("tiles -- fetch/parse protobuf filese", async (t:any) => { 
   // get data 
-  var tilePath = new tiles.TilePath('osm/planet-180430/12-1171-1566.geometry.6.pbf');
+  var tilePath = new TilePath('osm/planet-180430/12-1171-1566.geometry.6.pbf');
 
-  var data = await tiles.getTile(tilePath);
+  var data = await getTile(tilePath);
   t.equal(data.length, 7352);
   
   t.end();
@@ -345,7 +346,7 @@ test("cache -- load data", async (t:any) => {
     }
   };
 
-  var tilesIds = tiles.getTileIdsForPolygon(polygon);
+  var tilesIds = getTileIdsForPolygon(polygon);
   
   var params = new TilePathParams();
   params.source = 'osm/planet-180430';

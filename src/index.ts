@@ -14,6 +14,9 @@ import {
 import { isArray } from "util";
 
 export { Graph } from './graph'
+export { PointMatcher } from './point_matcher'
+export { TileIndex } from './tile_index'
+export { TilePathGroup, TilePath, TilePathParams, TileType } from './tiles'
 
 /**
  * Shared Streets Java implementation
