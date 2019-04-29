@@ -224,8 +224,80 @@ export class PointMatcher {
 		return ref.locationReferences[0].intersectionId;
 	}
 
+	async getPointCandidateFromRefId(searchPoint:turfHelpers.Feature<turfHelpers.Point>, refId:string, searchBearing:number):Promise<PointCandidate> {
 
-	async getPointCandidateFromGeom(searchPoint:turfHelpers.Feature<turfHelpers.Point>, pointOnLine:turfHelpers.Feature<turfHelpers.Point>, candidateGeom:SharedStreetsGeometry, candidateGeomFeature:Feature<LineString>,  searchBearing:number, direction:ReferenceDirection):Promise<PointCandidate> {
+		var reference = <SharedStreetsReference>this.tileIndex.objectIndex.get(refId);
+		var geometry = <SharedStreetsGeometry>this.tileIndex.objectIndex.get(reference.geometryId);
+		var geometryFeature = <Feature<LineString>>this.tileIndex.featureIndex.get(reference.geometryId);
+
+		var direction = ReferenceDirection.FORWARD;
+		if(geometry.backReferenceId  && geometry.backReferenceId === refId)
+			direction = ReferenceDirection.BACKWARD; 
+
+		var pointOnLine = nearestPointOnLine(geometryFeature, searchPoint, {units:'meters'});	
+
+		if(pointOnLine.properties.dist < this.searchRadius) {
+			
+			var refLength = 0;
+			for(var lr of reference.locationReferences) {
+				if(lr.distanceToNextRef)
+					refLength = refLength + (lr.distanceToNextRef / 100);
+			}
+	
+			var interceptBearing = normalizeAngle(bearing(pointOnLine, searchPoint));
+
+			var i = pointOnLine.properties.index;
+
+			if(geometryFeature.geometry.coordinates.length <= i + 1)
+				i = i - 1;
+
+			var lineBearing = bearing(geometryFeature.geometry.coordinates[i], geometryFeature.geometry.coordinates[i + 1]);
+
+			if(direction === ReferenceDirection.BACKWARD)
+				lineBearing += 180;
+
+			lineBearing = normalizeAngle(lineBearing);	
+			
+			var pointCandidate:PointCandidate = new PointCandidate();
+
+			pointCandidate.searchPoint = searchPoint;
+			pointCandidate.pointOnLine = pointOnLine;
+
+
+			pointCandidate.geometryId = geometryFeature.properties.id; 
+			pointCandidate.referenceId = reference.id;
+			pointCandidate.roadClass = geometry.roadClass;
+
+			// if(this.includeStreetnames) {
+			// 	var metadata = await this.cache.metadataById(pointCandidate.geometryId);
+			// 	pointCandidate.streetname = metadata.name;
+			// }
+
+			pointCandidate.direction = direction;
+			pointCandidate.referenceLength = refLength;
+
+			if(direction === ReferenceDirection.FORWARD) 
+				pointCandidate.location = pointOnLine.properties.location;
+			else
+				pointCandidate.location = refLength - pointOnLine.properties.location;
+
+			pointCandidate.bearing = normalizeAngle(lineBearing);
+			pointCandidate.interceptAngle = normalizeAngle(interceptBearing - lineBearing);
+
+			if(geometry.backReferenceId)
+				pointCandidate.oneway = false;
+			else
+				pointCandidate.oneway = true;
+			
+			// check bearing and add to candidate list
+			if(!searchBearing || angleDelta(searchBearing, lineBearing) < this.bearingTolerance)
+				return pointCandidate;
+		}
+
+		return null;
+	}
+
+	getPointCandidateFromGeom(searchPoint:turfHelpers.Feature<turfHelpers.Point>, pointOnLine:turfHelpers.Feature<turfHelpers.Point>, candidateGeom:SharedStreetsGeometry, candidateGeomFeature:Feature<LineString>,  searchBearing:number, direction:ReferenceDirection):PointCandidate {
 
 		if(pointOnLine.properties.dist < this.searchRadius) {
 
@@ -295,7 +367,7 @@ export class PointMatcher {
 				pointCandidate.oneway = true;
 			
 			// check bearing and add to candidate list
-			if(searchBearing == null || angleDelta(searchBearing, lineBearing) < this.bearingTolerance)
+			if(!searchBearing || angleDelta(searchBearing, lineBearing) < this.bearingTolerance)
 				return pointCandidate;
 		}
 

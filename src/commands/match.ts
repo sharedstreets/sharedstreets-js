@@ -39,7 +39,7 @@ export default class Match extends Command {
     // flag with a value (-o, --out=FILE)
     out: flags.string({char: 'o', description: 'file output name creates files [file-output-name].matched.geojson and [file-output-name].unmatched.geojson'}),
     'tile-source': flags.string({description: 'SharedStreets tile source', default: 'osm/planet-181224'}),
-    'tile-hierarchy': flags.integer({description: 'SharedStreets tile hierarchy', default: 6}),
+    'tile-hierarchy': flags.integer({description: 'SharedStreets tile hierarchy', default: 8}),
     'skip-port-properties': flags.boolean({char: 'p', description: 'skip porting existing feature properties preceeded by "pp_"', default: false}),
     'follow-line-direction': flags.boolean({description: 'only match using line direction', default: false}),
     'direction-field': flags.string({description: 'name of optional line properity describing segment directionality, use the related "one-way-*-value" and "two-way-value" properities'}),
@@ -217,7 +217,7 @@ async function matchLines(outFile, params, lines, flags) {
     var matchedOneDirection:boolean = false;
     if(matchDirection == MatchDirection.FORWARD || matchDirection == MatchDirection.BOTH) {
       var matchForward = await matcher.match(line);
-      if(matchForward) {
+      if(matchForward && matchForward.score < matcher.searchRadius * 2) {
         var matchedLine = <turfHelpers.Feature<LineString>>applyProperties(matchForward, line);
         matchedLines.push(matchedLine);
         matchedOneDirection=true;
@@ -227,13 +227,13 @@ async function matchLines(outFile, params, lines, flags) {
     if(matchDirection == MatchDirection.BACKWARD || matchDirection == MatchDirection.BOTH) {
       var reversedLine = <turfHelpers.Feature<LineString>>reverseLineString(line);
       var matchBackward = await matcher.match(reversedLine);
-      if(matchBackward) {
+      if(matchBackward && matchBackward.score < matcher.searchRadius * 2) {
           var matchedLine = <turfHelpers.Feature<LineString>>applyProperties(matchBackward, reversedLine);
           matchedLines.push(matchedLine);
           matchedOneDirection=true;
       }
     }
-    
+
     if(!matchedOneDirection)
       unmatchedLines.push(line);
   
