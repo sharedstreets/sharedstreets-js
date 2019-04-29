@@ -6,6 +6,15 @@ import * as path from "path";
 import * as sharedstreetsPbf from "sharedstreets-pbf";
 import * as sharedstreets from "./src/index";
 
+import * as turfHelpers from '@turf/helpers';
+
+import * as tiles from "./src/tiles";
+import { TileIndex } from "./src/tile_index";
+import { TilePathGroup, TileType, TilePathParams } from "./src/tiles";
+import { Matcher } from "./src/matcher";
+import { CleanedPoints, CleanedLines } from "./src/geom";
+
+
 const test = require('tape');
 
 const pt1 = [110, 45];
@@ -13,6 +22,7 @@ const pt2 = [-74.003388, 40.634538];
 const pt3 = [-74.004107, 40.63406];
 
 
+// core library tests
 
 test("sharedstreets -- intersection", (t:any) => {
   t.equal(sharedstreets.intersectionId(pt1), "afd3db07d9baa6deef7acfcaac240607", "intersectionId => pt1");
@@ -59,7 +69,7 @@ test("sharedstreets -- locationReference", (t:any) => {
 
 test("sharedstreets-pbf -- intersection", (t:any) => {
   var count = 1;
-  for(var filepath of glob.sync(path.join('./', "test", "in", `*.intersection.6.pbf`))) {
+  for(var filepath of glob.sync(path.join('./', "test", "pbf", `*.intersection.6.pbf`))) {
     const buffer = fs.readFileSync(filepath);
     const intersections = sharedstreetsPbf.intersection(buffer);
 
@@ -80,7 +90,7 @@ test("sharedstreets-pbf -- intersection", (t:any) => {
 
 test("sharedstreets-pbf -- geometry", (t:any) => {
   var count = 1;
-  for(var filepath of glob.sync(path.join('./', "test", "in", `*.geometry.6.pbf`))) {
+  for(var filepath of glob.sync(path.join('./', "test", "pbf", `*.geometry.6.pbf`))) {
 
     const buffer = fs.readFileSync(filepath);
     const geometries = sharedstreetsPbf.geometry(buffer);
@@ -103,7 +113,7 @@ test("sharedstreets-pbf -- geometry", (t:any) => {
 
 test("sharedstreets-pbf -- reference", (t:any) => {
   var count = 1;
-  for(var filepath of glob.sync(path.join('./', "test", "in", `*.reference.6.pbf`))) {
+  for(var filepath of glob.sync(path.join('./', "test", "pbf", `*.reference.6.pbf`))) {
     const buffer = fs.readFileSync(filepath);
     const references = sharedstreetsPbf.reference(buffer);
 
@@ -237,3 +247,155 @@ test("sharedstreets -- closed loops - Issue #8", (t:any) => {
   t.assert(sharedstreets.backReference(line));
   t.end();
 });
+
+
+// cache module tests
+
+test("tiles -- generate tile ids ", (t:any) => {
+
+  // test polygon (dc area)
+  var poloygon:turfHelpers.Feature<turfHelpers.Polygon> = {
+    
+        "type": "Feature",
+        "properties": {},
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [[-77.0511531829834,38.88588861057251],
+            [-77.00746536254883, 38.88588861057251],
+            [-77.00746536254883, 38.91407701203291],
+            [-77.0511531829834, 38.91407701203291],
+            [-77.0511531829834,38.88588861057251]]
+          ]
+        }
+      };
+
+  // test tiles for polygon
+  var tiles1 = tiles.getTileIdsForPolygon(poloygon);
+  t.deepEqual(tiles1, ["12-1171-1566","12-1171-1567"]);
+  
+  // test buffering
+  var tiles2 = tiles.getTileIdsForPolygon(poloygon, 10000);
+  t.deepEqual(tiles2, ["12-1170-1566","12-1170-1567","12-1171-1566","12-1171-1567","12-1172-1566","12-1172-1567"]);  
+
+  // test polygon (dc area)
+  var point = turfHelpers.point([ -77.0511531829834, 38.88588861057251]);
+
+  // test tiles for point
+  var tiles3 = tiles.getTileIdsForPoint(point, 10);
+  t.deepEqual(tiles3, ["12-1171-1567"]);
+
+  // test buffering  
+  var tiles4 = tiles.getTileIdsForPoint(point, 10000);
+  t.deepEqual(tiles4, ["12-1170-1566","12-1170-1567","12-1170-1568","12-1171-1566","12-1171-1567","12-1171-1568","12-1172-1566","12-1172-1567","12-1172-1568"]);  
+  
+  t.end();
+});
+
+
+test("tiles -- build tile paths ", (t:any) => {
+
+    var pathString =  'osm/planet-180430/12-1171-1566.geometry.6.pbf';
+    
+    // test path parsing 
+    var tilePath = new tiles.TilePath(pathString);
+    t.deepEqual(tilePath, {"tileId":"12-1171-1566","tileType":"geometry","source":"osm/planet-180430","tileHierarchy":6});
+    
+    // test path string builder
+    var pathString2 = tilePath.toPathString();
+    t.equal(pathString, pathString2);
+
+    // test path group
+    var pathGroup = new tiles.TilePathGroup([tilePath]);
+    t.deepEqual(pathGroup, { source: 'osm/planet-180430', tileHierarchy: 6, tileTypes: ['geometry'], tileIds: ['12-1171-1566']});
+
+    // test path gruop eumeration
+    t.deepEqual([...pathGroup], [{ source: 'osm/planet-180430', tileHierarchy: 6, tileType: 'geometry', tileId: '12-1171-1566' }]);
+
+    t.end();
+
+});
+
+test("tiles -- fetch/parse protobuf filese", async (t:any) => { 
+  // get data 
+  var tilePath = new tiles.TilePath('osm/planet-180430/12-1171-1566.geometry.6.pbf');
+
+  var data = await tiles.getTile(tilePath);
+  t.equal(data.length, 7352);
+  
+  t.end();
+
+});
+
+
+test("cache -- load data", async (t:any) => { 
+   // test polygon (dc area)
+   var polygon:turfHelpers.Feature<turfHelpers.Polygon> = {
+    
+    "type": "Feature",
+    "properties": {},
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [[-77.0511531829834,38.88588861057251],
+        [-77.00746536254883, 38.88588861057251],
+        [-77.00746536254883, 38.91407701203291],
+        [-77.0511531829834, 38.91407701203291],
+        [-77.0511531829834,38.88588861057251]]
+      ]
+    }
+  };
+
+  var tilesIds = tiles.getTileIdsForPolygon(polygon);
+  
+  var params = new TilePathParams();
+  params.source = 'osm/planet-180430';
+  params.tileHierarchy = 6;
+
+  var tilePathGroup:TilePathGroup = TilePathGroup.fromPolygon(polygon, 0, params);
+  tilePathGroup.addType(TileType.GEOMETRY);
+  var tileIndex = new TileIndex();
+  await tileIndex.indexTilesByPathGroup(tilePathGroup);
+  t.equal(tileIndex.tiles.size, 2);
+
+  tilePathGroup.addType(TileType.INTERSECTION);
+  await tileIndex.indexTilesByPathGroup(tilePathGroup);
+  t.equal(tileIndex.tiles.size, 4);
+
+  var data = await tileIndex.intersects(polygon, TileType.GEOMETRY, params);
+  t.equal(data.features.length, 2102);
+
+  var data = await tileIndex.intersects(polygon, TileType.INTERSECTION, params);
+  t.equal(data.features.length,1162);
+
+  t.end();
+
+});
+
+
+test("tileIndex -- point data", async (t:any) => { 
+  // test polygon (dc area)
+  const content = fs.readFileSync('test/geojson/points_1.in.geojson');
+  var points:turfHelpers.FeatureCollection<turfHelpers.Point> = JSON.parse(content.toLocaleString());
+  
+  var params = new TilePathParams();
+  params.source = 'osm/planet-180430';
+  params.tileHierarchy = 6;
+
+  // test nearby
+  var tileIndex = new TileIndex();
+  var featureCount = 0;
+  for(var point of points.features) {
+    var foundFeatures = await tileIndex.nearby(point, TileType.GEOMETRY, 10, params);
+    featureCount += foundFeatures.features.length;
+  }
+
+  t.equal(featureCount,3);
+
+  t.end();
+});
+
+
+
+
+

@@ -1,3 +1,5 @@
+export {run} from '@oclif/command'
+
 import bearing from "@turf/bearing";
 import { bearingToAzimuth, Feature, lineString, LineString, Point, Position} from "@turf/helpers";
 import { getCoord } from "@turf/invariant";
