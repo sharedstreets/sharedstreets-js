@@ -3,12 +3,11 @@
   <head>
     <!-- Required meta tags -->
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-a-fit=no">
 
 
     
     <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
     <meta charset='utf-8' />
     <title>SharedStreets Analysis</title>
     <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
@@ -16,12 +15,13 @@
     <script src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.0.9/mapbox-gl-draw.js'></script>
     <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.53.1/mapbox-gl.css' rel='stylesheet' />
     <link rel='stylesheet' href='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.0.9/mapbox-gl-draw.css' type='text/css' />
-
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+    
 
     <style>
         body { margin:0; padding:0; }
-        #map { position:absolute; top:0; bottom:0; right: 300px; width:100%; }
-        #sidebar { position:absolute; right:0; top:0; bottom:0; width:300px; padding-top: 20px; }
+        #map { position:absolute; top:0; bottom:0; right: 400px; width:100%; }
+        #sidebar { position:absolute; right:0; top:0; bottom:0; width:400px; padding-top: 20px; }
     </style>
   </head>
   <body>
@@ -33,7 +33,23 @@
                 <b>Pickup/Dropoff Analysis</b>
 
                 <div style="margin-top: 20px;" id="head" class="container">
-                    <p><b>Hours:</b> <input type="text" id="hours" value="0-23"></p>
+
+                    <p><em>Query by drawing polygon using the selector tool in map.</em></p>
+
+                    <div id="chartContainer">
+                        <canvas id="bar-chart" width="600" height="350"></canvas>
+                    </div>
+
+                    <div id="typeSelector">
+                        <b>Display:</b>
+                        <p>
+                            <select name="type"><option value="rank">Ranked Blockface</option><option value="bins" selected>Hourly Average Count</option></select>
+                        </p>
+                    </div>
+                    
+
+                    <p><b>Hours:</b> <input type="text" id="hours" value="0-23"><br/>
+                    <em>(hours as range e.g. 0-23 or 18-02)</em></p>
                     
                     <b>Days of week: </b>
                     <p>
@@ -48,18 +64,14 @@
                 
                     <b>Weeks:</b>
                     <p>
-                        <!--<label><input type="checkbox" name="weeks" value="2017-09-11" checked> 2017-09-11</label>
-                        <label><input type="checkbox" name="weeks"value="2017-12-11" checked> 2017-12-11</label>
-                        <label><input type="checkbox" name="weeks"value="2018-01-29" checked> 2018-01-29</label>-->
-                        <label><input type="checkbox" name="weeks"value="2018-03-12" checked> 2018-03-12</label>
-                        <label><input type="checkbox" name="weeks"value="2018-04-23" checked> 2018-04-23</label>
-                        <label><input type="checkbox" name="weeks"value="2018-06-18" checked> 2018-06-18</label>
-                        <label><input type="checkbox" name="weeks"value="2018-07-16" checked> 2018-07-16</label>
-                        <label><input type="checkbox" name="weeks"value="2018-08-13" checked> 2018-08-13</label>
-                        <label><input type="checkbox" name="weeks"value="2018-09-10" checked> 2018-09-10</label>
+                        <div id="weeks">
+                        
+                        </div>
                     </p>
 
-                    <!-- <a href="#" id="downloadJson">Download JSON</a> -->
+                    <a href="#" id="downloadJson">Download GeoJSON</a>
+                    <span id="loadingData"> Loading data...</span>
+
                 </div>
             </div>
         </div>
@@ -68,7 +80,7 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-   
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.3.0/Chart.min.js"></script>
     
     <script>
         var currentJSON = {};
@@ -134,17 +146,39 @@
         processWeeks();
         processHours();
 
-        $(document).ready(function() {        
+        $(document).ready(function() {   
+            
+            $("#typeSelector").hide();
+            $("#downloadJson").hide();
+            $("#loadingData").hide();
+            $("#chartContainer").hide();
+
+            $.getJSON( '/api/weeks', (weeksData) => {
+                weeks = []
+                weeksData.forEach((week) => {
+                    weeks.push(week);
+
+                    var checkbox = $("<input>").attr('type', 'checkbox').attr('name', 'weeks').val(week);
+                    if(weeks.length == weeksData.length)
+                        checkbox.prop('checked', true);
+
+                    $("#weeks").append($("<label>").text(" " + week).prepend(checkbox));
+                });
+            });
 
             $('input[name=days]').change(function() {
                 processDays();
             });
 
-            $('input[name=weeks]').change(function() {
+            $("#hours").change(function() {
+                processHours();
+            });
+
+            $("#weeks").change(function() {
                 processWeeks();
             });
 
-            $("#hours").change(function() {
+             $('select[name=type]').change(function() {
                 processHours();
             });
         });
@@ -154,7 +188,7 @@
             container: 'map',
             style: 'mapbox://styles/mapbox/light-v10',
             zoom: 13,
-            center: [-79.3832, 43.6532] // -77.0369, 38.9072
+            center: [-79.9959, 40.4406]  
         });
 
         var polygon = null;
@@ -162,23 +196,44 @@
         function requestData() {
 
             if(polygon) {
+
+                $("#downloadJson").hide();
+                $("#loadingData").show();
+
                 var requestData = {
                     'weeks' : weeks.join(','),
                     'periodFilter':periodFilter.join(','),
-                    'typeFilter':'pickup:5:blue;dropoff:10:red',
+                    'typeFilter':'pickup:5;dropoff:10',
                     'polygon':polygon
                 };
 
-                $.getJSON( '/api/bins', requestData, (data) => {
-                    map.getSource("binData").setData(data);
+                var queryType = $('select[name=type]').val();
+
+                $.getJSON( '/api/summary', requestData, (data) => {
+                    buildChart(data);
+                });
+
+                $.getJSON( '/api/' +  queryType, requestData, (data) => {
+
+                    map.getSource("rankData").setData({type:"FeatureCollection", features:[]});
+                    map.getSource("binData").setData({type:"FeatureCollection", features:[]});
+
+                    if(queryType == 'bins')
+                        map.getSource("binData").setData(data);
+
+                    if(queryType == 'rank')
+                        map.getSource("rankData").setData(data);
 
                     var json = JSON.stringify(data),
                     blob = new Blob([json], {type: "octet/stream"}),
                     url = window.URL.createObjectURL(blob);
                     
-                    $("#downloadButton").attr("href", url);
-                    $("#downloadButton").attr("target", "_blank");
-                    $("#downloadButton").attr("download", "dc_data.geojson");
+                    $("#downloadJson").attr("href", url);
+                    $("#downloadJson").attr("target", "_blank");
+                    $("#downloadJson").attr("download", "dc_data.geojson");
+
+                    $("#downloadJson").show();
+                    $("#loadingData").hide();
                 });
             }
         }
@@ -194,10 +249,6 @@
 
         map.on('load', function() {
 
-            // $('input[type=checkbox]').click(function(){
-            //     alert( "Handler for .click() called." );
-            // });
-            
             map.addControl(draw, 'top-right');
                 map.on('draw.selectionchange', () => {
                 const mode = draw.getMode();
@@ -222,66 +273,114 @@
                           'property': 'periodAverageCount',  
                           'type': 'exponential',
                           'stops': [[0.01, 1],
-                                    [3, 15]]
+                                    [1, 15]]
                     
                       },
-                      'circle-color': ['get', 'color'],
+                      'circle-color': [
+                                    'match',
+                                    ['get', 'type'],
+                                    'pickup', 'blue',
+                                    'dropoff', 'red',
+                                    /* other */ '#ccc'
+                                    ],
                       'circle-opacity': 0.5
+                  }
+            });
+
+            map.addSource("rankData",{
+                "type": "geojson",
+                "data": {type:"FeatureCollection", features:[]}
+            });      
+        
+            map.addLayer({
+                "id": "rankOverlay",
+                "type": "line",
+                "source": "rankData",
+                "paint": {
+                      'line-width': 5,
+                      'line-opacity': ['rank'],
+                      'line-color': [
+                                    'match',
+                                    ['get', 'type'],
+                                    'pickup', 'blue',
+                                    'dropoff', 'red',
+                                    /* other */ '#ccc'
+                                    ]
                   }
             });
       
             map.on('draw.create', async (e) => {
-                //bbox();
                 if(e && e.features[0]){ 
-                    //var bounds = bbox(e.features[0]);
-                    //bboxString = bounds.join(',');
-
                     draw.delete(e.features[0].id);
-
                     polygon = JSON.stringify(e.features[0]);
-
                     requestData();
                 }
-            // var data = await fetch( serverUrl + 'v0.1.0/geom/within?generateBins=10&bounds=' + this.boundsString + '&authKey=c890c855-b968-4952-8c0a-64cc2ca446c3', { 
-            //     method: 'GET'
-            // });
-            
-            // var geoJson = await data.json();
-            
-            // this.idMap.forEach((id: number, key: string) => {
-            //     this.map.setFeatureState({source: 'binData', id: id}, {'opacity': 1.0}); 
-            // });
-            
-            // var id = 1;
-            // this.idMap.clear();
-
-            // this.points = turfHelpers.featureCollection<turfHelpers.Point>([]);
-
-            // for(var feature of geoJson.features) {
-
-            //     var bin = 1;
-            //     var binCount = feature.geometry.coordinates.length;
-
-            //     for(var coordinate of feature.geometry.coordinates) {
-            //     this.idMap.set(generateBinId(feature.properties.id, bin, binCount), id);
-            //     feature.id = id;
-            //     var point = turfHelpers.point(coordinate);
-            //     point.properties = {};
-            //     point.properties.size = 3
-            //     point.id = id;
-
-            //     this.points.features.push(point);
-
-            //     id++;
-            //     bin++;
-            //     }
-            // }
-            // this.map.getSource("binData").setData(this.points);
             });
 
         });
 
-        
+        var bar_chart;
+        function buildChart(data) {
+
+            var hours = ["0", "1", "2", "3", "4", "4","6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"];
+            var datasets = [];
+            datasets.push({
+                label: "Pickups",
+                data: data['pickup'],
+                backgroundColor: "#00f",
+                hoverBorderWidth: 0
+            });
+
+            datasets.push({
+                label: "Dropoffs",
+                data: data['dropoff'],
+                backgroundColor: "#f00",
+                hoverBorderWidth: 0
+            });
+
+            var dataObj = {
+                labels: hours,
+                datasets: datasets
+            };
+
+            if(bar_chart) {
+                bar_chart.config.data = dataObj;
+                bar_chart.update();
+            }
+            else {
+                $("#chartContainer").show();
+                var bar_ctx = document.getElementById('bar-chart');
+                var numberWithCommas = function(x) {
+                    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                };
+
+                bar_chart = new Chart(bar_ctx, {
+                    type: 'bar',
+                    data: dataObj,
+                    options:{ 
+                        animation:false,
+                        scales: {
+                        xAxes: [{ 
+                            stacked: true, 
+                            gridLines: { display: false },
+                            }],
+                        yAxes: [{ 
+                            stacked: true,
+                            ticks: {
+                                    beginAtZero: true,
+                                    steps: 10,
+                                    stepValue: 0.0001,
+                                    suggestedMax: 0.01
+                                } 
+                            }],
+                        },
+                        legend: {display: true}
+                    },
+                    
+                }
+                );
+            }
+        }
     </script>
 
     <!-- Optional JavaScript -->

@@ -83,6 +83,19 @@ export function getTileIdsForBounds(bounds:number[], bufferEdge:boolean):string[
     return tileIds;
 }
 
+export function getBoundsForTileId(tileId:string):number[] {
+
+    var boundsParts = tileId.split('-');
+    var zoom = parseInt(boundsParts[0]);
+    var x = parseInt(boundsParts[1]);
+    var y = parseInt(boundsParts[2]);
+
+    let tileRange = sphericalMercator.bbox(x, y, zoom);
+
+    return tileRange;
+}
+
+
 export async function getTile(tilePath:TilePath):Promise<any[]> {
 
     // TODO use generator/yield pattern + protobuf decodeDelimited
@@ -175,7 +188,6 @@ export class TilePath extends TilePathParams{
     tileId:string;
     tileType:TileType;
 
-
     constructor(path:string=null) {
         super();
 
@@ -185,6 +197,12 @@ export class TilePath extends TilePathParams{
             this.source = getSourceFromTilePath(path);
             this.tileHierarchy = getHierarchyFromPath(path);
         }
+    }
+
+    getCenter():number[] {
+        var bounds = getBoundsForTileId(this.tileId);
+
+        return bounds;
     }
 
     toPathString():string {

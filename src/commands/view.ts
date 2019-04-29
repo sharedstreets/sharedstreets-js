@@ -22,7 +22,7 @@ const chalk = require('chalk');
 
 const Path = require('path');
 const Hapi = require('hapi');
-const Inert = require('inert');
+const Inert = require('@hapi/inert');
 
 
 export default class View extends Command {
@@ -170,6 +170,19 @@ async function server(dirPath:string) {
             }
         }
     });
+
+    // server.route({
+    //     method:'GET',
+    //     config: {
+    //         cors: corsHeaders
+    //       },
+    //     path:'/api/center',
+    //     handler:function(request,h) {
+    //         var center = eventData.getCenter();
+    //         return center;
+    //     }
+    // });
+
 
     server.route({
         method:'GET',
