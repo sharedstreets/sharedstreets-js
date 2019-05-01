@@ -10,7 +10,9 @@ import * as turfHelpers from '@turf/helpers';
 import { CleanedLines, reverseLineString } from '../geom';
 import { Graph, PathCandidate } from '../graph';
 import  envelope from '@turf/envelope';
-import { Feature, LineString } from '@turf/buffer/node_modules/@turf/helpers';
+
+import { forwardReference, backReference } from '../index';
+import { SharedStreetsReference } from 'sharedstreets-types';
 
 const chalk = require('chalk');
 const cliProgress = require('cli-progress');
@@ -42,7 +44,7 @@ export default class Match extends Command {
     'tile-hierarchy': flags.integer({description: 'SharedStreets tile hierarchy', default: 8}),
     'skip-port-properties': flags.boolean({char: 'p', description: 'skip porting existing feature properties preceeded by "pp_"', default: false}),
     'follow-line-direction': flags.boolean({description: 'only match using line direction', default: false}),
-    'direction-field': flags.string({description: 'name of optional line properity describing segment directionality, use the related "one-way-*-value" and "two-way-value" properities'}),
+    'direction-field': flags.string({description: 'name of optional line properity describing segment directionality, use the related "one-way-*-value" and "two-way-value" properties'}),
     'one-way-with-direction-value': flags.string({description: 'name of optional value of "direction-field" indicating a one-way street with line direction'}),
     'one-way-against-direction-value': flags.string({description: 'name of optional value of "direction-field" indicating a one-way street against line direction'}),
     'two-way-value': flags.string({description: 'name of optional value of "direction-field" indicating a two-way street'}),
@@ -175,17 +177,54 @@ async function matchLines(outFile, params, lines, flags) {
  
   bar1.start(cleanedlines.clean.length, 0);
 
+
   for(var line of cleanedlines.clean) {
 
-    const applyProperties = (path:PathCandidate, originalFeature:Feature<LineString>) => {
+    const getMatchedPath = (path:PathCandidate) => {
       path.matchedPath.properties['segments'] =  path.segments;
       path.matchedPath.properties['score'] = path.score;
       path.matchedPath.properties['matchType'] = path.matchType;
       
       if(!flags['skip-port-properties'])
-        mapOgProperties(originalFeature.properties, path.matchedPath.properties);
+        mapOgProperties(path.originalFeature.properties, path.matchedPath.properties);
 
       return path.matchedPath;
+
+    }
+
+    const getMatchedSegments = (path:PathCandidate, ref:SharedStreetsReference) => {
+
+      var segmentIndex = 1;
+
+      var segmentGeoms = [];
+      for(var segment of path.segments) {
+        var segmentGeom = segment.geometry;
+        segmentGeom.properties = {};
+
+        segmentGeom.properties['gisReferenceId'] = ref.id;
+        segmentGeom.properties['gisGeometryId'] = ref.geometryId;
+        segmentGeom.properties['gisSegementIndex'] = segmentIndex;
+        segmentGeom.properties['gisFromIntersectionId'] = ref.locationReferences[0].intersectionId;
+        segmentGeom.properties['gisToIntersectionId'] = ref.locationReferences[ref.locationReferences.length-1].intersectionId;
+        segmentGeom.properties['gisTotalSegments'] = path.segments.length;
+
+        segmentGeom.properties['shstReferenceId'] = segment.referenceId;
+        segmentGeom.properties['shstGeometryId'] = segment.geometryId;
+        segmentGeom.properties['shstFromIntersectionId'] = segment.fromIntersectionId;
+        segmentGeom.properties['shstToIntersectionId'] = segment.toIntersectionId;
+
+        segmentGeom.properties['score'] = path.score;
+        segmentGeom.properties['matchType'] = path.matchType;
+
+        mapOgProperties(path.originalFeature.properties, segmentGeom.properties);
+
+        segmentGeoms.push(segmentGeom);
+
+        segmentIndex++;
+      }
+
+      return segmentGeoms;
+
     }
 
     var matchDirection:MatchDirection;
@@ -216,21 +255,27 @@ async function matchLines(outFile, params, lines, flags) {
     
     var matchedOneDirection:boolean = false;
     if(matchDirection == MatchDirection.FORWARD || matchDirection == MatchDirection.BOTH) {
+
+      var gisRef:SharedStreetsReference = forwardReference(line);
+			
       var matchForward = await matcher.match(line);
       if(matchForward && matchForward.score < matcher.searchRadius * 2) {
-        var matchedLine = <turfHelpers.Feature<LineString>>applyProperties(matchForward, line);
-        matchedLines.push(matchedLine);
+        var segments = getMatchedSegments(matchForward, gisRef);
+        matchedLines = matchedLines.concat(segments);
         matchedOneDirection=true;
       }
     }
     
     if(matchDirection == MatchDirection.BACKWARD || matchDirection == MatchDirection.BOTH) {
-      var reversedLine = <turfHelpers.Feature<LineString>>reverseLineString(line);
+
+      var gisRef:SharedStreetsReference = backReference(line);
+
+      var reversedLine = <turfHelpers.Feature<turfHelpers.LineString>>reverseLineString(line);
       var matchBackward = await matcher.match(reversedLine);
       if(matchBackward && matchBackward.score < matcher.searchRadius * 2) {
-          var matchedLine = <turfHelpers.Feature<LineString>>applyProperties(matchBackward, reversedLine);
-          matchedLines.push(matchedLine);
-          matchedOneDirection=true;
+        var segments = getMatchedSegments(matchBackward, gisRef);
+        matchedLines = matchedLines.concat(segments);
+        matchedOneDirection=true;
       }
     }
 
@@ -241,6 +286,7 @@ async function matchLines(outFile, params, lines, flags) {
     bar1.increment();
   }
   bar1.stop();
+
 
   if(matchedLines && matchedLines.length) {
     console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + matchedLines.length + ' matched edges: ' + outFile + ".matched.geojson"));

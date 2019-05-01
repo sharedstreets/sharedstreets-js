@@ -24,6 +24,7 @@ const util = require('util');
 import * as fs from "fs";
 import Match from './commands/match';
 import { rmse } from './util';
+import { LineString } from '@turf/buffer/node_modules/@turf/helpers';
 
 const uuidHash = require('uuid-by-string');
 
@@ -821,10 +822,10 @@ export class Graph {
                     if(segment.section[0] == segment.section[1]) 
                         continue;
 
-                    var segGeom = await this.tileIndex.geom(segment.referenceId, segment.section[0],  segment.section[1]);   
-                    if(segGeom) {
+                    segment.geometry = await this.tileIndex.geom(segment.referenceId, segment.section[0],  segment.section[1]);   
+                    if(segment.geometry) {
                         cleanedPath.push(segment);
-                        segCoords.push(segGeom.geometry.coordinates)
+                        segCoords.push(segment.geometry.geometry.coordinates)
                     }
                 }
             }
@@ -861,6 +862,8 @@ export class PathSegment {
 	point:number;
 	section:number[];
     direction:ReferenceDirection;
+
+    geometry;
     
 }
 
