@@ -289,7 +289,7 @@ export function forwardReference (
   options: {
     formOfWay?: number|string,
   } = {},
-): SharedStreetsReference {
+) : SharedStreetsReference {
 
   const lineLength = Math.round(length(line, {units: "meters"}) * 100);
 
@@ -360,9 +360,12 @@ export function backReference(
     formOfWay?: number|string,
   } = {},
 ): SharedStreetsReference {
-    var reversedLine = JSON.parse(JSON.stringify(line))
+    var geomId = geometryId(line);
+    var reversedLine = JSON.parse(JSON.stringify(line));
     reversedLine.geometry.coordinates.reverse();
-    return forwardReference(reversedLine,  options);
+    var ref = forwardReference(reversedLine,  options);
+    ref.geometryId = geomId;
+    return ref;
 }
 
 /**
