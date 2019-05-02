@@ -664,120 +664,126 @@ export class Graph {
                     }
                 }
         
-                var startPoint = turfHelpers.point(match.geometry.coordinates[0]);
-                var endPoint = turfHelpers.point(match.geometry.coordinates[match.geometry.coordinates.length - 1]);
+                if(visitedEdgeList.length > 0) {
+                    var startPoint = turfHelpers.point(feature.geometry.coordinates[0]);
+                    var endPoint = turfHelpers.point(feature.geometry.coordinates[feature.geometry.coordinates.length - 1]);
 
 
-                var startCandidate:PointCandidate = await this.pointMatcher.getPointCandidateFromRefId(startPoint, visitedEdgeList[0], null);
-                var endCandidate:PointCandidate = await this.pointMatcher.getPointCandidateFromRefId(endPoint, visitedEdgeList[visitedEdgeList.length - 1], null);
-                // var startCandidates:PointCandidate[] = await this.pointMatcher.getPointCandidates(startPoint, null, 10);
-                // var endCandidates:PointCandidate[] = await this.pointMatcher.getPointCandidates(endPoint, null, 10);
-            
-                var alreadyIncludedPaths:Set<string> = new Set();
+                    var startCandidate:PointCandidate = await this.pointMatcher.getPointCandidateFromRefId(startPoint, visitedEdgeList[0], null);
+                    var endCandidate:PointCandidate = await this.pointMatcher.getPointCandidateFromRefId(endPoint, visitedEdgeList[visitedEdgeList.length - 1], null);
+                    // var startCandidates:PointCandidate[] = await this.pointMatcher.getPointCandidates(startPoint, null, 10);
+                    // var endCandidates:PointCandidate[] = await this.pointMatcher.getPointCandidates(endPoint, null, 10);
+                
+                    var alreadyIncludedPaths:Set<string> = new Set();
 
-                // // if start and end are on the same graph edge make sure they're the same referenceId/correct direction
-                // if(startCandidate.geometryId == endCandidate.geometryId) {
-                //     // skip if not on the same reference (oposing directions)
-                //     if(referenceId != endCandidates[j].referenceId)
-                //         continue;
-                //     // if start location is after end location skip 
-                //     if(startCandidates[i].location > endCandidates[j].location) 
-                //         continue;
-                // }
-
-                var pathCandidate = new PathCandidate();
-                var matchWorked:boolean = true;
-
-                pathCandidate.matchType = MatchType.HMM;
-                pathCandidate.score = match.confidence;
-                pathCandidate.originalFeature = feature;
-                pathCandidate.matchedPath = turfHelpers.feature(match.geometry);
-
-                //console.log(JSON.stringify(pathCandidate.matchedPath));
-
-                pathCandidate.segments = [];
-
-                var length = pathCandidate.getOriginalFeatureLength();
-
-                for(var k = 0; k < visitedEdgeList.length; k++) {
-
-                    // if((k == 0 && startCandidates[i].referenceId !== visitedEdgeList[k]) && 
-                    //     (k == visitedEdgeList.length - 1 && endCandidates[j].geometryId != visitedEdgeList[k])) {
-                    //     matchWorked = false;
-                    //     break;
+                    // // if start and end are on the same graph edge make sure they're the same referenceId/correct direction
+                    // if(startCandidate.geometryId == endCandidate.geometryId) {
+                    //     // skip if not on the same reference (oposing directions)
+                    //     if(referenceId != endCandidates[j].referenceId)
+                    //         continue;
+                    //     // if start location is after end location skip 
+                    //     if(startCandidates[i].location > endCandidates[j].location) 
+                    //         continue;
                     // }
-                
-                    var pathSegment:PathSegment = new PathSegment();
-                    pathSegment.referenceId = visitedEdgeList[k];
-                    var shstRef = <SharedStreetsReference>this.tileIndex.objectIndex.get(visitedEdgeList[k]);
-                    pathSegment.referenceId = visitedEdgeList[k];
-                    pathSegment.geometryId = shstRef.geometryId;
-                    pathCandidate.segments.push(pathSegment);
-                    pathCandidate.segments[k].referenceLength = getReferenceLength(shstRef);
-                }
 
-                if(pathCandidate.segments.length > 0) {
-                    pathCandidate.startPoint = startCandidate;
-                
-                    // build directionality into edge sequences   
-                    for(var k = 0; k < pathCandidate.segments.length; k++) {
-                        var edgeGeom = <SharedStreetsGeometry>this.tileIndex.objectIndex.get(pathCandidate.segments[k].geometryId);
-                        // if start and end are on the same graph edge make sure they're the same referenceId/direction
-                        if(startCandidate.referenceId == endCandidate.referenceId) {
-                            pathCandidate.endPoint = endCandidate;
-                            pathCandidate.segments[k].section = [startCandidate.location, endCandidate.location];
-                        }
-                        else {
-                            // if(k == 0) 
-                            //     pathCandidate.segments[k].referenceId = pathCandidate.startPoint.referenceId;    
-                            // else {
-                            //     if(pathCandidate.segments[k-1].toIntersectionId == edgeGeom.fromIntersectionId){
-                            //         pathCandidate.segments[k].referenceId = edgeGeom.forwardReferenceId;
-                            //     }
-                            //     else if (pathCandidate.segments[k-1].toIntersectionId == edgeGeom.toIntersectionId && edgeGeom.backReferenceId)
-                            //         pathCandidate.segments[k].referenceId = edgeGeom.backReferenceId;
-                            //     else {
-                            //         matchWorked = false;
-                            //         break;
-                            //     }
-                            // }
+                    var pathCandidate = new PathCandidate();
+                    var matchWorked:boolean = true;
 
-                            if(k == pathCandidate.segments.length - 1) {
-                                pathCandidate.endPoint = endCandidate;
-                                pathCandidate.segments[k].section = [0, endCandidate.location];
-                            }
-                            else if(k == 0) {
-                                pathCandidate.segments[k].section = [pathCandidate.startPoint.location, pathCandidate.segments[k].referenceLength];
-                            }
-                            else {
-                                pathCandidate.segments[k].section = [0, pathCandidate.segments[k].referenceLength];
-                            }
-                        } 
-                        // put to/from on semgnet
+                    pathCandidate.matchType = MatchType.HMM;
+                    pathCandidate.score = match.confidence;
+                    pathCandidate.originalFeature = feature;
+                    pathCandidate.matchedPath = turfHelpers.feature(match.geometry);
 
-                        if(edgeGeom.forwardReferenceId == pathCandidate.segments[k].referenceId) {
-                            pathCandidate.segments[k].fromIntersectionId = edgeGeom.fromIntersectionId;
-                            pathCandidate.segments[k].toIntersectionId = edgeGeom.toIntersectionId;
-                        }
-                        else {
-                            // reverse to/from for back references
-                            pathCandidate.segments[k].fromIntersectionId = edgeGeom.toIntersectionId;
-                            pathCandidate.segments[k].toIntersectionId = edgeGeom.fromIntersectionId;
-                        }                              
+                    //console.log(JSON.stringify(pathCandidate.matchedPath));
+
+                    pathCandidate.segments = [];
+
+                    var length = pathCandidate.getOriginalFeatureLength();
+
+                    for(var k = 0; k < visitedEdgeList.length; k++) {
+
+                        // if((k == 0 && startCandidates[i].referenceId !== visitedEdgeList[k]) && 
+                        //     (k == visitedEdgeList.length - 1 && endCandidates[j].geometryId != visitedEdgeList[k])) {
+                        //     matchWorked = false;
+                        //     break;
+                        // }
+                    
+                        var pathSegment:PathSegment = new PathSegment();
+                        pathSegment.referenceId = visitedEdgeList[k];
+                        var shstRef = <SharedStreetsReference>this.tileIndex.objectIndex.get(visitedEdgeList[k]);
+                        pathSegment.referenceId = visitedEdgeList[k];
+                        pathSegment.geometryId = shstRef.geometryId;
+                        pathCandidate.segments.push(pathSegment);
+                        pathCandidate.segments[k].referenceLength = getReferenceLength(shstRef);
                     }
 
-                    var startDist = distance(startPoint, startCandidate.pointOnLine, {"units":"meters"});
-                    var endDist = distance(endPoint, endCandidate.pointOnLine, {"units":"meters"});
-                    pathCandidate.score = rmse([startDist, endDist, pathCandidate.getLengthDelta()]);
-                    bestPathCandidate = pathCandidate;
-                    // var refIdHash = uuidHash(pathCandidate.segments.map((value):string => {return value.referenceId; }).join(' '));
+                    if(pathCandidate.segments.length > 0) {
+                        pathCandidate.startPoint = startCandidate;
+                    
+                        // build directionality into edge sequences   
+                        for(var k = 0; k < pathCandidate.segments.length; k++) {
+                            var edgeGeom = <SharedStreetsGeometry>this.tileIndex.objectIndex.get(pathCandidate.segments[k].geometryId);
+                            // if start and end are on the same graph edge make sure they're the same referenceId/direction
+                            if(startCandidate.referenceId == endCandidate.referenceId) {
+                                pathCandidate.endPoint = endCandidate;
+                                pathCandidate.segments[k].section = [startCandidate.location, endCandidate.location];
+                            }
+                            else {
+                                // if(k == 0) 
+                                //     pathCandidate.segments[k].referenceId = pathCandidate.startPoint.referenceId;    
+                                // else {
+                                //     if(pathCandidate.segments[k-1].toIntersectionId == edgeGeom.fromIntersectionId){
+                                //         pathCandidate.segments[k].referenceId = edgeGeom.forwardReferenceId;
+                                //     }
+                                //     else if (pathCandidate.segments[k-1].toIntersectionId == edgeGeom.toIntersectionId && edgeGeom.backReferenceId)
+                                //         pathCandidate.segments[k].referenceId = edgeGeom.backReferenceId;
+                                //     else {
+                                //         matchWorked = false;
+                                //         break;
+                                //     }
+                                // }
 
-                    // if(matchWorked && !alreadyIncludedPaths.has(refIdHash)) {
-                    //     alreadyIncludedPaths.add(refIdHash);
-                    //     bestPathCandidate = pathCandidate;
-                    // }   
-                }            
-              
+                                if(k == pathCandidate.segments.length - 1) {
+                                    pathCandidate.endPoint = endCandidate;
+                                    pathCandidate.segments[k].section = [0, endCandidate.location];
+                                }
+                                else if(k == 0) {
+                                    pathCandidate.segments[k].section = [pathCandidate.startPoint.location, pathCandidate.segments[k].referenceLength];
+                                }
+                                else {
+                                    pathCandidate.segments[k].section = [0, pathCandidate.segments[k].referenceLength];
+                                }
+                            } 
+                            // put to/from on semgnet
+
+                            if(edgeGeom.forwardReferenceId == pathCandidate.segments[k].referenceId) {
+                                pathCandidate.segments[k].fromIntersectionId = edgeGeom.fromIntersectionId;
+                                pathCandidate.segments[k].toIntersectionId = edgeGeom.toIntersectionId;
+                            }
+                            else {
+                                // reverse to/from for back references
+                                pathCandidate.segments[k].fromIntersectionId = edgeGeom.toIntersectionId;
+                                pathCandidate.segments[k].toIntersectionId = edgeGeom.fromIntersectionId;
+                            }                              
+                        }
+
+                        if(pathCandidate.startPoint.sideOfStreet == pathCandidate.endPoint.sideOfStreet)
+                            pathCandidate.sideOfStreet = pathCandidate.startPoint.sideOfStreet;
+                        else    
+                            pathCandidate.sideOfStreet = ReferenceSideOfStreet.UNKNOWN;
+
+                        var startDist = distance(startPoint, startCandidate.pointOnLine, {"units":"meters"});
+                        var endDist = distance(endPoint, endCandidate.pointOnLine, {"units":"meters"});
+                        pathCandidate.score = Math.round((rmse([startDist, endDist, pathCandidate.getLengthDelta()]) * 100)) / 100;
+                        bestPathCandidate = pathCandidate;
+                        // var refIdHash = uuidHash(pathCandidate.segments.map((value):string => {return value.referenceId; }).join(' '));
+
+                        // if(matchWorked && !alreadyIncludedPaths.has(refIdHash)) {
+                        //     alreadyIncludedPaths.add(refIdHash);
+                        //     bestPathCandidate = pathCandidate;
+                        // }   
+                    }    
+                }
             }
             catch(e) {
                 // no-op failed to match

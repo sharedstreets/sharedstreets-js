@@ -13,6 +13,8 @@ import  envelope from '@turf/envelope';
 
 import { forwardReference, backReference } from '../index';
 import { SharedStreetsReference } from 'sharedstreets-types';
+import lineOffset from '@turf/line-offset';
+import { ReferenceSideOfStreet } from '../point_matcher';
 
 const chalk = require('chalk');
 const cliProgress = require('cli-progress');
@@ -41,16 +43,20 @@ export default class Match extends Command {
     // flag with a value (-o, --out=FILE)
     out: flags.string({char: 'o', description: 'file output name creates files [file-output-name].matched.geojson and [file-output-name].unmatched.geojson'}),
     'tile-source': flags.string({description: 'SharedStreets tile source', default: 'osm/planet-181224'}),
-    'tile-hierarchy': flags.integer({description: 'SharedStreets tile hierarchy', default: 8}),
+    'tile-hierarchy': flags.integer({description: 'SharedStreets tile hierarchy', default: 6}),
     'skip-port-properties': flags.boolean({char: 'p', description: 'skip porting existing feature properties preceeded by "pp_"', default: false}),
     'follow-line-direction': flags.boolean({description: 'only match using line direction', default: false}),
+    'best-direction': flags.boolean({description: 'only match one direction based on best score', default: false}),
     'direction-field': flags.string({description: 'name of optional line properity describing segment directionality, use the related "one-way-*-value" and "two-way-value" properties'}),
     'one-way-with-direction-value': flags.string({description: 'name of optional value of "direction-field" indicating a one-way street with line direction'}),
     'one-way-against-direction-value': flags.string({description: 'name of optional value of "direction-field" indicating a one-way street against line direction'}),
     'two-way-value': flags.string({description: 'name of optional value of "direction-field" indicating a two-way street'}),
     'bearing-field': flags.string({description: 'name of optional point property containing bearing in decimal degrees', default:'bearing'}),
-    'search-radius': flags.integer({description: 'search radius for for snapping points, lines and traces', default:10}),
+    'search-radius': flags.integer({description: 'search radius for for snapping points, lines and traces (in meters)', default:10}),
     'snap-intersections': flags.boolean({description: 'snap line end-points to nearest intersection', default:false}),
+    'snap-side-of-street': flags.boolean({description: 'snap line to side of street', default:false}),
+    'left-side-driving': flags.boolean({description: 'snap line to side of street', default:false}),
+    'offset-line': flags.integer({description: 'offset geometry based on direction of matched line (in meters)'}),
     stats: flags.boolean({char: 's'})
 
     // flag with no value (-f, --force)
@@ -148,7 +154,8 @@ async function matchPoints(outFile, params, points, flags) {
 enum MatchDirection {
   FORWARD, 
   BACKWARD,
-  BOTH
+  BOTH,
+  BEST
 }
 
 async function matchLines(outFile, params, lines, flags) {
@@ -157,6 +164,87 @@ async function matchLines(outFile, params, lines, flags) {
   
   console.log(chalk.bold.keyword('green')('  ✨  Matching ' + cleanedlines.clean.length + ' lines...'));
   
+  const getMatchedPath = (path:PathCandidate) => {
+    path.matchedPath.properties['segments'] =  path.segments;
+    path.matchedPath.properties['score'] = path.score;
+    path.matchedPath.properties['matchType'] = path.matchType;
+    
+    if(!flags['skip-port-properties'])
+      mapOgProperties(path.originalFeature.properties, path.matchedPath.properties);
+
+    return path.matchedPath;
+
+  }
+
+  const getMatchedSegments = (path:PathCandidate, ref:SharedStreetsReference) => {
+
+    var segmentIndex = 1;
+
+    var segmentGeoms = [];
+    for(var segment of path.segments) {
+
+      var segmentGeom = segment.geometry;
+
+      
+      segmentGeom.properties = {};
+
+      segmentGeom.properties['gisReferenceId'] = ref.id;
+      segmentGeom.properties['gisGeometryId'] = ref.geometryId;
+      segmentGeom.properties['gisSegementIndex'] = segmentIndex;
+      segmentGeom.properties['gisFromIntersectionId'] = ref.locationReferences[0].intersectionId;
+      segmentGeom.properties['gisToIntersectionId'] = ref.locationReferences[ref.locationReferences.length-1].intersectionId;
+      segmentGeom.properties['gisTotalSegments'] = path.segments.length;
+
+      segmentGeom.properties['shstReferenceId'] = segment.referenceId;
+      segmentGeom.properties['shstGeometryId'] = segment.geometryId;
+      segmentGeom.properties['shstFromIntersectionId'] = segment.fromIntersectionId;
+      segmentGeom.properties['shstToIntersectionId'] = segment.toIntersectionId;
+
+      segmentGeom.properties['startSideOfStreet'] = path.startPoint.sideOfStreet;
+      segmentGeom.properties['endSideOfStreet'] = path.endPoint.sideOfStreet;
+
+      segmentGeom.properties['sideOfStreet'] = path.sideOfStreet;
+
+      if(flags['offset-line']) {
+        if(flags['snap-side-of-street']) {
+          if(flags['left-side-driving']) {
+            if(path.sideOfStreet == ReferenceSideOfStreet.RIGHT)
+              segmentGeom = lineOffset(segmentGeom, 0 - flags['offset-line'], {"units":"meters"})
+            else if(path.sideOfStreet == ReferenceSideOfStreet.LEFT)
+              segmentGeom = lineOffset(segmentGeom, flags['offset-line'], {"units":"meters"})
+          }
+          else {
+            if(path.sideOfStreet == ReferenceSideOfStreet.RIGHT)
+              segmentGeom = lineOffset(segmentGeom, flags['offset-line'], {"units":"meters"})
+            else if(path.sideOfStreet == ReferenceSideOfStreet.LEFT)
+              segmentGeom = lineOffset(segmentGeom, 0 - flags['offset-line'], {"units":"meters"})
+          }
+        }
+        else {
+          if(flags['left-side-driving']) {
+            segmentGeom = lineOffset(segmentGeom, 0 - flags['offset-line'], {"units":"meters"});
+          }
+          else {
+            segmentGeom = lineOffset(segmentGeom, flags['offset-line'], {"units":"meters"});
+          }
+        }
+      }
+        
+
+      segmentGeom.properties['score'] = path.score;
+      segmentGeom.properties['matchType'] = path.matchType;
+
+      mapOgProperties(path.originalFeature.properties, segmentGeom.properties);
+
+      segmentGeoms.push(segmentGeom);
+
+      segmentIndex++;
+    }
+
+    return segmentGeoms;
+
+  };
+
   var extent = envelope(lines);
   var matcher = new Graph(extent, params);
   await matcher.buildGraph();
@@ -180,55 +268,11 @@ async function matchLines(outFile, params, lines, flags) {
 
   for(var line of cleanedlines.clean) {
 
-    const getMatchedPath = (path:PathCandidate) => {
-      path.matchedPath.properties['segments'] =  path.segments;
-      path.matchedPath.properties['score'] = path.score;
-      path.matchedPath.properties['matchType'] = path.matchType;
-      
-      if(!flags['skip-port-properties'])
-        mapOgProperties(path.originalFeature.properties, path.matchedPath.properties);
-
-      return path.matchedPath;
-
-    }
-
-    const getMatchedSegments = (path:PathCandidate, ref:SharedStreetsReference) => {
-
-      var segmentIndex = 1;
-
-      var segmentGeoms = [];
-      for(var segment of path.segments) {
-        var segmentGeom = segment.geometry;
-        segmentGeom.properties = {};
-
-        segmentGeom.properties['gisReferenceId'] = ref.id;
-        segmentGeom.properties['gisGeometryId'] = ref.geometryId;
-        segmentGeom.properties['gisSegementIndex'] = segmentIndex;
-        segmentGeom.properties['gisFromIntersectionId'] = ref.locationReferences[0].intersectionId;
-        segmentGeom.properties['gisToIntersectionId'] = ref.locationReferences[ref.locationReferences.length-1].intersectionId;
-        segmentGeom.properties['gisTotalSegments'] = path.segments.length;
-
-        segmentGeom.properties['shstReferenceId'] = segment.referenceId;
-        segmentGeom.properties['shstGeometryId'] = segment.geometryId;
-        segmentGeom.properties['shstFromIntersectionId'] = segment.fromIntersectionId;
-        segmentGeom.properties['shstToIntersectionId'] = segment.toIntersectionId;
-
-        segmentGeom.properties['score'] = path.score;
-        segmentGeom.properties['matchType'] = path.matchType;
-
-        mapOgProperties(path.originalFeature.properties, segmentGeom.properties);
-
-        segmentGeoms.push(segmentGeom);
-
-        segmentIndex++;
-      }
-
-      return segmentGeoms;
-
-    }
+    if(line.properties['geo_id'] == 30107269)
+      console.log('30107269')
 
     var matchDirection:MatchDirection;
-    if(flags['direction-field'] && line.properties[flags['direction-field'].toLocaleLowerCase()]) {
+    if(flags['direction-field'] && line.properties[flags['direction-field'].toLocaleLowerCase()] != undefined) {
 
       var lineDirectionValue =  '' + line.properties[flags['direction-field'].toLocaleLowerCase()];
 
@@ -248,38 +292,89 @@ async function matchLines(outFile, params, lines, flags) {
     }
     else if (flags['follow-line-direction']) {
       matchDirection = MatchDirection.FORWARD;
+    
+    }
+    else if (flags['best-direction']) {
+      matchDirection = MatchDirection.BEST;
     }
     else {
       matchDirection = MatchDirection.BOTH;
     }
     
-    var matchedOneDirection:boolean = false;
-    if(matchDirection == MatchDirection.FORWARD || matchDirection == MatchDirection.BOTH) {
+    var matchForward = null;
+    var matchForwardSegments = null;
+    if(matchDirection == MatchDirection.FORWARD || matchDirection == MatchDirection.BOTH || matchDirection == MatchDirection.BEST) {
 
       var gisRef:SharedStreetsReference = forwardReference(line);
 			
-      var matchForward = await matcher.match(line);
+      matchForward = await matcher.match(line);
       if(matchForward && matchForward.score < matcher.searchRadius * 2) {
-        var segments = getMatchedSegments(matchForward, gisRef);
-        matchedLines = matchedLines.concat(segments);
-        matchedOneDirection=true;
+        matchForwardSegments = getMatchedSegments(matchForward, gisRef);
       }
     }
     
-    if(matchDirection == MatchDirection.BACKWARD || matchDirection == MatchDirection.BOTH) {
+    var matchBackward = null;
+    var matchBackwardSegments = null;
+    if(matchDirection == MatchDirection.BACKWARD || matchDirection == MatchDirection.BOTH || matchDirection == MatchDirection.BEST) {
 
       var gisRef:SharedStreetsReference = backReference(line);
 
       var reversedLine = <turfHelpers.Feature<turfHelpers.LineString>>reverseLineString(line);
-      var matchBackward = await matcher.match(reversedLine);
+      matchBackward = await matcher.match(reversedLine);
       if(matchBackward && matchBackward.score < matcher.searchRadius * 2) {
-        var segments = getMatchedSegments(matchBackward, gisRef);
-        matchedLines = matchedLines.concat(segments);
-        matchedOneDirection=true;
+        matchBackwardSegments = getMatchedSegments(matchBackward, gisRef);
       }
     }
+    
+    var matchedLine:boolean = false;
 
-    if(!matchedOneDirection)
+    if((matchDirection == MatchDirection.FORWARD || matchDirection == MatchDirection.BOTH) && matchForwardSegments) {
+        matchedLines = matchedLines.concat(matchForwardSegments);
+      matchedLine = true;
+    }
+
+    if((matchDirection == MatchDirection.BACKWARD || matchDirection == MatchDirection.BOTH) && matchBackwardSegments) {
+        matchedLines = matchedLines.concat(matchBackwardSegments);
+      matchedLine = true;
+    }
+
+    if(matchDirection == MatchDirection.BEST) {
+      if(matchForward && matchBackward) {
+        if(matchForward.score > matchBackward.score) {
+            matchedLines = matchedLines.concat(matchForwardSegments);
+          matchedLine = true;
+        }
+        else if(matchForward.score == matchBackward.score) {
+          if(flags['left-side-driving']) {
+            if(matchForward.sideOfStreet == ReferenceSideOfStreet.LEFT)
+              matchedLines = matchedLines.concat(matchForwardSegments);
+            else 
+              matchedLines = matchedLines.concat(matchBackwardSegments);
+          }
+          else {
+            if(matchForward.sideOfStreet == ReferenceSideOfStreet.RIGHT)
+              matchedLines = matchedLines.concat(matchForwardSegments);
+            else 
+              matchedLines = matchedLines.concat(matchBackwardSegments);
+          }
+          matchedLine = true;
+        }
+        else {
+            matchedLines = matchedLines.concat(matchBackwardSegments);
+          matchedLine = true;
+        }
+      }
+      else if(matchForward) {
+          matchedLines = matchedLines.concat(matchForwardSegments);
+        matchedLine = true;
+      }
+      else if(matchBackward) {
+          matchedLines = matchedLines.concat(matchBackwardSegments);
+        matchedLine = true;
+      }
+    }
+    
+    if(!matchedLine)
       unmatchedLines.push(line);
   
 

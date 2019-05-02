@@ -145,14 +145,6 @@ export class PointCandidate implements SortableCanddate {
 
 		this.calcScore();
 
-		var snappedSide = ReferenceSideOfStreet.UNKNOWN;
-		if(this.interceptAngle < 180) {
-			snappedSide = ReferenceSideOfStreet.RIGHT;
-		}
-		if(this.interceptAngle > 180) {
-			snappedSide = ReferenceSideOfStreet.LEFT;
-		}
-
 		var feature:turfHelpers.Feature<turfHelpers.Point> = turfHelpers.feature(this.pointOnLine.geometry, {	
 
 			score:			this.score,
@@ -162,7 +154,7 @@ export class PointCandidate implements SortableCanddate {
 			referenceId:	this.referenceId,
 			direction:		this.direction,
 			bearing:		this.bearing,
-			snappedSide: 	snappedSide,
+			sideOfStreet: 	this.sideOfStreet,
 			interceptAngle:	this.interceptAngle
 
 		});
@@ -284,6 +276,14 @@ export class PointMatcher {
 			pointCandidate.bearing = normalizeAngle(lineBearing);
 			pointCandidate.interceptAngle = normalizeAngle(interceptBearing - lineBearing);
 
+			pointCandidate.sideOfStreet = ReferenceSideOfStreet.UNKNOWN;
+			if(pointCandidate.interceptAngle < 180) {
+				pointCandidate.sideOfStreet = ReferenceSideOfStreet.RIGHT;
+			}
+			if(pointCandidate.interceptAngle > 180) {
+				pointCandidate.sideOfStreet = ReferenceSideOfStreet.LEFT;
+			}
+
 			if(geometry.backReferenceId)
 				pointCandidate.oneway = false;
 			else
@@ -360,6 +360,14 @@ export class PointMatcher {
 
 			pointCandidate.bearing = normalizeAngle(lineBearing);
 			pointCandidate.interceptAngle = normalizeAngle(interceptBearing - lineBearing);
+
+			pointCandidate.sideOfStreet = ReferenceSideOfStreet.UNKNOWN;
+			if(pointCandidate.interceptAngle < 180) {
+				pointCandidate.sideOfStreet = ReferenceSideOfStreet.RIGHT;
+			}
+			if(pointCandidate.interceptAngle > 180) {
+				pointCandidate.sideOfStreet = ReferenceSideOfStreet.LEFT;
+			}
 
 			if(candidateGeom.backReferenceId)
 				pointCandidate.oneway = false;
