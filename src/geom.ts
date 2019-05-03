@@ -80,6 +80,7 @@ export class CleanedLines {
 
 	constructor(inputData:any) {
 
+		this.invalid = [];
 
 		try {
 			var inputFeatures = [];

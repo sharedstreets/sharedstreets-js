@@ -42,7 +42,7 @@ export default class Match extends Command {
 
     // flag with a value (-o, --out=FILE)
     out: flags.string({char: 'o', description: 'file output name creates files [file-output-name].matched.geojson and [file-output-name].unmatched.geojson'}),
-    'tile-source': flags.string({description: 'SharedStreets tile source', default: 'osm/planet-181224'}),
+    'tile-source': flags.string({description: 'SharedStreets tile source', default: 'osm/planet-180430'}),
     'tile-hierarchy': flags.integer({description: 'SharedStreets tile hierarchy', default: 6}),
     'skip-port-properties': flags.boolean({char: 'p', description: 'skip porting existing feature properties preceeded by "pp_"', default: false}),
     'follow-line-direction': flags.boolean({description: 'only match using line direction', default: false}),
@@ -405,3 +405,5 @@ async function matchLines(outFile, params, lines, flags) {
   }
 
 }
+
+//Match.run();

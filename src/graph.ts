@@ -157,7 +157,7 @@ export class Graph {
         this.pointMatcher = new PointMatcher(extent, params, this.tileIndex);
 
         // create id from tile path hash  
-        this.id = uuidHash(this.graphMode + ' ' + paths.join(" "));
+        this.id = uuidHash(this.graphMode + ' node-pair.sv1 ' + paths.join(" "));
     }
 
     async createGraphXml() {
@@ -387,75 +387,56 @@ export class Graph {
                     });
                 });
 
-                var graphEdgeSequence:GraphEdge[] = [];
-                this.tileIndex.featureIndex.get("geomId")
-                if(matches['matchings'] && matches['matchings'].length > 0) {
+                var visitedEdges:Set<string> = new Set();
+                var visitedEdgeList:string[] = [];
+
+                if(matches['matchings'] &&  matches['matchings'].length > 0) {
+                    
                     var match = matches['matchings'][0];
-                    //console.log(match.confidence)
-                    
-                    
-                    // if(match.confidence < MIN_CONFIDENCE)
-                    //     continue;
-                    // this is kind of convoluted due to the sparse info returned in the OSRM annotations...
-                    // write out sequence of nodes and edges as emitted from walking OSRM-returned nodes
-                    // finding the actual posistion and directionality of the OSRM-edge within the ShSt graph 
-                    // edge means that we have to snap start/end points in the OSRM geom
-                    
+                    if(0 < match.confidence ) {
 
-                    //console.log(JSON.stringify(match.geometry));
+                        // this is kind of convoluted due to the sparse info returned in the OSRM annotations...
+                        // write out sequence of nodes and edges as emitted from walking OSRM-returned nodes
+                        // finding the actual posistion and directionality of the OSRM-edge within the ShSt graph 
+                        // edge means that we have to snap start/end points in the OSRM geom
+                        
+                        //console.log(JSON.stringify(match.geometry));
 
-                    var edgeCandidates;
-                    var nodes:number[] = [];
-                    var visitedNodes:Set<number> = new Set();
-                    // ooof this is brutual -- need to unpack legs and reduce list... 
-                    for(var leg of match['legs']) {
-                        //console.log(leg['annotation']['nodes'])
-                        for(var n of leg['annotation']['nodes']){ 
-                            if(!visitedNodes.has(n) || nodes.length == 0)
-                                nodes.push(n);
+                        var edgeCandidates;
+                        var nodes:number[] = [];
+                        var visitedNodes:Set<number> = new Set();
+                        // ooof this is brutual -- need to unpack legs and reduce list... 
+                        for(var leg of match['legs']) {
+                            //console.log(leg['annotation']['nodes'])
+                            for(var n of leg['annotation']['nodes']){ 
+                                if(!visitedNodes.has(n) || nodes.length == 0)
+                                    nodes.push(n);
 
-                            visitedNodes.add(n);
+                                visitedNodes.add(n);
+                            }
                         }
-                    }
 
+                    // then group node pairs into unique edges...
+                        var previousNode = null;
+                        for(var nodeId of nodes) {
+                            if(await this.db.has('node:' + nodeId)) {
 
-                    var visitedEdges:string[]= [];
-                // then group node pairs into unique edges...
-                    var previousNode = null;
-                    for(var nodeId of nodes) {
-                        if(await this.db.has('node:' + nodeId)) {
+                                if(previousNode) {
+                                    if(await this.db.has('node-pair:' + nodeId + '-' + previousNode)) {
+                                        var edges = JSON.parse(await this.db.get('node-pair:' + nodeId + '-' + previousNode));
+                                        for(var edge of edges) {
+                                            
+                                            if(!visitedEdges.has(edge))
+                                                visitedEdgeList.push(edge);
 
-                            if(previousNode) {
-                                if(await this.db.has('node-pair:' + nodeId + '-' + previousNode)) {
-                                    var edges = JSON.parse(await this.db.get('node-pair:' + nodeId + '-' + previousNode));
-                                    for(var edge of edges) {
-                                        visitedEdges.push(edge);
+                                            visitedEdges.add(edge);
+                                        }
                                     }
                                 }
+                                previousNode = nodeId;
                             }
-                            previousNode = nodeId;
-                            //var node = JSON.parse(await this.db.get('node:' + nodeId));
-                            // var nodeEdges = JSON.parse(await this.db.get('node-edges:' + nodeId));
-                            // if(!edgeCandidates) {
-                            //     edgeCandidates = new Set([...nodeEdges.edgeIds]);
-                            // }
-                            // else {
-                            //     var newCandiates = new Set([...nodeEdges.edgeIds]);
-                            //     edgeCandidates = new Set([...edgeCandidates].filter(x => newCandiates.has(x)));            
-                            // }
-                        
-                            // if(edgeCandidates.size == 1) {
-                            //     var edgeId = [...edgeCandidates][0];
-                            //     // reduce repeating edgeIds down to one per edge
-                            //     if(graphEdgeSequence.length == 0 || graphEdgeSequence[graphEdgeSequence.length-1].edgeId !== edgeId) {
-                            //         var edge = JSON.parse(await this.db.get('edge:' + edgeId));
-                            //         graphEdgeSequence.push(edge);
-                            //     } 
-                            //     edgeCandidates = new Set([...nodeEdges.edgeIds]);
-                            // }
-                        }
-                    }  
-                
+                        }     
+                    }
                 }
 
                 var pathCandidate = new PathCandidate();
@@ -465,13 +446,17 @@ export class Graph {
                 pathCandidate.segments = [];
 
                 var segmentGeoms:turfHelpers.Feature<turfHelpers.MultiLineString> = turfHelpers.multiLineString([]);
-                for(var geom of graphEdgeSequence) {
+                for(var edgeReferenceId of visitedEdgeList) {
+                    var edgeRef = <SharedStreetsReference>this.tileIndex.objectIndex.get(edgeReferenceId);
+                    var edgeGeom = <SharedStreetsGeometry>this.tileIndex.objectIndex.get(edgeRef.geometryId);
+
                     var pathSegment:PathSegment = new PathSegment();
-                    pathSegment.geometryId = geom.shstGeometryId;
+                    pathSegment.geometryId = edgeGeom.id;
+                    pathSegment.referenceId = edgeReferenceId;
                     // TODO calc directionality from graph edge trajectory possible...
                     pathCandidate.segments.push(pathSegment);
 
-                    var segementGeom = <turfHelpers.Feature<turfHelpers.LineString>>this.tileIndex.featureIndex.get(geom.shstGeometryId);
+                    var segementGeom = <turfHelpers.Feature<turfHelpers.LineString>>this.tileIndex.featureIndex.get(edgeGeom.id);
                     segmentGeoms.geometry.coordinates.push(segementGeom.geometry.coordinates)
                 }
                 if(pathCandidate.segments.length > 0)
@@ -497,76 +482,6 @@ export class Graph {
 
 
         this.pointMatcher.searchRadius = this.searchRadius;
-
-        // // do default shst edge look up first
-        // var startPoint = turfHelpers.point(feature.geometry.coordinates[0]);
-        // var endPoint = turfHelpers.point(feature.geometry.coordinates[feature.geometry.coordinates.length - 1]);
-
-        // var startCandidates:PointCandidate[] = await this.pointMatcher.getPointCandidates(startPoint, null, 10);
-        // var endCandidates:PointCandidate[] = await this.pointMatcher.getPointCandidates(endPoint, null, 10);
-
-        // for(var i = 0; i < startCandidates.length; i++) {
-        //     for(var j = 0; j < endCandidates.length; j++) {
-
-        //         // if start and end are on the same graph edge make sure they're the same referenceId/correct direction
-        //         if(startCandidates[i].geometryId == endCandidates[j].geometryId) {
-                    
-        //             // skip if not on the same reference (oposing directions)
-        //             if(startCandidates[i].referenceId != endCandidates[j].referenceId)
-        //                 continue;
-
-        //             // if start location is after end location skip 
-        //             if(startCandidates[i].location > endCandidates[j].location) 
-        //                 continue;
-
-        //             var edgeGeom = <SharedStreetsGeometry>this.tileIndex.objectIndex.get(startCandidates[i].geometryId);
-
-        //             var pathCandidate = new PathCandidate();
-        //             var matchWorked:boolean = true;
-
-        //             pathCandidate.score = rmse([startCandidates[i].calcScore(), endCandidates[j].calcScore()]);
-        //             pathCandidate.originalFeature = feature;
-        //             pathCandidate.matchType = MatchType.DIRECT;
-        //             pathCandidate.segments = [];
-            
-        //             try {
-        //                 pathCandidate.matchedPath = await this.tileIndex.geom(startCandidates[i].referenceId, startCandidates[i].location,  endCandidates[j].location);
-        //             }
-        //             catch(err) {
-        //                 pathCandidate.matchedPath = {type:"Feature", properties:[], geometry:{"type":"LineString", coordinates:[startCandidates[i].pointOnLine.geometry.coordinates[0], startCandidates[i].pointOnLine.geometry.coordinates[1]]}};//await this.tileIndex.geom(startCandidates[i].referenceId, startCandidates[i].location,  endCandidates[j].location);
-        //             }
-                    
-        //             var pathSegment:PathSegment = new PathSegment();
-        //             pathSegment.geometryId = startCandidates[i].geometryId;
-        //             pathSegment.referenceId = startCandidates[i].referenceId;
-        //             pathSegment.section = [startCandidates[i].location, endCandidates[j].location];
-        //             pathSegment.toIntersectionId = edgeGeom.toIntersectionId;
-
-        //             var ref = <SharedStreetsReference>this.tileIndex.objectIndex.get(pathSegment.referenceId);
-        //             pathSegment.referenceLength = getReferenceLength(ref);
-                    
-        //             pathSegment.fromIntersectionId = edgeGeom.fromIntersectionId;
-
-        //             pathCandidate.segments.push(pathSegment);
-                    
-        //             var startDist = distance(startPoint, startCandidates[i].pointOnLine, {"units":"meters"});
-        //             var endDist = distance(endPoint, endCandidates[j].pointOnLine, {"units":"meters"});
-        //             pathCandidate.score = rmse([startDist, endDist, pathCandidate.getLengthDelta()]);
-        //             //console.log( pathCandidate.score)
-        //             pathCandidates.push(pathCandidate);
-
-        //         }
-        //     }
-        // }
-
-        // if(pathCandidates.length > 0) {
-        //     pathCandidates.sort((a, b) => {
-        //         return a.score - b.score;
-        //     })
-            
-        //     bestPathCandidate = pathCandidates[0];
-
-        // }
 
        
         if(!bestPathCandidate) {
@@ -639,28 +554,8 @@ export class Graph {
                                     }
                                 }
                                 previousNode = nodeId;
-                                //var node = JSON.parse(await this.db.get('node:' + nodeId));
-                                // var nodeEdges = JSON.parse(await this.db.get('node-edges:' + nodeId));
-                                // if(!edgeCandidates) {
-                                //     edgeCandidates = new Set([...nodeEdges.edgeIds]);
-                                // }
-                                // else {
-                                //     var newCandiates = new Set([...nodeEdges.edgeIds]);
-                                //     edgeCandidates = new Set([...edgeCandidates].filter(x => newCandiates.has(x)));            
-                                // }
-                            
-                                // if(edgeCandidates.size == 1) {
-                                //     var edgeId = [...edgeCandidates][0];
-                                //     // reduce repeating edgeIds down to one per edge
-                                //     if(graphEdgeSequence.length == 0 || graphEdgeSequence[graphEdgeSequence.length-1].edgeId !== edgeId) {
-                                //         var edge = JSON.parse(await this.db.get('edge:' + edgeId));
-                                //         graphEdgeSequence.push(edge);
-                                //     } 
-                                //     edgeCandidates = new Set([...nodeEdges.edgeIds]);
-                                // }
                             }
-                        }  
-                    
+                        }     
                     }
                 }
         
@@ -671,20 +566,8 @@ export class Graph {
 
                     var startCandidate:PointCandidate = await this.pointMatcher.getPointCandidateFromRefId(startPoint, visitedEdgeList[0], null);
                     var endCandidate:PointCandidate = await this.pointMatcher.getPointCandidateFromRefId(endPoint, visitedEdgeList[visitedEdgeList.length - 1], null);
-                    // var startCandidates:PointCandidate[] = await this.pointMatcher.getPointCandidates(startPoint, null, 10);
-                    // var endCandidates:PointCandidate[] = await this.pointMatcher.getPointCandidates(endPoint, null, 10);
-                
-                    var alreadyIncludedPaths:Set<string> = new Set();
 
-                    // // if start and end are on the same graph edge make sure they're the same referenceId/correct direction
-                    // if(startCandidate.geometryId == endCandidate.geometryId) {
-                    //     // skip if not on the same reference (oposing directions)
-                    //     if(referenceId != endCandidates[j].referenceId)
-                    //         continue;
-                    //     // if start location is after end location skip 
-                    //     if(startCandidates[i].location > endCandidates[j].location) 
-                    //         continue;
-                    // }
+                    var alreadyIncludedPaths:Set<string> = new Set();
 
                     var pathCandidate = new PathCandidate();
                     var matchWorked:boolean = true;
@@ -701,12 +584,6 @@ export class Graph {
                     var length = pathCandidate.getOriginalFeatureLength();
 
                     for(var k = 0; k < visitedEdgeList.length; k++) {
-
-                        // if((k == 0 && startCandidates[i].referenceId !== visitedEdgeList[k]) && 
-                        //     (k == visitedEdgeList.length - 1 && endCandidates[j].geometryId != visitedEdgeList[k])) {
-                        //     matchWorked = false;
-                        //     break;
-                        // }
                     
                         var pathSegment:PathSegment = new PathSegment();
                         pathSegment.referenceId = visitedEdgeList[k];
@@ -729,19 +606,6 @@ export class Graph {
                                 pathCandidate.segments[k].section = [startCandidate.location, endCandidate.location];
                             }
                             else {
-                                // if(k == 0) 
-                                //     pathCandidate.segments[k].referenceId = pathCandidate.startPoint.referenceId;    
-                                // else {
-                                //     if(pathCandidate.segments[k-1].toIntersectionId == edgeGeom.fromIntersectionId){
-                                //         pathCandidate.segments[k].referenceId = edgeGeom.forwardReferenceId;
-                                //     }
-                                //     else if (pathCandidate.segments[k-1].toIntersectionId == edgeGeom.toIntersectionId && edgeGeom.backReferenceId)
-                                //         pathCandidate.segments[k].referenceId = edgeGeom.backReferenceId;
-                                //     else {
-                                //         matchWorked = false;
-                                //         break;
-                                //     }
-                                // }
 
                                 if(k == pathCandidate.segments.length - 1) {
                                     pathCandidate.endPoint = endCandidate;
