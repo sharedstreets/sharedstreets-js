@@ -1,7 +1,7 @@
 
 
 import * as probuf_minimal from "protobufjs/minimal";
-let linearProto = require('./src/proto/linear.js');
+const linearProto = require('./proto/linear.js');
 
 var fs = require('fs');
 
@@ -26,18 +26,27 @@ const tileSource:string = 'osm';
 const tileBuild:string = 'planet-180430';
 
 
-// convert refId + binCount and binPosition to ref
-// [refId]-[binCount]:[binPosition]
-export function generateBinId(referenceId, binCount, binPosition):string {
-    
-    var binId:string = referenceId + "{" + binCount;
+export function getBinCountFromLength(referenceLength, binSize) {
+    var numBins = Math.floor(referenceLength / binSize) + 1;
+    return numBins;
+}
 
+export function getBinLength(referenceLength, binSize) {
+    return referenceLength / getBinCountFromLength(referenceLength, binSize);
+}
+
+export function getBinPositionFromLocation(referenceLength, binSize, location) {
+    var bin = Math.floor(location / getBinLength(referenceLength, binSize)) + 1;
+    return bin;
+}
+
+export function generateBinId(referenceId, binCount, binPosition):string {
+    var binId:string = referenceId + "{" + binCount;
     if(binPosition) 
         binId = binId + ":" + binPosition;
-
     return binId;
+}  
 
-}
 
 export enum PeriodSize {
     OneSecond       = 0,

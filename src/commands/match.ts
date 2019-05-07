@@ -8,13 +8,15 @@ import { PointMatcher } from '../index'
 import * as turfHelpers from '@turf/helpers';
 
 import { CleanedLines, reverseLineString } from '../geom';
-import { Graph, PathCandidate } from '../graph';
+import { Graph, PathCandidate, GraphMode } from '../graph';
 import  envelope from '@turf/envelope';
 
 import { forwardReference, backReference } from '../index';
 import { SharedStreetsReference } from 'sharedstreets-types';
 import lineOffset from '@turf/line-offset';
 import { ReferenceSideOfStreet } from '../point_matcher';
+import { getReferenceLength } from '../tile_index';
+import { generateBinId, getBinCountFromLength, getBinPositionFromLocation } from '../data';
 
 const chalk = require('chalk');
 const cliProgress = require('cli-progress');
@@ -42,7 +44,7 @@ export default class Match extends Command {
 
     // flag with a value (-o, --out=FILE)
     out: flags.string({char: 'o', description: 'file output name creates files [file-output-name].matched.geojson and [file-output-name].unmatched.geojson'}),
-    'tile-source': flags.string({description: 'SharedStreets tile source', default: 'osm/planet-180430'}),
+    'tile-source': flags.string({description: 'SharedStreets tile source', default: 'osm/planet-181224'}),
     'tile-hierarchy': flags.integer({description: 'SharedStreets tile hierarchy', default: 6}),
     'skip-port-properties': flags.boolean({char: 'p', description: 'skip porting existing feature properties preceeded by "pp_"', default: false}),
     'follow-line-direction': flags.boolean({description: 'only match using line direction', default: false}),
@@ -52,11 +54,17 @@ export default class Match extends Command {
     'one-way-against-direction-value': flags.string({description: 'name of optional value of "direction-field" indicating a one-way street against line direction'}),
     'two-way-value': flags.string({description: 'name of optional value of "direction-field" indicating a two-way street'}),
     'bearing-field': flags.string({description: 'name of optional point property containing bearing in decimal degrees', default:'bearing'}),
-    'search-radius': flags.integer({description: 'search radius for for snapping points, lines and traces (in meters)', default:10}),
+    'search-radius': flags.integer({description: 'search radius for for snapping points, lines and traces (in meters)', default:20}),
     'snap-intersections': flags.boolean({description: 'snap line end-points to nearest intersection', default:false}),
     'snap-side-of-street': flags.boolean({description: 'snap line to side of street', default:false}),
     'left-side-driving': flags.boolean({description: 'snap line to side of street', default:false}),
+    'match-car': flags.boolean({description: 'match using car routing rules', default:true}),
+    'match-bike': flags.boolean({description: 'match using bike routing rules', default:false}),
+    'match-pedestrian': flags.boolean({description: 'match using pedestrian routing rules', default:false}),
+    'match-motorway-only': flags.boolean({description: 'only match against motorway segments', default:false}),
+    'match-surface-streets-only': flags.boolean({description: 'only match against surface street segments', default:false}),
     'offset-line': flags.integer({description: 'offset geometry based on direction of matched line (in meters)'}),
+    'cluster-points': flags.integer({description: 'sub-segment length for clustering points (in meters)'}),
     stats: flags.boolean({char: 's'})
 
     // flag with no value (-f, --force)
@@ -88,8 +96,28 @@ export default class Match extends Command {
 
 
     if(flags['direction-field'])
-      console.log(chalk.bold.keyword('green')('  Filtering one-way and two-way streets using field "' + flags['direction-field'] + '" with values: ' + ' "' + flags['one-way-with-direction-value'] + '", "' + flags['one-way-against-direction-value'] + '", "' +  flags['two-way-value'] + '"'));
+      console.log(chalk.bold.keyword('green')('       Filtering one-way and two-way streets using field "' + flags['direction-field'] + '" with values: ' + ' "' + flags['one-way-with-direction-value'] + '", "' + flags['one-way-against-direction-value'] + '", "' +  flags['two-way-value'] + '"'));
     
+    if(flags['match-bike'] || flags['match-pedestrian']) {
+      if(flags['match-bike']) {
+        console.log(chalk.bold.keyword('green')('       Matching using bike routing rules'));
+      }
+      if(flags['match-pedestrian']) {
+        console.log(chalk.bold.keyword('green')('       Matching using pedestrian routing rules'));
+      }
+      if(flags['match-motorway-only'])
+        console.log(chalk.bold.keyword('orange')('       Ignoring motorway-only setting'));
+    }
+    if(flags['match-car']) {
+      if(flags['match-motorway-only'])
+        console.log(chalk.bold.keyword('green')('       Matching using car routing rules on motorways only'));
+      else if(flags['match-surface-only'])
+        console.log(chalk.bold.keyword('green')('       Matching using car routing rules on surface streets only'));
+      else 
+        console.log(chalk.bold.keyword('green')('       Matching using car routing rules on all streets')); 
+    }
+
+
     var content = readFileSync(inFile);
     var data:turfHelpers.FeatureCollection<turfHelpers.Geometry> = JSON.parse(content.toLocaleString());
   
@@ -136,11 +164,52 @@ async function matchPoints(outFile, params, points, flags) {
     }
   }
 
+  var clusteredPoints = [];
+  if(flags['cluster-points']) {
+    var clusteredPointMap = {};
+
+    const mergePointIntoCluster = (pointData) => {
+
+      var binCount = getBinCountFromLength(matchedPoint.properties['referenceLength'], flags['cluster-points'])
+      var binPosition = getBinPositionFromLocation(matchedPoint.properties['referenceLength'], flags['cluster-points'], matchedPoint.properties['location']);
+      var binId = generateBinId(matchedPoint.properties['referenceId'], binCount, binPosition);
+
+      if(clusteredPointMap[binId]) {
+        clusteredPointMap[binId].properties['count'] += 1;
+      }
+      else {
+        var bins = matcher.tileIndex.referenceToBins(matchedPoint.properties['referenceId'], binCount, 2, ReferenceSideOfStreet.RIGHT);
+        var binPoint = turfHelpers.point(bins.geometry.coordinates[binPosition - 0]);
+        binPoint.properties['id'] = binId;
+        binPoint.properties['referenceId'] = matchedPoint.properties['referenceId'];
+        binPoint.properties['binPosition'] = binPosition;
+        binPoint.properties['binCount'] = binCount;
+        binPoint.properties['count'] = 0;
+        clusteredPointMap[binId] = binPoint;
+      }
+      clusteredPointMap[binId]
+
+    };
+
+    for(var matchedPoint of matchedPoints) {
+      mergePointIntoCluster(matchedPoint);
+    }
+
+    clusteredPoints = Object.keys(clusteredPointMap).map(key => clusteredPointMap[key]);
+  }
+
   if(matchedPoints.length) {
     console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + matchedPoints.length + ' matched points: ' + outFile + ".matched.geojson"));
     var matchedFeatureCollection:turfHelpers.FeatureCollection<turfHelpers.Point> = turfHelpers.featureCollection(matchedPoints);
     var matchedJsonOut = JSON.stringify(matchedFeatureCollection);
     writeFileSync(outFile + ".matched.geojson", matchedJsonOut);
+  }
+
+  if(clusteredPoints.length) {
+    console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + clusteredPoints.length + ' clustered points: ' + outFile + ".clustered.geojson"));
+    var clusteredPointsFeatureCollection:turfHelpers.FeatureCollection<turfHelpers.Point> = turfHelpers.featureCollection(clusteredPoints);
+    var clusteredJsonOut = JSON.stringify(clusteredPointsFeatureCollection);
+    writeFileSync(outFile + ".clustered.geojson", clusteredJsonOut);
   }
 
   if(unmatchedPoints.length ) {
@@ -190,7 +259,7 @@ async function matchLines(outFile, params, lines, flags) {
 
       segmentGeom.properties['gisReferenceId'] = ref.id;
       segmentGeom.properties['gisGeometryId'] = ref.geometryId;
-      segmentGeom.properties['gisSegementIndex'] = segmentIndex;
+      segmentGeom.properties['gisSegmentIndex'] = segmentIndex;
       segmentGeom.properties['gisFromIntersectionId'] = ref.locationReferences[0].intersectionId;
       segmentGeom.properties['gisToIntersectionId'] = ref.locationReferences[ref.locationReferences.length-1].intersectionId;
       segmentGeom.properties['gisTotalSegments'] = path.segments.length;
@@ -246,7 +315,24 @@ async function matchLines(outFile, params, lines, flags) {
   };
 
   var extent = envelope(lines);
-  var matcher = new Graph(extent, params);
+  
+  var graphMode:GraphMode;
+  if(flags['match-bike'])
+    graphMode = GraphMode.BIKE;
+  else if(flags['match-pedestrian'])
+    graphMode = GraphMode.PEDESTRIAN;
+  else if(flags['match-car']) {
+    if(flags['match-motorway-only'])
+      graphMode = GraphMode.CAR_MOTORWAY_ONLY;
+    else if(flags['match-surface-only'])
+      graphMode = GraphMode.CAR_SURFACE_ONLY;
+    else 
+      graphMode = GraphMode.CAR_ALL;
+  }
+  else 
+    graphMode = GraphMode.CAR_ALL;
+
+  var matcher = new Graph(extent, params, null, graphMode);
   await matcher.buildGraph();
 
   if(flags['search-radius'])
@@ -377,7 +463,6 @@ async function matchLines(outFile, params, lines, flags) {
     if(!matchedLine)
       unmatchedLines.push(line);
   
-
     bar1.increment();
   }
   bar1.stop();

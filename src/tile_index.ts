@@ -9,6 +9,7 @@ import along from '@turf/along';
 
 import envelope from '@turf/envelope';
 import lineSliceAlong from '@turf/line-slice-along';
+import lineOffset from '@turf/line-offset';
 
 import geojsonRbush, { RBush } from 'geojson-rbush';
 
@@ -17,22 +18,33 @@ import { SharedStreetsIntersection, SharedStreetsGeometry, SharedStreetsReferenc
 import { lonlatsToCoords } from '../src/index';
 import { TilePath, getTile, TileType, TilePathGroup, getTileIdsForPolygon, TilePathParams, getTileIdsForPoint } from './tiles';
 import { Graph } from './graph';
+import { ReferenceSideOfStreet } from './point_matcher';
+import { reverseLineString } from './geom';
 
 const SHST_ID_API_URL = 'https://api.sharedstreets.io/v0.1.0/id/';
 
 // maintains unified spaital and id indexes for tiled data
 
-function createIntersectionGeometry(data:SharedStreetsIntersection) {
+export function createIntersectionGeometry(data:SharedStreetsIntersection) {
     var point = turfHelpers.point([data.lon, data.lat]);
     return turfHelpers.feature(point.geometry, {id: data.id});
 }
 
-function createGeometry(data:SharedStreetsGeometry) {
+export function getReferenceLength(ref:SharedStreetsReference) {
+    var refLength = 0;
+    for(var locationRef of ref.locationReferences) {
+        if(locationRef.distanceToNextRef)
+        refLength = refLength = locationRef.distanceToNextRef
+    }
+    return refLength / 100;
+}
+
+export function createGeometry(data:SharedStreetsGeometry) {
     
     var line = turfHelpers.lineString(lonlatsToCoords(data.lonlats));
     var feature = turfHelpers.feature(line.geometry, {id: data.id});
     return feature;
-}
+} 
 
 export class TileIndex {
 
@@ -40,6 +52,7 @@ export class TileIndex {
     objectIndex:Map<string, {}>;
     featureIndex:Map<string, turfHelpers.Feature<turfHelpers.Geometry>>;
     metadataIndex:Map<string, {}>;
+    binIndex:Map<string, turfHelpers.Feature<turfHelpers.MultiPoint>>;
 
     intersectionIndex:RBush<turfHelpers.Geometry, turfHelpers.Properties>;
     geometryIndex:RBush<turfHelpers.Geometry, turfHelpers.Properties>;
@@ -49,6 +62,7 @@ export class TileIndex {
         this.tiles = new Set();
         this.objectIndex = new Map();
         this.featureIndex = new Map();
+        this.binIndex = new Map();
 
         this.intersectionIndex = geojsonRbush(9);
         this.geometryIndex = geojsonRbush(9);
@@ -178,6 +192,56 @@ export class TileIndex {
 
         return data;
     
+    }
+
+    referenceToBins(referenceId:string, numBins:number, offset:number, sideOfStreet:ReferenceSideOfStreet):turfHelpers.Feature<turfHelpers.MultiPoint> {
+        var binIndexId = referenceId + ':' + numBins + ':' + offset;
+
+        if(this.binIndex.has(binIndexId))
+            return this.binIndex.get(binIndexId);
+
+        var ref = <SharedStreetsReference>this.objectIndex.get(referenceId);
+        var geom = <SharedStreetsGeometry>this.objectIndex.get(ref.geometryId);
+        var feature = <turfHelpers.Feature<turfHelpers.LineString>>this.featureIndex.get(ref.geometryId);
+
+        var binLength = getReferenceLength(ref) / numBins;
+
+        var binPoints:turfHelpers.Feature<turfHelpers.MultiPoint> = {
+            "type": "Feature",
+            "properties": { "id":referenceId },
+            "geometry": {
+                "type": "MultiPoint",
+                "coordinates": []
+            }
+        }
+
+        try {
+            if(offset) { 
+                if(referenceId === geom.forwardReferenceId)
+                    feature = lineOffset(feature, offset, {units: 'meters'});
+                else {
+                    var reverseGeom = reverseLineString(feature);
+                    feature = lineOffset(reverseGeom, offset, {units: 'meters'});
+                }
+            }
+            for(var binPosition = 0; binPosition < numBins; binPosition++) {
+                try {
+                    var point = along(feature, (binLength * binPosition) + (binLength/2), {units:'meters'});
+                    point.geometry.coordinates[0] = Math.round(point.geometry.coordinates[0] * 10000000) / 10000000;
+                    point.geometry.coordinates[1] = Math.round(point.geometry.coordinates[1] * 10000000) / 10000000;
+                    binPoints.geometry.coordinates.push(point.geometry.coordinates);
+                }
+                catch(e) {
+                    console.log(e);
+                }
+            }
+            this.binIndex.set(binIndexId, binPoints);
+        }
+        catch(e) {
+            console.log(e);
+        }
+
+        return binPoints;
     }
 
     async geom(referenceId:string, p1:number, p2:number):Promise<turfHelpers.Feature<turfHelpers.LineString|turfHelpers.Point>> {
