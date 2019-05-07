@@ -332,7 +332,7 @@ async function matchLines(outFile, params, lines, flags) {
   else 
     graphMode = GraphMode.CAR_ALL;
 
-  var matcher = new Graph(extent, params, null, graphMode);
+  var matcher = new Graph(extent, params, graphMode);
   await matcher.buildGraph();
 
   if(flags['search-radius'])

@@ -135,9 +135,9 @@ export class Graph {
     useHMM = true;
     useDirect = true;
 
-    constructor(extent:turfHelpers.Feature<turfHelpers.Polygon>, params:TilePathParams, existingTileIndex:TileIndex=null, graphMode:GraphMode=GraphMode.CAR_ALL) {
+    constructor(extent:turfHelpers.Feature<turfHelpers.Polygon>, tileParams:TilePathParams, graphMode:GraphMode=GraphMode.CAR_ALL, existingTileIndex:TileIndex=null, ) {
 
-        this.tilePathGroup = TilePathGroup.fromPolygon(extent, 1000, params);
+        this.tilePathGroup = TilePathGroup.fromPolygon(extent, 1000, tileParams);
         this.tilePathGroup.addType(TileType.GEOMETRY);
         this.tilePathGroup.addType(TileType.REFERENCE);
 
@@ -155,7 +155,7 @@ export class Graph {
             this.tileIndex = new TileIndex();
         }
 
-        this.pointMatcher = new PointMatcher(extent, params, this.tileIndex);
+        this.pointMatcher = new PointMatcher(extent, tileParams, this.tileIndex);
 
         // create id from tile path hash  
         this.id = uuidHash(this.graphMode + ' node-pair.sv1 ' + paths.join(" "));
@@ -335,7 +335,7 @@ export class Graph {
 
             if(USE_LOCAL_CACHE && existsSync(dbPath)) {
                 var osrmPath = path.join(graphPath, '/graph.xml.osrm');
-                console.log(chalk.keyword('lightgreen')("     loading pre-built " + this.graphMode+ "  graph from: " + osrmPath));
+                console.log(chalk.keyword('lightgreen')("     loading pre-built " + this.graphMode + " graph from: " + osrmPath));
                 this.db = new LevelDB(dbPath);
                 if(OPTIMIZE_GRAPH)
                     this.osrm = new OSRM({path:osrmPath});
@@ -349,11 +349,11 @@ export class Graph {
                 mkdirSync(dbPath, {recursive:true});
                 this.db = new LevelDB(dbPath)
 
-                console.log(chalk.keyword('lightgreen')("     building " + this.graphMode+ " graph  xml..."));
+                console.log(chalk.keyword('lightgreen')("     building " + this.graphMode + " graph  xml..."));
                 var xmlPath = await this.createGraphXml();
 
                 //extract 
-                console.log(chalk.keyword('lightgreen')("     building " + this.graphMode+ "  graph from: " + xmlPath));
+                console.log(chalk.keyword('lightgreen')("     building " + this.graphMode + " graph from: " + xmlPath));
                 
                 var profile;
 
@@ -525,8 +525,7 @@ export class Graph {
 
             var visitedEdges:Set<string> = new Set();
             var visitedEdgeList:string[] = [];
-
-            console.log('matches: ' + matches['matchings'].length)
+            
             if(matches['matchings'] &&  matches['matchings'].length > 0) {
                 
                 var match = matches['matchings'][0];
