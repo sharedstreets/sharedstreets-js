@@ -58,7 +58,7 @@ export default class Match extends Command {
     'search-radius': flags.integer({description: 'search radius for for snapping points, lines and traces (in meters)', default:10}),
     'snap-intersections': flags.boolean({description: 'snap line end-points to nearest intersection if closer than distance defined by search-radius ', default:false}),
     'snap-side-of-street': flags.boolean({description: 'snap line to side of street', default:false}),
-    'left-side-driving': flags.boolean({description: 'snap line to side of street', default:false}),
+    'left-side-driving': flags.boolean({description: 'snap line to side of street using left-side driving rules', default:false}),
     'match-car': flags.boolean({description: 'match using car routing rules', default:true}),
     'match-bike': flags.boolean({description: 'match using bike routing rules', default:false}),
     'match-pedestrian': flags.boolean({description: 'match using pedestrian routing rules', default:false}),
