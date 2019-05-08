@@ -12,7 +12,7 @@ export function envelopeBufferFromPoint(point, radius):turfHelpers.Feature<turfH
 function cleanProperties(og_props:{}) {
 	var  new_props:{} = {};
 	for(var prop of Object.keys(og_props)) {
-	  new_props[prop.toLocaleLowerCase()] = og_props[prop];
+	  new_props[prop.toLocaleLowerCase().replace(" ", "_")] = og_props[prop];
 	}
 	return new_props;
   }
@@ -58,6 +58,9 @@ export class CleanedPoints {
 			}
 
 			for(var inputFeature of inputFeatures) {
+
+				// move properties to lowercase
+				inputFeature.properties = cleanProperties(inputFeature.properties);
 
 				if (inputFeature.geometry.type === "Point"){
 					this.clean.push(inputFeature);

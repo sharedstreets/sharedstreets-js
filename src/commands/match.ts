@@ -7,7 +7,7 @@ import { PointMatcher } from '../index'
 
 import * as turfHelpers from '@turf/helpers';
 
-import { CleanedLines, reverseLineString } from '../geom';
+import { CleanedLines, reverseLineString, CleanedPoints } from '../geom';
 import { Graph, PathCandidate, GraphMode } from '../graph';
 import  envelope from '@turf/envelope';
 
@@ -136,12 +136,23 @@ async function matchPoints(outFile, params, points, flags) {
   console.log(chalk.bold.keyword('green')('  ✨  Matching ' + points.features.length + ' points...'));
   // test matcher point candidates
   
+  var cleanPoints = new CleanedPoints(points)
+
   var matcher = new PointMatcher(null, params);
   matcher.searchRadius = flags['search-radius'];
   var matchedPoints:turfHelpers.Feature<turfHelpers.Point>[] = [];
   var unmatchedPoints:turfHelpers.Feature<turfHelpers.Point>[] = [];
 
-  for(var searchPoint of points.features) {
+
+  const bar2 = new cliProgress.Bar({},{
+    format: chalk.keyword('blue')(' {bar}') + ' {percentage}% | {value}/{total} ',
+    barCompleteChar: '\u2588',
+    barIncompleteChar: '\u2591'
+  });
+ 
+  bar2.start(points.features.length, 0);
+
+  for(var searchPoint of cleanPoints.clean) {
 
     var bearing:number =null;
     if(searchPoint.properties && searchPoint.properties[flags['bearing-field']])
@@ -159,13 +170,17 @@ async function matchPoints(outFile, params, points, flags) {
     else {
       unmatchedPoints.push(searchPoint);
     }
+    bar2.increment();
   }
+  bar2.stop();
 
   var clusteredPoints = [];
   if(flags['cluster-points']) {
     var clusteredPointMap = {};
 
-    const mergePointIntoCluster = (pointData) => {
+
+
+    const mergePointIntoCluster = (matchedPoint) => {
 
       var binCount = getBinCountFromLength(matchedPoint.properties['referenceLength'], flags['cluster-points'])
       var binPosition = getBinPositionFromLocation(matchedPoint.properties['referenceLength'], flags['cluster-points'], matchedPoint.properties['location']);
@@ -181,11 +196,21 @@ async function matchPoints(outFile, params, points, flags) {
         binPoint.properties['referenceId'] = matchedPoint.properties['referenceId'];
         binPoint.properties['binPosition'] = binPosition;
         binPoint.properties['binCount'] = binCount;
-        binPoint.properties['count'] = 0;
+        binPoint.properties['count'] = 1;
         clusteredPointMap[binId] = binPoint;
       }
-      clusteredPointMap[binId]
-
+      
+      for(var property of Object.keys(matchedPoint.properties)) {
+        if(property.startsWith('pp_')) {
+          if(!isNaN(matchedPoint.properties[property])) { 
+            var sumPropertyName = 'sum_' +  property;
+            if(!clusteredPointMap[binId].properties[sumPropertyName]) {
+              clusteredPointMap[binId].properties[sumPropertyName] = 0;
+            }
+            clusteredPointMap[binId].properties[sumPropertyName] += matchedPoint.properties[property];
+          }
+        }
+      }
     };
 
     for(var matchedPoint of matchedPoints) {
@@ -214,6 +239,12 @@ async function matchPoints(outFile, params, points, flags) {
     var unmatchedFeatureCollection:turfHelpers.FeatureCollection<turfHelpers.Point> = turfHelpers.featureCollection(unmatchedPoints);
     var unmatchedJsonOut = JSON.stringify(unmatchedFeatureCollection);
     writeFileSync(outFile + ".unmatched.geojson", unmatchedJsonOut);
+  }
+
+  if(cleanPoints.invalid  && cleanPoints.invalid.length > 0 ) {
+    console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + cleanPoints.invalid.length + ' invalid points: ' + outFile + ".invalid.geojson"));
+    var invalidJsonOut = JSON.stringify(cleanPoints.invalid );
+    writeFileSync(outFile + ".unmatched.geojson", invalidJsonOut);
   }
 }
 
