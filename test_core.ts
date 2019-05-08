@@ -513,14 +513,15 @@ test("match points", async (t:any) => {
  //test matcher point candidates
  var matcher = new Graph(envelope(lines), params);
  await matcher.buildGraph();
+
+ matcher.searchRadius = 20;
  
  var matchedLines = turfHelpers.featureCollection([]);
  for(var line of lines.features) {
    var pathCandidate = await matcher.match(line);
-   matchedLines.features.push(pathCandidate.matchedPath);
+   if(pathCandidate)
+    matchedLines.features.push(pathCandidate.matchedPath);
  }
-
-
  const expected_1a_file = 'test/geojson/line-directed-test-snapped.out.geojson';
  if(BUILD_TEST_OUPUT) {
    var expected_1a_out:string = JSON.stringify(matchedLines);
@@ -537,9 +538,9 @@ test("match points", async (t:any) => {
  var matchedLines = turfHelpers.featureCollection([]);
  for(var line of lines.features) {
    var pathCandidate = await matcher.match(line);
-   matchedLines.features.push(pathCandidate.matchedPath);
+   if(pathCandidate)
+    matchedLines.features.push(pathCandidate.matchedPath);
  }
-
 
  const expected_1b_file = 'test/geojson/line-directed-test-unsnapped.out.geojson';
  if(BUILD_TEST_OUPUT) {
