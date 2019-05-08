@@ -7,7 +7,7 @@ import bbox from "@turf/bbox";
 import destination from '@turf/destination';
 import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'fs';
 
-import { getJson, getPbf } from "./util";
+import { getJson, getPbf, resolveHome } from "./util";
 
 const chalk = require('chalk');
 const path = require('path');
@@ -23,7 +23,7 @@ const SHST_ID_API_URL = 'https://api.sharedstreets.io/v0.1.0/id/';
 const SHST_TILE_URL = 'https://tiles.sharedstreets.io/';
 
 const USE_LOCAL_CACHE = true;
-const SHST_TILE_CACHE_DIR = 'shst/cache/tiles/';
+const SHST_TILE_CACHE_DIR = resolveHome('~/.shst/cache/tiles/');
 
 export enum TileType {
     REFERENCE = 'reference',

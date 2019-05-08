@@ -1,5 +1,13 @@
 import fetch from 'node-fetch';
+const path = require('path');
 
+export function resolveHome(filepath) {
+    if (filepath[0] === '~') {
+        return path.join(process.env.HOME, filepath.slice(1));
+    }
+    console.log(filepath)
+    return filepath;
+}
 
 function checkStatus(res) {
     if (res.ok) { // res.status >= 200 && res.status < 300

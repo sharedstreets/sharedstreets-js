@@ -22,16 +22,16 @@ const path = require('path');
 const util = require('util');
 import * as fs from "fs";
 import Match from './commands/match';
-import { rmse } from './util';
+import { rmse, resolveHome } from './util';
 import { LineString } from '@turf/buffer/node_modules/@turf/helpers';
 
 const uuidHash = require('uuid-by-string');
 
-const DEFAULT_SEARCH_RADIUS = 20;
+const DEFAULT_SEARCH_RADIUS = 10;
 const MIN_CONFIDENCE = 0.5;
 const OPTIMIZE_GRAPH = true;
 const USE_LOCAL_CACHE = true;
-const SHST_GRAPH_CACHE_DIR = 'shst/cache/graphs/';
+const SHST_GRAPH_CACHE_DIR = resolveHome('~/.shst/cache/graphs/');
 
 export enum MatchType {
     DIRECT = 'direct',
