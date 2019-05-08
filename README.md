@@ -5,13 +5,6 @@
 
 Node.js & JavaScript implementation of [SharedStreets Reference System](https://github.com/sharedstreets/sharedstreets-ref-system).
 
-# SharedStreets (Node.js & JavaScript)
-
-[![npm version](https://badge.fury.io/js/sharedstreets.svg)](https://badge.fury.io/js/sharedstreets)
-[![CircleCI](https://circleci.com/gh/sharedstreets/sharedstreets-js.svg?style=svg)](https://circleci.com/gh/sharedstreets/sharedstreets-js)
-
-Node.js & JavaScript implementation of [SharedStreets Reference System](https://github.com/sharedstreets/sharedstreets-ref-system).
-
 # Command Line Interface (CLI)
 
 ## Description
