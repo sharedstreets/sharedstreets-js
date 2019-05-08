@@ -1,6 +1,6 @@
 {
   "name": "sharedstreets",
-  "version": "0.11.1-10",
+  "version": "0.2.0",
   "description": "SharedStreets, a 'digital commons' for the street",
   "main": "build/src/index.js",
   "bin": {
@@ -10,7 +10,7 @@
     "*"
   ],
   "oclif": {
-    "commands": "./src/commands",
+    "commands": "./build/src/commands",
     "bin": "shst",
     "plugins": [
       "@oclif/plugin-help"
@@ -18,7 +18,7 @@
   },
   "scripts": {
     "pretest": "tsc",
-    "prepack": "rm -rf build && tsc && oclif-dev manifest",
+    "prepack": "rm -rf build && tsc && mkdir -p build/src/proto && cp src/proto/*.js build/src/proto/ && oclif-dev manifest",
     "test": "tsc && colortape build/test_core.js",
     "test-match": "tsc && colortape build/test_match.js",
     "test-graph": "tsc && colortape build/test_graph.js",

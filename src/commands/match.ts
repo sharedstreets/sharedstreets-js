@@ -54,7 +54,7 @@ export default class Match extends Command {
     'one-way-against-direction-value': flags.string({description: 'name of optional value of "direction-field" indicating a one-way street against line direction'}),
     'two-way-value': flags.string({description: 'name of optional value of "direction-field" indicating a two-way street'}),
     'bearing-field': flags.string({description: 'name of optional point property containing bearing in decimal degrees', default:'bearing'}),
-    'search-radius': flags.integer({description: 'search radius for for snapping points, lines and traces (in meters)', default:20}),
+    'search-radius': flags.integer({description: 'search radius for for snapping points, lines and traces (in meters)', default:10}),
     'snap-intersections': flags.boolean({description: 'snap line end-points to nearest intersection', default:false}),
     'snap-side-of-street': flags.boolean({description: 'snap line to side of street', default:false}),
     'left-side-driving': flags.boolean({description: 'snap line to side of street', default:false}),
