@@ -18,7 +18,7 @@ import envelope from "@turf/envelope";
 
 const test = require('tape');
 
-const BUILD_TEST_OUPUT = true;
+const BUILD_TEST_OUPUT = false;
 
 test("match points", async (t:any) => { 
 

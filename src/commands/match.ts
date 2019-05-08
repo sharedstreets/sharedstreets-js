@@ -64,11 +64,8 @@ export default class Match extends Command {
     'match-motorway-only': flags.boolean({description: 'only match against motorway segments', default:false}),
     'match-surface-streets-only': flags.boolean({description: 'only match against surface street segments', default:false}),
     'offset-line': flags.integer({description: 'offset geometry based on direction of matched line (in meters)'}),
-    'cluster-points': flags.integer({description: 'sub-segment length for clustering points (in meters)'}),
-    stats: flags.boolean({char: 's'})
+    'cluster-points': flags.integer({description: 'sub-segment length for clustering points (in meters)'})
 
-    // flag with no value (-f, --force)
-    //force: flags.boolean({char: 'f'}),
   }
 
   static args = [{name: 'file'}]
@@ -91,7 +88,7 @@ export default class Match extends Command {
     if(!outFile) 
       outFile = inFile;
 
-    if(outFile.toLocaleLowerCase().endsWith(".geojson")  || outFile.toLocaleLowerCase().endsWith(".geojson"))
+    if(outFile.toLocaleLowerCase().endsWith(".geojson"))
       outFile = outFile.split(".").slice(0, -1).join(".");
 
 
@@ -108,7 +105,7 @@ export default class Match extends Command {
       if(flags['match-motorway-only'])
         console.log(chalk.bold.keyword('orange')('       Ignoring motorway-only setting'));
     }
-    if(flags['match-car']) {
+    else if(flags['match-car']) {
       if(flags['match-motorway-only'])
         console.log(chalk.bold.keyword('green')('       Matching using car routing rules on motorways only'));
       else if(flags['match-surface-only'])
