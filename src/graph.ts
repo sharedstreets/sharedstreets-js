@@ -396,7 +396,8 @@ export class Graph {
             var hmmOptions = {
                 coordinates: feature.geometry.coordinates,
                 annotations: true,
-                geometries: 'geojson'
+                geometries: 'geojson',
+                radiuses: Array(feature.geometry.coordinates.length).fill(this.searchRadius)
             };
 
             try {
@@ -508,7 +509,6 @@ export class Graph {
         var hmmOptions = {
             coordinates: feature.geometry.coordinates,
             annotations: true,
-            alternatives: true,
             geometries: 'geojson',
             radiuses: Array(feature.geometry.coordinates.length).fill(this.searchRadius)
         };
