@@ -383,8 +383,8 @@ export class PointMatcher {
 	}
 
 	async getPointCandidates(searchPoint:turfHelpers.Feature<turfHelpers.Point>, searchBearing:number, maxCandidates:number):Promise<PointCandidate[]> {
-
-		var candidateFeatures = await this.tileIndex.nearby(searchPoint, TileType.GEOMETRY, this.searchRadius, this.tileParams, [TileType.REFERENCE]);
+		this.tileIndex.addTileType(TileType.REFERENCE);
+		var candidateFeatures = await this.tileIndex.nearby(searchPoint, TileType.GEOMETRY, this.searchRadius, this.tileParams);
 
 		var candidates:PointCandidate[] = new Array();
 

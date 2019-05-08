@@ -24,7 +24,8 @@ export default class Extract extends Command {
 
     out: flags.string({char: 'o', description: 'output file'}),
     'tile-source': flags.string({description: 'SharedStreets tile source', default: 'osm/planet-181224'}),
-    'tile-hierarchy': flags.integer({description: 'SharedStreets tile hierarchy', default: 6})
+    'tile-hierarchy': flags.integer({description: 'SharedStreets tile hierarchy', default: 6}),
+    metadata: flags.boolean({description: 'Include SharedStreets OpenStreetMap metadata in output', default: false})
 
   }
 
@@ -60,11 +61,18 @@ export default class Extract extends Command {
 
     this.log(chalk.bold.keyword('green')('  🔍  Searching data...'));
 
-    var data = await tileIndex.intersects(polygon, TileType.GEOMETRY, 0, params);
+    if(flags.metadata)
+      tileIndex.addTileType(TileType.METADATA)
+
+    var data = await tileIndex.intersects(polygon, TileType.GEOMETRY, 0,  params);
 
     for(var feature of data.features) {
       var geometryProperties = tileIndex.objectIndex.get(feature.properties.id);
       feature.properties = geometryProperties;
+
+      if(flags.metadata) {
+        feature.properties.metadata = tileIndex.metadataIndex.get(feature.properties.id)
+      }
     }
 
     console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + data.features.length + ' features to: ' + outFile + '.out.geojson'));

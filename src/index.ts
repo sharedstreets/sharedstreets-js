@@ -13,8 +13,8 @@ import {
 } from "sharedstreets-types";
 import { isArray } from "util";
 
-export { Graph } from './graph'
-export { PointMatcher } from './point_matcher'
+export { Graph, PathCandidate, GraphMode} from './graph'
+export { PointMatcher, ReferenceSideOfStreet } from './point_matcher'
 export { TileIndex } from './tile_index'
 export { TilePathGroup, TilePath, TilePathParams, TileType } from './tiles'
 

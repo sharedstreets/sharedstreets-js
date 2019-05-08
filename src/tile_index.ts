@@ -57,17 +57,24 @@ export class TileIndex {
     intersectionIndex:RBush<turfHelpers.Geometry, turfHelpers.Properties>;
     geometryIndex:RBush<turfHelpers.Geometry, turfHelpers.Properties>;
 
+    additionalTileTypes:TileType[] = [];
+
     constructor() {
 
         this.tiles = new Set();
         this.objectIndex = new Map();
         this.featureIndex = new Map();
+        this.metadataIndex = new Map();
         this.binIndex = new Map();
 
         this.intersectionIndex = geojsonRbush(9);
         this.geometryIndex = geojsonRbush(9);
     }
 
+    addTileType(tileType:TileType) {
+        this.additionalTileTypes.push(tileType);
+    }
+ 
 
     isIndexed(tilePath:TilePath):Boolean {
         if(this.tiles.has(tilePath.toPathString()))
@@ -134,7 +141,7 @@ export class TileIndex {
         return null;
     }
 
-    async intersects(polygon:turfHelpers.Feature<turfHelpers.Polygon>, searchType:TileType, buffer:number, params:TilePathParams, additionalTypes:TileType[]=null):Promise<turfHelpers.FeatureCollection<turfHelpers.Geometry>> {
+    async intersects(polygon:turfHelpers.Feature<turfHelpers.Polygon>, searchType:TileType, buffer:number, params:TilePathParams):Promise<turfHelpers.FeatureCollection<turfHelpers.Geometry>> {
 
         var tilePaths = TilePathGroup.fromPolygon(polygon, buffer, params);
 
@@ -145,8 +152,8 @@ export class TileIndex {
         else 
             throw "invalid search type must be GEOMETRY or INTERSECTION";
 
-        if(additionalTypes) {
-            for(var type of additionalTypes) {
+        if(this.additionalTileTypes.length > 0) {
+            for(var type of this.additionalTileTypes) {
                 tilePaths.addType(type);
             }
         }
@@ -163,7 +170,7 @@ export class TileIndex {
         return data;
     }
 
-    async nearby(point:turfHelpers.Feature<turfHelpers.Point>, searchType:TileType, searchRadius:number, params:TilePathParams, additionalTypes:TileType[]=null) {
+    async nearby(point:turfHelpers.Feature<turfHelpers.Point>, searchType:TileType, searchRadius:number, params:TilePathParams) {
 
         var tilePaths = TilePathGroup.fromPoint(point, searchRadius * 2, params);
 
@@ -174,8 +181,8 @@ export class TileIndex {
         else 
             throw "invalid search type must be GEOMETRY or INTERSECTION"
 
-        if(additionalTypes) {
-            for(var type of additionalTypes) {
+        if(this.additionalTileTypes.length > 0) {
+            for(var type of this.additionalTileTypes) {
                 tilePaths.addType(type);
             }
         }

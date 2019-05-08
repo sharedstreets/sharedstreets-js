@@ -3,20 +3,21 @@ import { readFileSync, writeFileSync, existsSync } from 'fs';
 
 import { TilePathParams, TileType, TilePathGroup } from '../index'
 import { TileIndex } from '../index'
-import { PointMatcher } from '../index'
+import { PointMatcher, ReferenceSideOfStreet } from '../index'
+import { Graph, PathCandidate, GraphMode } from '../index';
 
 import * as turfHelpers from '@turf/helpers';
 
 import { CleanedLines, reverseLineString, CleanedPoints } from '../geom';
-import { Graph, PathCandidate, GraphMode } from '../graph';
+
 import  envelope from '@turf/envelope';
 
 import { forwardReference, backReference } from '../index';
-import { SharedStreetsReference } from 'sharedstreets-types';
+import { SharedStreetsReference, SharedStreetsIntersection } from 'sharedstreets-types';
 import lineOffset from '@turf/line-offset';
-import { ReferenceSideOfStreet } from '../point_matcher';
+
 import { getReferenceLength } from '../tile_index';
-import { generateBinId, getBinCountFromLength, getBinPositionFromLocation } from '../data';
+import { generateBinId, getBinCountFromLength, getBinPositionFromLocation, getBinLength } from '../data';
 
 const chalk = require('chalk');
 const cliProgress = require('cli-progress');
@@ -55,7 +56,7 @@ export default class Match extends Command {
     'two-way-value': flags.string({description: 'name of optional value of "direction-field" indicating a two-way street'}),
     'bearing-field': flags.string({description: 'name of optional point property containing bearing in decimal degrees', default:'bearing'}),
     'search-radius': flags.integer({description: 'search radius for for snapping points, lines and traces (in meters)', default:10}),
-    'snap-intersections': flags.boolean({description: 'snap line end-points to nearest intersection', default:false}),
+    'snap-intersections': flags.boolean({description: 'snap line end-points to nearest intersection if closer than distance defined by search-radius ', default:false}),
     'snap-side-of-street': flags.boolean({description: 'snap line to side of street', default:false}),
     'left-side-driving': flags.boolean({description: 'snap line to side of street', default:false}),
     'match-car': flags.boolean({description: 'match using car routing rules', default:true}),
@@ -64,7 +65,7 @@ export default class Match extends Command {
     'match-motorway-only': flags.boolean({description: 'only match against motorway segments', default:false}),
     'match-surface-streets-only': flags.boolean({description: 'only match against surface street segments', default:false}),
     'offset-line': flags.integer({description: 'offset geometry based on direction of matched line (in meters)'}),
-    'cluster-points': flags.integer({description: 'sub-segment length for clustering points (in meters)'})
+    'cluster-points': flags.integer({description: 'aproximate sub-segment length for clustering points (in meters)'})
 
   }
 
@@ -138,7 +139,11 @@ async function matchPoints(outFile, params, points, flags) {
   
   var cleanPoints = new CleanedPoints(points)
 
-  var matcher = new PointMatcher(null, params);
+  var matcher:PointMatcher = new PointMatcher(null, params);
+
+  if(flags['snap-intersections'])
+    matcher.tileIndex.addTileType(TileType.INTERSECTION);
+  
   matcher.searchRadius = flags['search-radius'];
   var matchedPoints:turfHelpers.Feature<turfHelpers.Point>[] = [];
   var unmatchedPoints:turfHelpers.Feature<turfHelpers.Point>[] = [];
@@ -175,39 +180,90 @@ async function matchPoints(outFile, params, points, flags) {
   bar2.stop();
 
   var clusteredPoints = [];
+  var intersectionClusteredPoints = [];
   if(flags['cluster-points']) {
     var clusteredPointMap = {};
-
-
-
+    var intersectionClusteredPointMap = {};
+    
     const mergePointIntoCluster = (matchedPoint) => {
 
-      var binCount = getBinCountFromLength(matchedPoint.properties['referenceLength'], flags['cluster-points'])
-      var binPosition = getBinPositionFromLocation(matchedPoint.properties['referenceLength'], flags['cluster-points'], matchedPoint.properties['location']);
-      var binId = generateBinId(matchedPoint.properties['referenceId'], binCount, binPosition);
+      var pointGeom = null;
+      if(flags['snap-intersections'] && 
+        ( matchedPoint.properties['location'] <= flags['search-radius'] ||
+          matchedPoint.properties['referenceLength'] - matchedPoint.properties['location'] <= flags['search-radius'])) {
+          
+        var reference = <SharedStreetsReference>matcher.tileIndex.objectIndex.get(matchedPoint.properties['referenceId']);
+        var intersectionId;
 
-      if(clusteredPointMap[binId]) {
-        clusteredPointMap[binId].properties['count'] += 1;
+        if(matchedPoint.properties['location'] <= flags['search-radius']) {
+          intersectionId = reference.locationReferences[0].intersectionId;
+        }
+        else if(matchedPoint.properties['referenceLength'] - matchedPoint.properties['location'] <= flags['search-radius']) {
+          intersectionId = reference.locationReferences[reference.locationReferences.length-1].intersectionId;
+        }
+
+        if(intersectionClusteredPointMap[intersectionId]) {
+          pointGeom = intersectionClusteredPointMap[intersectionId];
+          pointGeom.properties['count'] += 1;
+        }
+        else {
+          pointGeom = JSON.parse(JSON.stringify(matcher.tileIndex.featureIndex.get(intersectionId)));
+          var intersection = <SharedStreetsIntersection>matcher.tileIndex.objectIndex.get(intersectionId);
+
+          delete pointGeom.properties["id"];
+          pointGeom.properties["intersectionId"] = intersectionId;
+
+          var inboundCount = 1;
+          for(var inboundRefId of intersection.inboundReferenceIds) {
+            pointGeom.properties["inboundReferenceId_" + inboundCount] = inboundRefId;
+            inboundCount++;
+          }
+
+          var outboundCount = 1;
+          for(var outboundRefId of intersection.outboundReferenceIds) {
+            pointGeom.properties["outboundReferenceId_" + outboundCount] = outboundRefId;
+            outboundCount++;
+          }
+
+          pointGeom.properties['count'] = 1;
+
+          intersectionClusteredPointMap[intersectionId] = pointGeom;
+        }
+
       }
       else {
-        var bins = matcher.tileIndex.referenceToBins(matchedPoint.properties['referenceId'], binCount, 2, ReferenceSideOfStreet.RIGHT);
-        var binPoint = turfHelpers.point(bins.geometry.coordinates[binPosition - 0]);
-        binPoint.properties['id'] = binId;
-        binPoint.properties['referenceId'] = matchedPoint.properties['referenceId'];
-        binPoint.properties['binPosition'] = binPosition;
-        binPoint.properties['binCount'] = binCount;
-        binPoint.properties['count'] = 1;
-        clusteredPointMap[binId] = binPoint;
+
+        var binCount = getBinCountFromLength(matchedPoint.properties['referenceLength'], flags['cluster-points'])
+        var binPosition = getBinPositionFromLocation(matchedPoint.properties['referenceLength'], flags['cluster-points'], matchedPoint.properties['location']);
+        var binId = generateBinId(matchedPoint.properties['referenceId'], binCount, binPosition);
+        var binLength = getBinLength(matchedPoint.properties['referenceLength'], flags['cluster-points'])
+
+        if(clusteredPointMap[binId]) {
+          clusteredPointMap[binId].properties['count'] += 1;
+        }
+        else {
+          var bins = matcher.tileIndex.referenceToBins(matchedPoint.properties['referenceId'], binCount, 2, ReferenceSideOfStreet.RIGHT);
+          var binPoint = turfHelpers.point(bins.geometry.coordinates[binPosition - 0]);
+          binPoint.properties['id'] = binId;
+          binPoint.properties['referenceId'] = matchedPoint.properties['referenceId'];
+          binPoint.properties['binPosition'] = binPosition;
+          binPoint.properties['binCount'] = binCount;
+          binPoint.properties['binLength'] = binLength;
+          binPoint.properties['count'] = 1;
+          clusteredPointMap[binId] = binPoint;
+        }
+
+        pointGeom = clusteredPointMap[binId];
       }
-      
+
       for(var property of Object.keys(matchedPoint.properties)) {
         if(property.startsWith('pp_')) {
           if(!isNaN(matchedPoint.properties[property])) { 
             var sumPropertyName = 'sum_' +  property;
-            if(!clusteredPointMap[binId].properties[sumPropertyName]) {
-              clusteredPointMap[binId].properties[sumPropertyName] = 0;
+            if(!pointGeom.properties[sumPropertyName]) {
+              pointGeom.properties[sumPropertyName] = 0;
             }
-            clusteredPointMap[binId].properties[sumPropertyName] += matchedPoint.properties[property];
+            pointGeom.properties[sumPropertyName] += matchedPoint.properties[property];
           }
         }
       }
@@ -217,6 +273,7 @@ async function matchPoints(outFile, params, points, flags) {
       mergePointIntoCluster(matchedPoint);
     }
 
+    intersectionClusteredPoints = Object.keys(intersectionClusteredPointMap).map(key => intersectionClusteredPointMap[key]);
     clusteredPoints = Object.keys(clusteredPointMap).map(key => clusteredPointMap[key]);
   }
 
@@ -232,6 +289,13 @@ async function matchPoints(outFile, params, points, flags) {
     var clusteredPointsFeatureCollection:turfHelpers.FeatureCollection<turfHelpers.Point> = turfHelpers.featureCollection(clusteredPoints);
     var clusteredJsonOut = JSON.stringify(clusteredPointsFeatureCollection);
     writeFileSync(outFile + ".clustered.geojson", clusteredJsonOut);
+  }
+
+  if(intersectionClusteredPoints.length) {
+    console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + intersectionClusteredPoints.length + ' intersection clustered points: ' + outFile + ".intersection_clustered.geojson"));
+    var intersectionClusteredPointsFeatureCollection:turfHelpers.FeatureCollection<turfHelpers.Point> = turfHelpers.featureCollection(intersectionClusteredPoints);
+    var intersectionClusteredJsonOut = JSON.stringify(intersectionClusteredPointsFeatureCollection);
+    writeFileSync(outFile + ".intersection_clustered.geojson", intersectionClusteredJsonOut);
   }
 
   if(unmatchedPoints.length ) {
@@ -285,17 +349,17 @@ async function matchLines(outFile, params, lines, flags) {
       
       segmentGeom.properties = {};
 
-      segmentGeom.properties['gisReferenceId'] = ref.id;
-      segmentGeom.properties['gisGeometryId'] = ref.geometryId;
-      segmentGeom.properties['gisSegmentIndex'] = segmentIndex;
-      segmentGeom.properties['gisFromIntersectionId'] = ref.locationReferences[0].intersectionId;
-      segmentGeom.properties['gisToIntersectionId'] = ref.locationReferences[ref.locationReferences.length-1].intersectionId;
-      segmentGeom.properties['gisTotalSegments'] = path.segments.length;
-
       segmentGeom.properties['shstReferenceId'] = segment.referenceId;
       segmentGeom.properties['shstGeometryId'] = segment.geometryId;
       segmentGeom.properties['shstFromIntersectionId'] = segment.fromIntersectionId;
       segmentGeom.properties['shstToIntersectionId'] = segment.toIntersectionId;
+
+      segmentGeom.properties['gisReferenceId'] = ref.id;
+      segmentGeom.properties['gisGeometryId'] = ref.geometryId;
+      segmentGeom.properties['gisTotalSegments'] = path.segments.length
+      segmentGeom.properties['gisSegmentIndex'] = segmentIndex;
+      segmentGeom.properties['gisFromIntersectionId'] = ref.locationReferences[0].intersectionId;
+      segmentGeom.properties['gisToIntersectionId'] = ref.locationReferences[ref.locationReferences.length-1].intersectionId;
 
       segmentGeom.properties['startSideOfStreet'] = path.startPoint.sideOfStreet;
       segmentGeom.properties['endSideOfStreet'] = path.endPoint.sideOfStreet;
@@ -518,5 +582,3 @@ async function matchLines(outFile, params, lines, flags) {
   }
 
 }
-
-//Match.run();
