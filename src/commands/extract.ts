@@ -25,7 +25,8 @@ export default class Extract extends Command {
     out: flags.string({char: 'o', description: 'output file'}),
     'tile-source': flags.string({description: 'SharedStreets tile source', default: 'osm/planet-181224'}),
     'tile-hierarchy': flags.integer({description: 'SharedStreets tile hierarchy', default: 6}),
-    metadata: flags.boolean({description: 'Include SharedStreets OpenStreetMap metadata in output', default: false})
+    metadata: flags.boolean({description: 'Include SharedStreets OpenStreetMap metadata in output', default: false}),
+    tiles: flags.boolean({description: 'Export list of tiles intersecting with bounding box', default: false})
 
   }
 
@@ -79,5 +80,11 @@ export default class Extract extends Command {
     var jsonOut = JSON.stringify(data);
     writeFileSync(outFile + '.out.geojson', jsonOut);
 
+
+    if(flags['tiles']) {
+      var tiles = Array.from(tileIndex.tiles.values());
+      console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + tiles.length + ' tile paths to: ' + outFile + '.tiles.txt'));
+      writeFileSync(outFile + '.tiles.txt', tiles.join('\n'));
+    }
   }
 }
