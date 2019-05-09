@@ -3,7 +3,6 @@
   "version": "0.12.0",
   "description": "SharedStreets, a 'digital commons' for the street",
   "main": "build/src/index.js",
-  "types": "build/index.d.ts",
   "bin": {
     "shst": "./bin/run"
   },
