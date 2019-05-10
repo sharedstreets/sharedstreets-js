@@ -29,12 +29,33 @@ import { rmse, resolveHome } from './util';
 import { LineString } from '@turf/buffer/node_modules/@turf/helpers';
 
 const uuidHash = require('uuid-by-string');
+const nodeModules = require('global-modules');
+const yarnModules = require('yarn-global')
+
 
 const DEFAULT_SEARCH_RADIUS = 10;
 const MIN_CONFIDENCE = 0.5;
 const OPTIMIZE_GRAPH = true;
 const USE_LOCAL_CACHE = true;
 const SHST_GRAPH_CACHE_DIR = resolveHome('~/.shst/cache/graphs/');
+
+
+function getOSRMDirectory() {
+    if(fs.existsSync('node_modules/osrm/')) {
+        return  'node_modules/osrm/';
+    }
+    else if(fs.existsSync(path.join(nodeModules, 'osrm/'))) {
+        return path.join(nodeModules, 'osrm/');
+    }
+    else if(fs.existsSync(path.join(yarnModules.getDirectory(), 'osrm/'))) {
+        return path.join(yarnModules.getDirectory(), 'osrm/');
+    }
+    else {
+        return null
+    }
+}
+
+const OSRM_DIR = getOSRMDirectory();
 
 export enum MatchType {
     DIRECT = 'direct',
@@ -580,7 +601,6 @@ export class Graph {
         // check if graph is already built;
         if(this.osrm)
             return;
-
         try {
             var graphPath = path.join(SHST_GRAPH_CACHE_DIR, this.id);
             var dbPath = path.join(graphPath, '/db');
@@ -598,7 +618,15 @@ export class Graph {
             }
             else {
                 
+                if(!OSRM_DIR) {
+                    console.log("unable to locate OSRM module.")
+                    throw "unable to locate OSRM module."
+                }
+        
+                
                 // TODO before building, check if this graph is a subset of an existing graph
+                console.log(chalk.keyword('lightgreen')("     building graph using OSRM from: " + OSRM_DIR));
+                
 
                 mkdirSync(dbPath, {recursive:true});
                 this.db = new LevelDB(dbPath)
@@ -612,24 +640,24 @@ export class Graph {
                 var profile;
 
                 if(this.graphMode === GraphMode.CAR_ALL || this.graphMode === GraphMode.CAR_SURFACE_ONLY || this.graphMode === GraphMode.CAR_MOTORWAY_ONLY)
-                    profile = 'node_modules/osrm/profiles/car.lua';
+                    profile = path.join(OSRM_DIR, 'profiles/car.lua');
                 else if(this.graphMode === GraphMode.BIKE)
-                    profile = 'node_modules/osrm/profiles/bicycle.lua';
+                    profile = path.join(OSRM_DIR, 'profiles/bicycle.lua');
                 else if(this.graphMode === GraphMode.PEDESTRIAN)
-                    profile = 'node_modules/osrm/profiles/foot.lua';
+                    profile = path.join(OSRM_DIR, 'profiles/foot.lua');
 
-                execSync('node_modules/osrm/lib/binding/osrm-extract ' + xmlPath + ' -p ' + profile);
+                execSync(path.join(OSRM_DIR, 'lib/binding/osrm-extract') + ' ' + xmlPath + ' -p ' + profile);
 
                 var osrmPath:any = xmlPath + '.osrm';
 
                 if(OPTIMIZE_GRAPH) {
                     console.log(chalk.keyword('lightgreen')("     optimizing graph..."));
-                    execSync('node_modules/osrm/lib/binding/osrm-contract ' + osrmPath);
+                    execSync(path.join(OSRM_DIR, 'lib/binding/osrm-contract') + ' ' + osrmPath);
                     this.osrm = new OSRM({path:osrmPath});
                 }
                 else {
-                    execSync('node_modules/osrm/lib/binding/osrm-partition ' + osrmPath);
-                    execSync('node_modules/osrm/lib/binding/osrm-customize ' + osrmPath);
+                    execSync(path.join(OSRM_DIR, 'lib/binding/osrm-partition') + ' ' + osrmPath);
+                    execSync(path.join(OSRM_DIR, 'lib/binding/osrm-customize') + ' ' + osrmPath);
                     console.log(chalk.keyword('lightgreen')("     skipping graph optimization..."));
                     this.osrm = new OSRM({path:osrmPath, algorithm:"MLD"});
                 }

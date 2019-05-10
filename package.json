@@ -87,7 +87,9 @@
     "bignumber.js": "6.x",
     "chalk": "^2.4.2",
     "cli-progress": "^2.1.1",
+    "const": "^1.0.0",
     "geojson-rbush": "^3.1.1",
+    "global-modules": "^2.0.0",
     "jkstra": "^0.0.6",
     "leveldown": "^5.0.0",
     "levelup": "^4.0.1",
@@ -98,6 +100,7 @@
     "simple-statistics": "^7.0.2",
     "tslib": "^1.9.3",
     "uuid-by-string": "^2.1.0",
-    "xml": "^1.0.1"
+    "xml": "^1.0.1",
+    "yarn-global": "^1.1.0"
   }
 }
