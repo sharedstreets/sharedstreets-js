@@ -17,8 +17,7 @@ import { SharedStreetsIntersection, SharedStreetsGeometry, SharedStreetsReferenc
 
 import { lonlatsToCoords } from '../src/index';
 import { TilePath, getTile, TileType, TilePathGroup, getTileIdsForPolygon, TilePathParams, getTileIdsForPoint } from './tiles';
-import { Graph } from './graph';
-import { ReferenceSideOfStreet } from './point_matcher';
+import { Graph, ReferenceSideOfStreet } from './graph';
 import { reverseLineString } from './geom';
 
 const SHST_ID_API_URL = 'https://api.sharedstreets.io/v0.1.0/id/';

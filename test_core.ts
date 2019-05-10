@@ -10,7 +10,6 @@ import * as turfHelpers from '@turf/helpers';
 
 import { TileIndex } from './src/index';
 import { TilePathGroup, TileType, TilePathParams, TilePath } from './src/index';
-import { PointMatcher } from './src/index';
 import { Graph, GraphMode } from "./src/graph";
 import { getTileIdsForPolygon, getTileIdsForPoint, getTile } from "./src/tiles"
 import { CleanedPoints, CleanedLines } from "./src/geom";
@@ -23,7 +22,7 @@ const pt2 = [-74.003388, 40.634538];
 const pt3 = [-74.004107, 40.63406];
 
 
-const BUILD_TEST_OUPUT = false;
+const BUILD_TEST_OUPUT = true;
 
 // core library tests
 
@@ -412,7 +411,7 @@ test("match points", async (t:any) => {
     params.tileHierarchy = 6;
  
    // test matcher point candidates
-   var matcher = new PointMatcher(null, params);
+   var matcher = new Graph(null, params);
    
    var matchedPoints:turfHelpers.Feature<turfHelpers.Point>[] = [];
    for(let searchPoint of points.features) {
@@ -515,6 +514,7 @@ test("match points", async (t:any) => {
  await matcher.buildGraph();
 
  matcher.searchRadius = 20;
+ matcher.snapIntersections = true;
  
  var matchedLines = turfHelpers.featureCollection([]);
  for(var line of lines.features) {

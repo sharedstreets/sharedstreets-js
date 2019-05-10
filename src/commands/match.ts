@@ -3,8 +3,7 @@ import { readFileSync, writeFileSync, existsSync } from 'fs';
 
 import { TilePathParams, TileType, TilePathGroup } from '../index'
 import { TileIndex } from '../index'
-import { PointMatcher, ReferenceSideOfStreet } from '../index'
-import { Graph, PathCandidate, GraphMode } from '../index';
+import { Graph, PathCandidate, GraphMode, ReferenceSideOfStreet} from '../index';
 
 import * as turfHelpers from '@turf/helpers';
 
@@ -139,12 +138,12 @@ async function matchPoints(outFile, params, points, flags) {
   
   var cleanPoints = new CleanedPoints(points)
 
-  var matcher:PointMatcher = new PointMatcher(null, params);
+  var graph:Graph = new Graph(null, params);
 
   if(flags['snap-intersections'])
-    matcher.tileIndex.addTileType(TileType.INTERSECTION);
+    graph.tileIndex.addTileType(TileType.INTERSECTION);
   
-  matcher.searchRadius = flags['search-radius'];
+  graph.searchRadius = flags['search-radius'];
   var matchedPoints:turfHelpers.Feature<turfHelpers.Point>[] = [];
   var unmatchedPoints:turfHelpers.Feature<turfHelpers.Point>[] = [];
 
@@ -163,7 +162,7 @@ async function matchPoints(outFile, params, points, flags) {
     if(searchPoint.properties && searchPoint.properties[flags['bearing-field']])
       bearing = parseFloat(searchPoint.properties[flags['bearing-field']]);
 
-    var matches = await matcher.getPointCandidates(searchPoint, bearing, 3);
+    var matches = await graph.getPointCandidates(searchPoint, bearing, 3);
     if(matches.length > 0) {
       var matchedFeature = matches[0].toFeature();
       
@@ -192,7 +191,7 @@ async function matchPoints(outFile, params, points, flags) {
         ( matchedPoint.properties['location'] <= flags['search-radius'] ||
           matchedPoint.properties['referenceLength'] - matchedPoint.properties['location'] <= flags['search-radius'])) {
           
-        var reference = <SharedStreetsReference>matcher.tileIndex.objectIndex.get(matchedPoint.properties['referenceId']);
+        var reference = <SharedStreetsReference>graph.tileIndex.objectIndex.get(matchedPoint.properties['referenceId']);
         var intersectionId;
 
         if(matchedPoint.properties['location'] <= flags['search-radius']) {
@@ -207,8 +206,8 @@ async function matchPoints(outFile, params, points, flags) {
           pointGeom.properties['count'] += 1;
         }
         else {
-          pointGeom = JSON.parse(JSON.stringify(matcher.tileIndex.featureIndex.get(intersectionId)));
-          var intersection = <SharedStreetsIntersection>matcher.tileIndex.objectIndex.get(intersectionId);
+          pointGeom = JSON.parse(JSON.stringify(graph.tileIndex.featureIndex.get(intersectionId)));
+          var intersection = <SharedStreetsIntersection>graph.tileIndex.objectIndex.get(intersectionId);
 
           delete pointGeom.properties["id"];
           pointGeom.properties["intersectionId"] = intersectionId;
@@ -242,7 +241,7 @@ async function matchPoints(outFile, params, points, flags) {
           clusteredPointMap[binId].properties['count'] += 1;
         }
         else {
-          var bins = matcher.tileIndex.referenceToBins(matchedPoint.properties['referenceId'], binCount, 2, ReferenceSideOfStreet.RIGHT);
+          var bins = graph.tileIndex.referenceToBins(matchedPoint.properties['referenceId'], binCount, 2, ReferenceSideOfStreet.RIGHT);
           var binPoint = turfHelpers.point(bins.geometry.coordinates[binPosition - 0]);
           binPoint.properties['id'] = binId;
           binPoint.properties['referenceId'] = matchedPoint.properties['referenceId'];

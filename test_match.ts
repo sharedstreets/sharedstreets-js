@@ -9,11 +9,10 @@ import * as sharedstreets from "./src/index";
 import * as turfHelpers from '@turf/helpers';
 
 import { TileIndex } from './src/index';
-import { TilePathGroup, TileType, TilePathParams } from './src/index';
-import { PointMatcher } from './src/index';
+import { TilePathGroup, TileType, TilePathParams, } from './src/index';
 
 import { CleanedPoints, CleanedLines } from "./src/geom";
-import { Graph, GraphMode } from "./src/graph";
+import { Graph, GraphMode } from "./src/index";
 import envelope from "@turf/envelope";
 
 const test = require('tape');
@@ -34,7 +33,7 @@ test("match points", async (t:any) => {
     params.tileHierarchy = 6;
  
    // test matcher point candidates
-   var matcher = new PointMatcher(null, params);
+   var matcher = new Graph(null, params);
    
    var matchedPoints:turfHelpers.Feature<turfHelpers.Point>[] = [];
    for(let searchPoint of points.features) {

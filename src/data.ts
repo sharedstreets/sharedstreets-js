@@ -5,14 +5,6 @@ const linearProto = require('./proto/linear.js');
 
 var fs = require('fs');
 
-import { ReferenceSideOfStreet, ReferenceDirection } from './point_matcher'
-
-//import { getTileIdsForPolygon, LocalCache } from "../utils/cache";
-
-// import { SharedStreetsGeometry } from 'sharedstreets-pbf/proto/sharedstreets';
-
-// import { SharedStreetsReference } from 'sharedstreets-types';
-
 import * as turfHelpers from '@turf/helpers';
 import lineOffset from "@turf/line-offset";
 import turfBbox from '@turf/bbox';

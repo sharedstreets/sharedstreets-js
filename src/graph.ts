@@ -6,10 +6,13 @@ import { TileIndex } from './tile_index';
 import { lonlatsToCoords } from './index';
 import { SharedStreetsGeometry, SharedStreetsReference, RoadClass } from 'sharedstreets-types';
 import { execSync } from 'child_process';
-import { PointMatcher, ReferenceSideOfStreet, PointCandidate, ReferenceDirection } from './point_matcher';
 import length from '@turf/length';
 import distance from '@turf/distance';
 import envelope from '@turf/envelope';
+import lineSliceAlong from '@turf/line-slice-along';
+import along from '@turf/along';
+import bearing from '@turf/bearing';
+import nearestPointOnLine from '@turf/nearest-point-on-line';
 
 const { exec } = require('child_process');
 const OSRM = require("osrm");
@@ -60,6 +63,145 @@ function getReferenceLength(ref:SharedStreetsReference) {
     return length / 100;
 }
 
+const DEFAULT_LENGTH_TOLERANCE = 0.1;
+const DEFUALT_CANDIDATES = 10;
+const DEFAULT_BEARING_TOLERANCE  = 15; // 360 +/- tolerance
+
+const MAX_FEATURE_LENGTH = 15000; // 1km
+
+const MAX_SEARCH_RADIUS = 100;
+const MAX_LENGTH_TOLERANCE = 0.5;
+const MAX_CANDIDATES = 10;
+const MAX_BEARING_TOLERANCE  = 180; // 360 +/- tolerance
+
+const REFERNECE_GEOMETRY_OFFSET = 2;
+const MAX_ROUTE_QUERIES = 16;
+
+// TODO need to pull this from PBF enum defintion 
+
+// @property {number} Motorway=0 Motorway value
+//  * @property {number} Trunk=1 Trunk value
+//  * @property {number} Primary=2 Primary value
+//  * @property {number} Secondary=3 Secondary value
+//  * @property {number} Tertiary=4 Tertiary value
+//  * @property {number} Residential=5 Residential value
+//  * @property {number} Unclassified=6 Unclassified value
+//  * @property {number} Service=7 Service value
+//  * @property {number} Other=8 Other value
+
+function roadClassConverter(roadClass:string):number {
+
+	if(roadClass === 'Motorway')
+		return 0;
+	else if(roadClass === 'Trunk')
+		return 1;
+	else if(roadClass === 'Primary')
+		return 2;
+	else if(roadClass === 'Secondary')
+		return 3;
+	else if(roadClass === 'Tertiary')
+		return 4;
+	else if(roadClass === 'Residential')
+		return 5;
+	else if(roadClass === 'Unclassified')
+		return 6;
+	else if(roadClass === 'Service')
+		return 7;
+	else 
+		return null;
+}
+
+function angleDelta(a1, a2) {
+
+	var delta = 180 - Math.abs(Math.abs(a1 - a2) - 180); 
+	return delta;
+
+}
+
+function normalizeAngle(a) {
+
+	if(a < 0) 
+		return a + 360;
+	return a;
+
+}
+
+export enum ReferenceDirection {
+
+	FORWARD = "forward",
+	BACKWARD = "backward"
+
+}
+
+export enum ReferenceSideOfStreet {
+
+	RIGHT = "right",
+	LEFT = "left",
+	UNKNOWN = "unknown"
+
+}
+
+interface SortableCanddate {
+
+	score:number;
+	calcScore():number;
+
+}
+
+export class PointCandidate implements SortableCanddate {
+
+	score:number;
+	
+	searchPoint:turfHelpers.Feature<turfHelpers.Point>;
+	pointOnLine:turfHelpers.Feature<turfHelpers.Point>;
+	snappedPoint:turfHelpers.Feature<turfHelpers.Point>;
+
+	geometryId:string;
+	referenceId:string;
+	roadClass:RoadClass;
+	direction:ReferenceDirection;
+	streetname:string;
+	referenceLength:number;
+	location:number;
+	bearing:number;
+	interceptAngle:number;
+	sideOfStreet:ReferenceSideOfStreet;
+	oneway:boolean;
+
+	calcScore():number {
+		
+		if(!this.score) {
+			// score for snapped points are average of distance to point on line distance and distance to snapped ponit
+			if(this.snappedPoint)
+				this.score = (this.pointOnLine.properties.dist + distance(this.searchPoint, this.snappedPoint, {units: 'meters'})) / 2;
+			else
+				this.score = this.pointOnLine.properties.dist;		
+		}
+		return this.score;
+	}
+
+	toFeature():turfHelpers.Feature<turfHelpers.Point> {
+
+		this.calcScore();
+
+		var feature:turfHelpers.Feature<turfHelpers.Point> = turfHelpers.feature(this.pointOnLine.geometry, {	
+
+			score:			this.score,
+			location: 		this.location,
+			referenceLength: this.referenceLength,
+			geometryId:		this.geometryId,
+			referenceId:	this.referenceId,
+			direction:		this.direction,
+			bearing:		this.bearing,
+			sideOfStreet: 	this.sideOfStreet,
+			interceptAngle:	this.interceptAngle
+
+		});
+
+		return feature;
+	}
+}
+
 class GraphNode {
     nodeId:number;
     shstIntersectionId:string;
@@ -74,6 +216,118 @@ class GraphNodeEdgeRelations {
     nodeId:number;
     edgeIds:number[];
 }
+
+
+export class PathSegment {
+
+	referenceId:string;
+	geometryId:string;
+	roadClass:RoadClass;
+	streetname:string;
+
+	fromIntersectionId:string;
+    toIntersectionId:string;
+
+	fromStreetnames:string[];
+	toStreetnames:string[];
+
+	referenceLength:number;
+	point:number;
+	section:number[];
+    direction:ReferenceDirection;
+
+    geometry;
+    
+}
+
+export class PathCandidate {
+
+    matchType:MatchType;
+
+    confidence:number;
+	score:number;
+	originalFeatureLength:number;
+	pathLength:number;
+
+	startPoint:PointCandidate;
+	endPoint:PointCandidate;
+
+	segments:PathSegment[];
+
+	originalFeature:turfHelpers.Feature<turfHelpers.Geometry>;
+	matchedPath:turfHelpers.Feature<turfHelpers.Geometry>;
+
+	sideOfStreet:ReferenceSideOfStreet;
+
+
+    toDebugView():turfHelpers.FeatureCollection<turfHelpers.Geometry> {
+
+        var debugCollection = turfHelpers.featureCollection([this.originalFeature, this.matchedPath]);
+        return debugCollection;
+
+    }
+
+	getOriginalFeatureLength() {
+
+		if(!this.originalFeatureLength) 
+			this.originalFeatureLength = length(this.originalFeature, {"units":"meters"});
+
+		return this.originalFeatureLength;
+
+	}
+
+	getPathLength():number {
+
+		if(!this.pathLength) {
+			this.pathLength = 0;
+			for(var segment of this.segments) {
+				if(segment.section)
+					this.pathLength = this.pathLength + (segment.section[1] - segment.section[0]);
+				else 
+					this.pathLength = this.pathLength + segment.referenceLength;
+			}
+		}
+
+		return this.pathLength;
+
+	}
+
+	getLengthDelta():number {
+		return this.getPathLength() - this.getOriginalFeatureLength();
+	}
+
+	isColinear(candidate:PathCandidate):boolean {
+
+		if(this.segments.length > 0 && candidate.segments.length > 0 && this.segments.length == candidate.segments.length) {
+
+			var path1GeometryIds:Set<string> = new Set();
+			var path2GeometryIds:Set<string> = new Set();
+
+			for(var segment of this.segments) {
+				path1GeometryIds.add(segment.geometryId);				
+			}
+
+			for(var segment of candidate.segments) {
+				path2GeometryIds.add(segment.geometryId);
+
+				if(!path1GeometryIds.has(segment.geometryId))
+					return false;				
+			}
+
+			for(var segment of this.segments) {
+				if(!path2GeometryIds.has(segment.geometryId))
+					return false;					
+			}
+
+		}
+		else 
+			return false; 
+
+		return true;
+    }
+
+}
+
 
 export class LevelDB {
 
@@ -124,19 +378,21 @@ export class Graph {
     id:string;
     db:LevelDB;
     osrm;
-    pointMatcher:PointMatcher; // need a local copy for point lookup
     tilePathGroup:TilePathGroup;
     tileIndex:TileIndex;
     graphMode:GraphMode;
 
     // options
     searchRadius = DEFAULT_SEARCH_RADIUS;
-    snapIntersections = true;
+    snapIntersections = false;
     useHMM = true;
     useDirect = true;
+    bearingTolerance:number = DEFAULT_BEARING_TOLERANCE;
+    tileParams;
 
     constructor(extent:turfHelpers.Feature<turfHelpers.Polygon>, tileParams:TilePathParams, graphMode:GraphMode=GraphMode.CAR_ALL, existingTileIndex:TileIndex=null, ) {
 
+        this.tileParams = tileParams;
         this.tilePathGroup = TilePathGroup.fromPolygon(extent, 1000, tileParams);
         this.tilePathGroup.addType(TileType.GEOMETRY);
         this.tilePathGroup.addType(TileType.REFERENCE);
@@ -154,8 +410,6 @@ export class Graph {
         else {
             this.tileIndex = new TileIndex();
         }
-
-        this.pointMatcher = new PointMatcher(extent, tileParams, this.tileIndex);
 
         // create id from tile path hash  
         this.id = uuidHash(this.graphMode + ' node-pair.sv1 ' + paths.join(" "));
@@ -499,8 +753,7 @@ export class Graph {
     async match(feature:turfHelpers.Feature<turfHelpers.LineString>) {
                     
         var pathCandidates:PathCandidate[] = [];
-        this.pointMatcher.searchRadius = this.searchRadius;
-
+        
         // fall back to hmm for probabilistic path discovery
         if(!this.osrm)
             throw "Graph not buit. call buildGraph() before running queries."
@@ -580,8 +833,8 @@ export class Graph {
                 var endPoint = turfHelpers.point(feature.geometry.coordinates[feature.geometry.coordinates.length - 1]);
 
 
-                var startCandidate:PointCandidate = await this.pointMatcher.getPointCandidateFromRefId(startPoint, visitedEdgeList[0], null);
-                var endCandidate:PointCandidate = await this.pointMatcher.getPointCandidateFromRefId(endPoint, visitedEdgeList[visitedEdgeList.length - 1], null);
+                var startCandidate:PointCandidate = await this.getPointCandidateFromRefId(startPoint, visitedEdgeList[0], null);
+                var endCandidate:PointCandidate = await this.getPointCandidateFromRefId(endPoint, visitedEdgeList[visitedEdgeList.length - 1], null);
 
                 var alreadyIncludedPaths:Set<string> = new Set();
 
@@ -605,7 +858,7 @@ export class Graph {
                     pathSegment.referenceId = visitedEdgeList[k];
                     var shstRef = <SharedStreetsReference>this.tileIndex.objectIndex.get(visitedEdgeList[k]);
                     pathSegment.referenceId = visitedEdgeList[k];
-                    pathSegment.geometryId = shstRef.geometryId;
+                    pathSegment.geometryId = shstRef.geometryId; 
                     pathCandidate.segments.push(pathSegment);
                     pathCandidate.segments[k].referenceLength = getReferenceLength(shstRef);
                 }
@@ -616,6 +869,8 @@ export class Graph {
                     // build directionality into edge sequences   
                     for(var k = 0; k < pathCandidate.segments.length; k++) {
                         var edgeGeom = <SharedStreetsGeometry>this.tileIndex.objectIndex.get(pathCandidate.segments[k].geometryId);
+                        
+                        pathCandidate.segments[k].roadClass = roadClassConverter(edgeGeom.roadClass);
                         // if start and end are on the same graph edge make sure they're the same referenceId/direction
                         if(startCandidate.referenceId == endCandidate.referenceId) {
                             pathCandidate.endPoint = endCandidate;
@@ -729,113 +984,301 @@ export class Graph {
         }
         return bestPathCandidate;
     }
-}
 
-export class PathSegment {
-
-	referenceId:string;
-	geometryId:string;
-	roadClass:RoadClass;
-	streetname:string;
-
-	fromIntersectionId:string;
-    toIntersectionId:string;
-
-	fromStreetnames:string[];
-	toStreetnames:string[];
-
-	referenceLength:number;
-	point:number;
-	section:number[];
-    direction:ReferenceDirection;
-
-    geometry;
     
-}
+	directionForRefId(refId:string):ReferenceDirection {
 
-export class PathCandidate {
+		var ref = <SharedStreetsReference>this.tileIndex.objectIndex.get(refId);
 
-    matchType:MatchType;
+		if(ref) {
+			var geom:SharedStreetsGeometry = <SharedStreetsGeometry>this.tileIndex.objectIndex.get(ref['geometryId']);
 
-    confidence:number;
-	score:number;
-	originalFeatureLength:number;
-	pathLength:number;
-
-	startPoint:PointCandidate;
-	endPoint:PointCandidate;
-
-	segments:PathSegment[];
-
-	originalFeature:turfHelpers.Feature<turfHelpers.Geometry>;
-	matchedPath:turfHelpers.Feature<turfHelpers.Geometry>;
-
-	sideOfStreet:ReferenceSideOfStreet;
-
-
-    toDebugView():turfHelpers.FeatureCollection<turfHelpers.Geometry> {
-
-        var debugCollection = turfHelpers.featureCollection([this.originalFeature, this.matchedPath]);
-        return debugCollection;
-
-    }
-
-	getOriginalFeatureLength() {
-
-		if(!this.originalFeatureLength) 
-			this.originalFeatureLength = length(this.originalFeature, {"units":"meters"});
-
-		return this.originalFeatureLength;
-
+			if(geom) {
+				if(geom['forwardReferenceId'] === ref['id'])
+					return ReferenceDirection.FORWARD
+				else if(geom['backReferenceId'] === ref['id'])
+					return ReferenceDirection.BACKWARD
+			}
+		}
+		return null;
 	}
 
-	getPathLength():number {
+	toIntersectionIdForRefId(refId:string):string {
+		var ref:SharedStreetsReference = <SharedStreetsReference>this.tileIndex.objectIndex.get(refId);
+		return ref.locationReferences[ref.locationReferences.length - 1].intersectionId;								
+	}
 
-		if(!this.pathLength) {
-			this.pathLength = 0;
-			for(var segment of this.segments) {
-				if(segment.section)
-					this.pathLength = this.pathLength + (segment.section[1] - segment.section[0]);
-				else 
-					this.pathLength = this.pathLength + segment.referenceLength;
+	fromIntersectionIdForRefId(refId:string):string {
+		var ref:SharedStreetsReference = <SharedStreetsReference>this.tileIndex.objectIndex.get(refId);
+		return ref.locationReferences[0].intersectionId;
+	}
+
+	async getPointCandidateFromRefId(searchPoint:turfHelpers.Feature<turfHelpers.Point>, refId:string, searchBearing:number):Promise<PointCandidate> {
+
+		var reference = <SharedStreetsReference>this.tileIndex.objectIndex.get(refId);
+		var geometry = <SharedStreetsGeometry>this.tileIndex.objectIndex.get(reference.geometryId);
+		var geometryFeature = <turfHelpers.Feature<LineString>>this.tileIndex.featureIndex.get(reference.geometryId);
+
+		var direction = ReferenceDirection.FORWARD;
+		if(geometry.backReferenceId  && geometry.backReferenceId === refId)
+			direction = ReferenceDirection.BACKWARD; 
+
+		var pointOnLine = nearestPointOnLine(geometryFeature, searchPoint, {units:'meters'});	
+
+		if(pointOnLine.properties.dist < this.searchRadius) {
+			
+			var refLength = 0;
+			for(var lr of reference.locationReferences) {
+				if(lr.distanceToNextRef)
+					refLength = refLength + (lr.distanceToNextRef / 100);
+			}
+	
+			var interceptBearing = normalizeAngle(bearing(pointOnLine, searchPoint));
+
+			var i = pointOnLine.properties.index;
+
+			if(geometryFeature.geometry.coordinates.length <= i + 1)
+				i = i - 1;
+
+			var lineBearing = bearing(geometryFeature.geometry.coordinates[i], geometryFeature.geometry.coordinates[i + 1]);
+
+			if(direction === ReferenceDirection.BACKWARD)
+				lineBearing += 180;
+
+			lineBearing = normalizeAngle(lineBearing);	
+			
+			var pointCandidate:PointCandidate = new PointCandidate();
+
+			pointCandidate.searchPoint = searchPoint;
+			pointCandidate.pointOnLine = pointOnLine;
+
+
+			pointCandidate.geometryId = geometryFeature.properties.id; 
+			pointCandidate.referenceId = reference.id;
+			pointCandidate.roadClass = roadClassConverter(geometry.roadClass);
+
+			// if(this.includeStreetnames) {
+			// 	var metadata = await this.cache.metadataById(pointCandidate.geometryId);
+			// 	pointCandidate.streetname = metadata.name;
+			// }
+
+			pointCandidate.direction = direction;
+			pointCandidate.referenceLength = refLength;
+
+			if(direction === ReferenceDirection.FORWARD) 
+				pointCandidate.location = pointOnLine.properties.location;
+			else
+				pointCandidate.location = refLength - pointOnLine.properties.location;
+
+			pointCandidate.bearing = normalizeAngle(lineBearing);
+			pointCandidate.interceptAngle = normalizeAngle(interceptBearing - lineBearing);
+
+			pointCandidate.sideOfStreet = ReferenceSideOfStreet.UNKNOWN;
+			if(pointCandidate.interceptAngle < 180) {
+				pointCandidate.sideOfStreet = ReferenceSideOfStreet.RIGHT;
+			}
+			if(pointCandidate.interceptAngle > 180) {
+				pointCandidate.sideOfStreet = ReferenceSideOfStreet.LEFT;
+			}
+
+			if(geometry.backReferenceId)
+				pointCandidate.oneway = false;
+			else
+				pointCandidate.oneway = true;
+			
+			// check bearing and add to candidate list
+			if(!searchBearing || angleDelta(searchBearing, lineBearing) < this.bearingTolerance)
+				return pointCandidate;
+		}
+
+		return null;
+	}
+
+	getPointCandidateFromGeom(searchPoint:turfHelpers.Feature<turfHelpers.Point>, pointOnLine:turfHelpers.Feature<turfHelpers.Point>, candidateGeom:SharedStreetsGeometry, candidateGeomFeature:turfHelpers.Feature<LineString>,  searchBearing:number, direction:ReferenceDirection):PointCandidate {
+
+		if(pointOnLine.properties.dist < this.searchRadius) {
+
+			var reference:SharedStreetsReference;
+
+			if(direction === ReferenceDirection.FORWARD) {
+				reference = <SharedStreetsReference>this.tileIndex.objectIndex.get(candidateGeom.forwardReferenceId);
+			}
+			else {
+
+				if(candidateGeom.backReferenceId) 
+					reference = <SharedStreetsReference>this.tileIndex.objectIndex.get(candidateGeom.backReferenceId);
+				else
+					return null; // no back-reference
+
+			}
+				
+			var refLength = 0;
+			for(var lr of reference.locationReferences) {
+				if(lr.distanceToNextRef)
+					refLength = refLength + (lr.distanceToNextRef / 100);
+			}
+
+			var interceptBearing = normalizeAngle(bearing(pointOnLine, searchPoint));
+
+			var i = pointOnLine.properties.index;
+
+			if(candidateGeomFeature.geometry.coordinates.length <= i + 1)
+				i = i - 1;
+
+			var lineBearing = bearing(candidateGeomFeature.geometry.coordinates[i], candidateGeomFeature.geometry.coordinates[i + 1]);
+
+			if(direction === ReferenceDirection.BACKWARD)
+				lineBearing += 180;
+
+			lineBearing = normalizeAngle(lineBearing);	
+			
+			var pointCandidate:PointCandidate = new PointCandidate();
+
+			pointCandidate.searchPoint = searchPoint;
+			pointCandidate.pointOnLine = pointOnLine;
+
+
+			pointCandidate.geometryId = candidateGeomFeature.properties.id; 
+			pointCandidate.referenceId = reference.id;
+			pointCandidate.roadClass = roadClassConverter(candidateGeom.roadClass);
+
+			// if(this.includeStreetnames) {
+			// 	var metadata = await this.cache.metadataById(pointCandidate.geometryId);
+			// 	pointCandidate.streetname = metadata.name;
+			// }
+
+			pointCandidate.direction = direction;
+			pointCandidate.referenceLength = refLength;
+
+			if(direction === ReferenceDirection.FORWARD) 
+				pointCandidate.location = pointOnLine.properties.location;
+			else
+				pointCandidate.location = refLength - pointOnLine.properties.location;
+
+			pointCandidate.bearing = normalizeAngle(lineBearing);
+			pointCandidate.interceptAngle = normalizeAngle(interceptBearing - lineBearing);
+
+			pointCandidate.sideOfStreet = ReferenceSideOfStreet.UNKNOWN;
+			if(pointCandidate.interceptAngle < 180) {
+				pointCandidate.sideOfStreet = ReferenceSideOfStreet.RIGHT;
+			}
+			if(pointCandidate.interceptAngle > 180) {
+				pointCandidate.sideOfStreet = ReferenceSideOfStreet.LEFT;
+			}
+
+			if(candidateGeom.backReferenceId)
+				pointCandidate.oneway = false;
+			else
+				pointCandidate.oneway = true;
+			
+			// check bearing and add to candidate list
+			if(!searchBearing || angleDelta(searchBearing, lineBearing) < this.bearingTolerance)
+				return pointCandidate;
+		}
+
+		return null;
+	}
+
+	async getPointCandidates(searchPoint:turfHelpers.Feature<turfHelpers.Point>, searchBearing:number, maxCandidates:number):Promise<PointCandidate[]> {
+		this.tileIndex.addTileType(TileType.REFERENCE);
+		var candidateFeatures = await this.tileIndex.nearby(searchPoint, TileType.GEOMETRY, this.searchRadius, this.tileParams);
+
+		var candidates:PointCandidate[] = new Array();
+
+		if(candidateFeatures && candidateFeatures.features) {
+			for(var candidateFeature of candidateFeatures.features) {
+				var candidateGeom:SharedStreetsGeometry = <SharedStreetsGeometry>this.tileIndex.objectIndex.get(candidateFeature.properties.id);
+				var candidateGeomFeature:turfHelpers.Feature<turfHelpers.LineString> = <turfHelpers.Feature<turfHelpers.LineString>>this.tileIndex.featureIndex.get(candidateFeature.properties.id);
+				var pointOnLine = nearestPointOnLine(candidateGeomFeature, searchPoint, {units:'meters'});	
+				
+				var forwardCandidate = await this.getPointCandidateFromGeom(searchPoint, pointOnLine, candidateGeom, candidateGeomFeature, searchBearing, ReferenceDirection.FORWARD);
+				var backwardCandidate = await this.getPointCandidateFromGeom(searchPoint, pointOnLine, candidateGeom, candidateGeomFeature, searchBearing, ReferenceDirection.BACKWARD);
+				
+				if(forwardCandidate != null) {
+					var snapped = false; 
+					if(this.snapIntersections) {
+
+						if(forwardCandidate.location < this.searchRadius) {
+
+							var snappedForwardCandidate1 = Object.assign(new PointCandidate, forwardCandidate);
+							snappedForwardCandidate1.location = 0;
+
+							snappedForwardCandidate1.snappedPoint = along(candidateGeomFeature, 0, {"units":"meters"});
+
+							candidates.push(snappedForwardCandidate1);
+							snapped = true;
+
+						}
+						
+						if(forwardCandidate.referenceLength - forwardCandidate.location < this.searchRadius) {
+							var snappedForwardCandidate2 = Object.assign(new PointCandidate, forwardCandidate);
+							snappedForwardCandidate2.location = snappedForwardCandidate2.referenceLength;
+
+							snappedForwardCandidate2.snappedPoint = along(candidateGeomFeature, snappedForwardCandidate2.referenceLength, {"units":"meters"});
+
+							candidates.push(snappedForwardCandidate2);
+							snapped = true;
+						}
+
+					}
+
+					if(!snapped)  {
+						candidates.push(forwardCandidate);
+					}
+				}
+
+				if(backwardCandidate != null) {
+
+					var snapped = false; 
+
+					if(this.snapIntersections) {
+
+						if(backwardCandidate.location < this.searchRadius) {
+							var snappedBackwardCandidate1:PointCandidate = Object.assign(new PointCandidate, backwardCandidate);
+							snappedBackwardCandidate1.location = 0;
+
+							// not reversing the geom so snap to end on backRefs
+							snappedBackwardCandidate1.snappedPoint = along(candidateGeomFeature, snappedBackwardCandidate1.referenceLength, {"units":"meters"});
+
+							candidates.push(snappedBackwardCandidate1);
+							snapped = true;
+						}
+						
+						if(backwardCandidate.referenceLength - backwardCandidate.location < this.searchRadius) {
+							var snappedBackwardCandidate2 = Object.assign(new PointCandidate, backwardCandidate);
+							snappedBackwardCandidate2.location = snappedBackwardCandidate2.referenceLength;
+
+							// not reversing the geom so snap to start on backRefs
+							snappedBackwardCandidate2.snappedPoint = along(candidateGeomFeature, 0, {"units":"meters"});
+
+							candidates.push(snappedBackwardCandidate2);
+							snapped = true;
+						}
+					}
+
+					if(!snapped)  {
+						candidates.push(backwardCandidate);
+					}
+				}
 			}
 		}
 
-		return this.pathLength;
-
-	}
-
-	getLengthDelta():number {
-		return this.getPathLength() - this.getOriginalFeatureLength();
-	}
-
-	isColinear(candidate:PathCandidate):boolean {
-
-		if(this.segments.length > 0 && candidate.segments.length > 0 && this.segments.length == candidate.segments.length) {
-
-			var path1GeometryIds:Set<string> = new Set();
-			var path2GeometryIds:Set<string> = new Set();
-
-			for(var segment of this.segments) {
-				path1GeometryIds.add(segment.geometryId);				
+		var sortedCandidates = candidates.sort((p1, p2) => {
+			p1.calcScore();
+			p2.calcScore();
+			if(p1.score > p2.score) {
+				return 1;
 			}
-
-			for(var segment of candidate.segments) {
-				path2GeometryIds.add(segment.geometryId);
-
-				if(!path1GeometryIds.has(segment.geometryId))
-					return false;				
+			if(p1.score < p2.score) {
+				return -1;
 			}
-
-			for(var segment of this.segments) {
-				if(!path2GeometryIds.has(segment.geometryId))
-					return false;					
-			}
-
+			return 0;
+		});
+		
+		if(sortedCandidates.length > maxCandidates) {
+			sortedCandidates = sortedCandidates.slice(0, maxCandidates);
 		}
-		else 
-			return false; 
-
-		return true;
+	
+		return sortedCandidates;
 	}
 }
