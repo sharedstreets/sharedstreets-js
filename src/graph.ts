@@ -750,7 +750,7 @@ export class Graph {
     }
 
 
-    async match(feature:turfHelpers.Feature<turfHelpers.LineString>) {
+    async matchGeom(feature:turfHelpers.Feature<turfHelpers.LineString>) {
                     
         var pathCandidates:PathCandidate[] = [];
         
@@ -1179,7 +1179,7 @@ export class Graph {
 		return null;
 	}
 
-	async getPointCandidates(searchPoint:turfHelpers.Feature<turfHelpers.Point>, searchBearing:number, maxCandidates:number):Promise<PointCandidate[]> {
+	async matchPoint(searchPoint:turfHelpers.Feature<turfHelpers.Point>, searchBearing:number, maxCandidates:number):Promise<PointCandidate[]> {
 		this.tileIndex.addTileType(TileType.REFERENCE);
 		var candidateFeatures = await this.tileIndex.nearby(searchPoint, TileType.GEOMETRY, this.searchRadius, this.tileParams);
 

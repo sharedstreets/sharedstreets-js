@@ -415,7 +415,7 @@ test("match points", async (t:any) => {
    
    var matchedPoints:turfHelpers.Feature<turfHelpers.Point>[] = [];
    for(let searchPoint of points.features) {
-     let matches = await matcher.getPointCandidates(searchPoint, null, 3);
+     let matches = await matcher.matchPoint(searchPoint, null, 3);
      for(let match of matches) {
        matchedPoints.push(match.toFeature());
      }
@@ -436,7 +436,7 @@ test("match points", async (t:any) => {
    matcher.searchRadius = 1000;
  
    var matchedPoints:turfHelpers.Feature<turfHelpers.Point>[] = [];
-   let matches = await matcher.getPointCandidates(points.features[0], null, 10);
+   let matches = await matcher.matchPoint(points.features[0], null, 10);
  
    for(let match of matches) {
      matchedPoints.push(match.toFeature());
@@ -479,7 +479,7 @@ test("match points", async (t:any) => {
   
   var matchedLines = turfHelpers.featureCollection([]);
   for(var line of lines.features) {
-    var pathCandidate = await matcher.match(line);
+    var pathCandidate = await matcher.matchGeom(line);
     matchedLines.features.push(pathCandidate.matchedPath);
   }
   
@@ -518,7 +518,7 @@ test("match points", async (t:any) => {
  
  var matchedLines = turfHelpers.featureCollection([]);
  for(var line of lines.features) {
-   var pathCandidate = await matcher.match(line);
+   var pathCandidate = await matcher.matchGeom(line);
    if(pathCandidate)
     matchedLines.features.push(pathCandidate.matchedPath);
  }
@@ -537,7 +537,7 @@ test("match points", async (t:any) => {
 
  var matchedLines = turfHelpers.featureCollection([]);
  for(var line of lines.features) {
-   var pathCandidate = await matcher.match(line);
+   var pathCandidate = await matcher.matchGeom(line);
    if(pathCandidate)
     matchedLines.features.push(pathCandidate.matchedPath);
  }

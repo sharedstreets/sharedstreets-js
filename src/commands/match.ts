@@ -162,7 +162,7 @@ async function matchPoints(outFile, params, points, flags) {
     if(searchPoint.properties && searchPoint.properties[flags['bearing-field']])
       bearing = parseFloat(searchPoint.properties[flags['bearing-field']]);
 
-    var matches = await graph.getPointCandidates(searchPoint, bearing, 3);
+    var matches = await graph.matchPoint(searchPoint, bearing, 3);
     if(matches.length > 0) {
       var matchedFeature = matches[0].toFeature();
       
@@ -484,7 +484,7 @@ async function matchLines(outFile, params, lines, flags) {
 
       var gisRef:SharedStreetsReference = forwardReference(line);
 			
-      matchForward = await matcher.match(line);
+      matchForward = await matcher.matchGeom(line);
       if(matchForward && matchForward.score < matcher.searchRadius * 2) {
         matchForwardSegments = getMatchedSegments(matchForward, gisRef);
       }
@@ -497,7 +497,7 @@ async function matchLines(outFile, params, lines, flags) {
       var gisRef:SharedStreetsReference = backReference(line);
 
       var reversedLine = <turfHelpers.Feature<turfHelpers.LineString>>reverseLineString(line);
-      matchBackward = await matcher.match(reversedLine);
+      matchBackward = await matcher.matchGeom(reversedLine);
       if(matchBackward && matchBackward.score < matcher.searchRadius * 2) {
         matchBackwardSegments = getMatchedSegments(matchBackward, gisRef);
       }
