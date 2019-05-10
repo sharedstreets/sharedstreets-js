@@ -22,7 +22,7 @@ const pt2 = [-74.003388, 40.634538];
 const pt3 = [-74.004107, 40.63406];
 
 
-const BUILD_TEST_OUPUT = true;
+const BUILD_TEST_OUPUT = false;
 
 // core library tests
 

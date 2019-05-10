@@ -9,11 +9,12 @@ import along from '@turf/along';
 
 import envelope from '@turf/envelope';
 import lineSliceAlong from '@turf/line-slice-along';
+import distance from '@turf/distance';
 import lineOffset from '@turf/line-offset';
 
 import geojsonRbush, { RBush } from 'geojson-rbush';
 
-import { SharedStreetsIntersection, SharedStreetsGeometry, SharedStreetsReference } from 'sharedstreets-types';
+import { SharedStreetsIntersection, SharedStreetsGeometry, SharedStreetsReference, SharedStreetsMetadata } from 'sharedstreets-types';
 
 import { lonlatsToCoords } from '../src/index';
 import { TilePath, getTile, TileType, TilePathGroup, getTileIdsForPolygon, TilePathParams, getTileIdsForPoint } from './tiles';
@@ -51,6 +52,9 @@ export class TileIndex {
     objectIndex:Map<string, {}>;
     featureIndex:Map<string, turfHelpers.Feature<turfHelpers.Geometry>>;
     metadataIndex:Map<string, {}>;
+    osmNodeIntersectionIndex:Map<string, any>;
+    osmNodeIndex:Map<string, any>;
+    osmWayIndex:Map<string, any>;
     binIndex:Map<string, turfHelpers.Feature<turfHelpers.MultiPoint>>;
 
     intersectionIndex:RBush<turfHelpers.Geometry, turfHelpers.Properties>;
@@ -64,6 +68,9 @@ export class TileIndex {
         this.objectIndex = new Map();
         this.featureIndex = new Map();
         this.metadataIndex = new Map();
+        this.osmNodeIntersectionIndex = new Map();
+        this.osmNodeIndex = new Map();
+        this.osmWayIndex = new Map();
         this.binIndex = new Map();
 
         this.intersectionIndex = geojsonRbush(9);
@@ -117,6 +124,7 @@ export class TileIndex {
                     this.objectIndex.set(intersection.id, intersection);   
                     var intesectionFeature = createIntersectionGeometry(intersection);
                     this.featureIndex.set(intersection.id, intesectionFeature);
+                    this.osmNodeIntersectionIndex.set(intersection.nodeId, intersection);
                     intersectionFeatures.push(intesectionFeature);    
                 }
             } 
@@ -128,8 +136,29 @@ export class TileIndex {
             }
         }
         else if(tilePath.tileType === TileType.METADATA) {
-            for(var metadata of data) {
-                this.metadataIndex.set(metadata.geometryId, metadata.osmMetadata);
+            for(var metadata of <SharedStreetsMetadata[]>data) {
+                this.metadataIndex.set(metadata.geometryId, metadata);             
+                if(metadata.osmMetadata) {
+                    for(var waySection of metadata.osmMetadata.waySections) {
+
+                        if(!this.osmWayIndex.has("" + waySection.wayId))
+                            this.osmWayIndex.set("" + waySection.wayId, [])
+
+                        var ways = this.osmWayIndex.get("" + waySection.wayId);
+                        ways.push(metadata);
+                        this.osmWayIndex.set("" + waySection.wayId, ways);   
+
+                        for(var nodeId of waySection.nodeIds) {
+
+                            if(!this.osmNodeIndex.has("" + nodeId))
+                                this.osmNodeIndex.set("" + nodeId, []);
+
+                            var nodes = this.osmNodeIndex.get("" + nodeId);
+                            nodes.push(metadata);
+                            this.osmNodeIndex.set("" + nodeId, nodes);  
+                        }
+                    }
+                }            
             } 
         }
 
@@ -200,6 +229,105 @@ export class TileIndex {
     
     }
 
+    async geomFromOsm(wayId:string, nodeId1:string, nodeId2:string, offset:number=0):Promise<turfHelpers.Feature<turfHelpers.LineString|turfHelpers.Point>> {
+        
+
+        if(this.osmNodeIntersectionIndex.has(nodeId1) && this.osmNodeIntersectionIndex.has(nodeId2)) {
+            var intersection1 = <SharedStreetsIntersection>this.osmNodeIntersectionIndex.get(nodeId1);
+            var intersection2 = <SharedStreetsIntersection>this.osmNodeIntersectionIndex.get(nodeId2);
+
+            var referenceCandidates:Set<string> = new Set();
+            
+            for(var refId of intersection1.outboundReferenceIds) {
+                referenceCandidates.add(refId);
+            }
+
+            for(var refId of intersection2.inboundReferenceIds) {
+                if(referenceCandidates.has(refId)) {
+                    var geom = await this.geom(refId, null, null, offset);
+                    if(geom) {
+                        geom.properties['referenceId'] = refId;
+                        return geom;
+                    }
+                }
+            }
+        }
+        else if(this.osmWayIndex.has(wayId)) {
+            var metadataList = <SharedStreetsMetadata[]>this.osmWayIndex.get(wayId);
+
+            for(var metadata of metadataList) {
+                var nodeIds = [];
+                var previousNode = null;
+                var nodeIndex = 0;
+                var startNodeIndex = null;
+                var endNodeIndex = null;
+                for(var waySection of metadata.osmMetadata.waySections) {
+                    for(var nodeId of waySection.nodeIds) {
+                        var nodeIdStr = nodeId + "";
+                        if(previousNode != nodeIdStr) {
+                            nodeIds.push(nodeIdStr);
+
+                            if(nodeIdStr == nodeId1)
+                                startNodeIndex = nodeIndex;
+                            if(nodeIdStr == nodeId2)
+                                endNodeIndex = nodeIndex;
+
+                            nodeIndex++;
+                        }
+                        previousNode = nodeIdStr;
+                    }
+                }
+
+                if(startNodeIndex  != null && endNodeIndex != null) {
+                    var geometry = <SharedStreetsGeometry>this.objectIndex.get(metadata.geometryId);
+                    var geometryFeature = this.featureIndex.get(metadata.geometryId);
+                    var reference = <SharedStreetsReference>this.objectIndex.get(geometry.forwardReferenceId);
+
+                    if(startNodeIndex > endNodeIndex) {
+                        if(geometry.backReferenceId) {
+                            nodeIds.reverse();
+                            startNodeIndex = (nodeIds.length - 1) - startNodeIndex;
+                            endNodeIndex = (nodeIds.length - 1) - endNodeIndex;
+
+                            reference = <SharedStreetsReference>this.objectIndex.get(geometry.backReferenceId);
+                            geometryFeature = <turfHelpers.Feature<turfHelpers.LineString>>JSON.parse(JSON.stringify(geometryFeature));
+                            geometryFeature.geometry.coordinates = geometryFeature.geometry.coordinates.reverse();
+                        }
+                    }
+
+                    var startLocation = 0;
+                    var endLocation = 0; 
+                    var previousCoord = null;
+                    for(var j = 0; j <= endNodeIndex;  j++ ){
+                        if(previousCoord) {
+                            try {
+                                var coordDistance = distance(previousCoord, geometryFeature.geometry.coordinates[j], {units: 'meters'});
+                                if(j <= startNodeIndex)
+                                    startLocation += coordDistance;
+                                endLocation += coordDistance;
+                            }
+                            catch(e) {
+                                console.log(e);
+                            }                               
+                        }
+                        previousCoord = geometryFeature.geometry.coordinates[j];
+                    }
+            
+                    //console.log(wayId + " " + nodeId1 + " " + nodeId2 + ": " + reference.id + " " + startLocation + " " + endLocation);
+
+                    var geom = await this.geom(reference.id, startLocation, endLocation, offset);
+                    if(geom) {
+                        geom.properties['referenceId'] = reference.id;
+                        geom.properties['section'] = [startLocation, endLocation];
+                        return geom;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+    
     referenceToBins(referenceId:string, numBins:number, offset:number, sideOfStreet:ReferenceSideOfStreet):turfHelpers.Feature<turfHelpers.MultiPoint> {
         var binIndexId = referenceId + ':' + numBins + ':' + offset;
 
@@ -250,7 +378,7 @@ export class TileIndex {
         return binPoints;
     }
 
-    async geom(referenceId:string, p1:number, p2:number):Promise<turfHelpers.Feature<turfHelpers.LineString|turfHelpers.Point>> {
+    async geom(referenceId:string, p1:number, p2:number, offset:number=0):Promise<turfHelpers.Feature<turfHelpers.LineString|turfHelpers.Point>> {
         
         if(this.objectIndex.has(referenceId)) {
             var ref:SharedStreetsReference = <SharedStreetsReference>this.objectIndex.get(referenceId);
@@ -260,6 +388,10 @@ export class TileIndex {
 
             if(geom.backReferenceId && geom.backReferenceId === referenceId) {                
                 geomFeature.geometry.coordinates = geomFeature.geometry.coordinates.reverse()
+            }
+
+            if(offset) {
+                geomFeature = lineOffset(geomFeature, offset, {units: 'meters'});
             }
 
             if(p1 < 0)

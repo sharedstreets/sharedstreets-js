@@ -33,9 +33,9 @@ test("sharedstreets -- graph test", async (t:any) => {
 
   t.equal(graph.id, 'd626d5b0-0dec-3e6f-97ff-d9712228a282');
   
-  var results = await graph.match(lineIn.features[0]);
+  var results = await graph.matchGeom(lineIn.features[0]);
   lineIn.features[0].geometry.coordinates.reverse();
-  var results2 = await graph.match(lineIn.features[0]);
+  var results2 = await graph.matchGeom(lineIn.features[0]);
 
 
 
