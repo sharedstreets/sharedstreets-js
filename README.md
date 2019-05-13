@@ -27,11 +27,11 @@ The CLI can be easily installed using either `npm` or `yarn`.
 To install using `npm`:
 
 ```sh
-npm install -g sharedstreets
+npm install -g sharedstreets@next
 ```
 To install using `yarn`:
 ```sh
-yarn global add sharedstreets
+yarn global add sharedstreets@next
 ```
 This will install the CLI as `shst`.
 
