@@ -1,15 +1,30 @@
 {
   "name": "sharedstreets",
-  "version": "0.10.0",
+  "version": "0.12.0",
   "description": "SharedStreets, a 'digital commons' for the street",
-  "main": "index",
+  "main": "build/src/index.js",
+  "bin": {
+    "shst": "./bin/run"
+  },
   "files": [
-    "build/index.js",
-    "src/index.ts"
+    "/oclif.manifest.json",
+    "/build",
+    "/bin",
+    "/src"
   ],
+  "oclif": {
+    "commands": "./build/src/commands",
+    "bin": "shst",
+    "plugins": [
+      "@oclif/plugin-help"
+    ]
+  },
   "scripts": {
     "pretest": "tsc",
-    "test": "colortape build/test.js",
+    "prepack": "rm -rf build && tsc && mkdir -p build/src/proto && cp src/proto/*.js build/src/proto/ && oclif-dev manifest",
+    "test": "tsc && colortape build/test_core.js",
+    "test-match": "tsc && colortape build/test_match.js",
+    "test-graph": "tsc && colortape build/test_graph.js",
     "docs": "tsc && documentation readme build/index.js --section=API",
     "bench": "tsc && node bench.js"
   },
@@ -35,6 +50,7 @@
   },
   "homepage": "https://github.com/sharedstreets/sharedstreets.js#readme",
   "devDependencies": {
+    "@oclif/dev-cli": "^1.21.3",
     "@types/benchmark": "*",
     "@types/glob": "*",
     "@types/node": "*",
@@ -42,19 +58,49 @@
     "benchmark": "^2.1.4",
     "colortape": "^0.1.2",
     "documentation": "^9.3.1",
-    "sharedstreets-pbf": "*",
     "tap": "*",
     "tape": "*",
+    "ts-node": "^8.1.0",
     "tslint": "*",
     "typescript": "*"
   },
   "dependencies": {
+    "@mapbox/sphericalmercator": "^1.1.0",
+    "@oclif/command": "^1.5.13",
+    "@oclif/config": "^1.12.12",
+    "@oclif/plugin-help": "^2.1.6",
     "@turf/along": "^6.0.1",
+    "@turf/bbox": "^6.0.1",
+    "@turf/bbox-polygon": "^6.0.1",
     "@turf/bearing": "^6.0.1",
+    "@turf/buffer": "^5.1.5",
+    "@turf/envelope": "^5.1.5",
     "@turf/helpers": "^6.0.1",
     "@turf/invariant": "^6.0.1",
     "@turf/length": "^6.0.1",
+    "@turf/line-offset": "^5.1.5",
+    "@turf/line-slice-along": "^5.1.5",
+    "@turf/nearest-point-on-line": "^6.0.2",
+    "@types/leveldown": "^4.0.0",
+    "@types/levelup": "^3.1.0",
+    "@types/osrm": "^5.12.0",
     "bignumber.js": "6.x",
-    "sharedstreets-types": "^1.3.1"
+    "chalk": "^2.4.2",
+    "cli-progress": "^2.1.1",
+    "const": "^1.0.0",
+    "geojson-rbush": "^3.1.1",
+    "global-modules": "^2.0.0",
+    "jkstra": "^0.0.6",
+    "leveldown": "^5.0.0",
+    "levelup": "^4.0.1",
+    "node-fetch": "^2.3.0",
+    "osrm": "^5.22.0",
+    "sharedstreets-pbf": "^0.8.0",
+    "sharedstreets-types": "^1.3.1",
+    "simple-statistics": "^7.0.2",
+    "tslib": "^1.9.3",
+    "uuid-by-string": "^2.1.0",
+    "xml": "^1.0.1",
+    "yarn-global": "^1.1.0"
   }
 }

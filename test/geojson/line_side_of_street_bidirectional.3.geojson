@@ -1,0 +1,8 @@
+{
+"type": "FeatureCollection",
+"name": "line_side_of_street_bidirectional",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "GEO_ID": 14676337, "LFN_ID": 9747, "LF_NAME": "John St", "ADDRESS_L": "170-170", "ADDRESS_R": "165-169", "OE_FLAG_L": "E", "OE_FLAG_R": "O", "LONUML": 170, "HINUM_L": 170, "LONUMR": 165, "HINUM_R": 169, "FNODE": 13466701, "TNODE": 14676283, "ONE_WAY_DI": 0, "DIR_CODE_D": "Not One-Way", "FCODE": 201500, "FCODE_DESC": "Local", "JURIS_CODE": "CITY OF TORONTO", "OBJECTID": 55079.0 }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ -79.391278046, 43.650326533 ], [ -79.39133652, 43.650462603 ], [ -79.391361517, 43.650520752 ] ] ] } }
+]
+}

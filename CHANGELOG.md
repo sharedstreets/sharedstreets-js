@@ -1,5 +1,21 @@
 # Changelog
 
+## 2019-03-21 - 0.11.0
+
+ - mirgrated/refactored cache library from api
+
+
+## 2019-03-19 - 0.10.0
+ - Update test suite
+ - Update directory stucture: move code to `./src`
+ - Remove uncessary dependencies
+
+## 2018-06-19 - 0.9.3 
+ - Fixed bugs in location reference generation
+
+## 2018-04-05 - 0.9.2 
+ - Update default roudning to five decimals
+
 ## 2018-02-21 - 0.9.1
 
 - Revert `nodeId` to `number` type.

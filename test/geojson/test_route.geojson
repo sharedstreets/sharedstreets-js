@@ -1,0 +1,60 @@
+{"type":"FeatureCollection", "features":[
+
+{
+      "type": "Feature",
+      "properties": {
+        "OBJECTID": 27764,
+        "ASSETID": 28197,
+        "INT_ID_FRO": 19624,
+        "INT_ID_TO": 19840,
+        "STNUM": 4405,
+        "MAPSHEET": "139-5A201",
+        "ID": 33097,
+        "ADRF": 300,
+        "ADRT": 338,
+        "ZIP_R": 90026,
+        "ADLF": 301,
+        "ADLT": 339,
+        "ZIP_L": 90026,
+        "TDIR": "N",
+        "STNAME": "MICHELTORENA",
+        "STSFX": "ST",
+        "SFXDIR": null,
+        "STNAME_A": null,
+        "STSFX_A": null,
+        "STATUS": "O",
+        "TEMP_": null,
+        "SECT_ID": 3681500,
+        "DEDRQ": 1,
+        "REMARKS": null,
+        "SV_STATUS": null,
+        "ST_SUBTYPE": 1,
+        "CRTN_DT": "1995-04-11T00:00:00.000Z",
+        "LST_MODF_D": null,
+        "OLD_STREET": "Local Street",
+        "PLANNING_S": null,
+        "DEDRQ_DESC": "No",
+        "TOOLTIP": "MICHELTORENA ST\\nStreet Designation: Local Street - Standard",
+        "NLA_URL": "navigatela/reports/centerline_mb.cfm?pk=28197&t=3681500",
+        "Planning_A": 28197,
+        "TYPE": 70,
+        "MODIFIED": 0,
+        "Street_Des": "Local Street - Standard",
+        "Street_D_1": "Local Street - Standard"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -118.28265684254498,
+            34.076759468193124
+          ],
+          [
+            -118.28305660375169,
+            34.07613105871959
+          ]
+        ]
+      }
+    }
+
+]}

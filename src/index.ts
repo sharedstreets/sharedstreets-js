@@ -1,3 +1,5 @@
+export {run} from '@oclif/command'
+
 import bearing from "@turf/bearing";
 import { bearingToAzimuth, Feature, lineString, LineString, Point, Position} from "@turf/helpers";
 import { getCoord } from "@turf/invariant";
@@ -10,6 +12,10 @@ import {
   SharedStreetsGeometry, SharedStreetsIntersection, SharedStreetsMetadata, SharedStreetsReference,
 } from "sharedstreets-types";
 import { isArray } from "util";
+
+export { Graph, PathCandidate, GraphMode, ReferenceSideOfStreet} from './graph'
+export { TileIndex } from './tile_index'
+export { TilePathGroup, TilePath, TilePathParams, TileType } from './tiles'
 
 /**
  * Shared Streets Java implementation
@@ -282,9 +288,9 @@ export function forwardReference (
   options: {
     formOfWay?: number|string,
   } = {},
-): SharedStreetsReference {
+) : SharedStreetsReference {
 
-  const lineLength = Math.round(length(line, {units: "meters"}) * 100); 
+  const lineLength = Math.round(length(line, {units: "meters"}) * 100);
 
   const formOfWay = getFormOfWay(line, options);
   const geomId = geometryId(line);
@@ -297,23 +303,23 @@ export function forwardReference (
 
   for(var i = 0; i < segmentCount + 1; i++){
     var refProperties:{
-      outboundBearing?:number, 
+      outboundBearing?:number,
       inboundBearing?:number,
       distanceToNextRef?:number } = {};
 
-    if(i < segmentCount){ 
+    if(i < segmentCount){
       refProperties.outboundBearing = outboundBearing(line, lineLength, i * (lineLength / segmentCount));
-      refProperties.distanceToNextRef = Math.round((lineLength / segmentCount) * 100); 
+      refProperties.distanceToNextRef = Math.round((lineLength / segmentCount) * 100);
     }
-    if(i > 0){ 
+    if(i > 0){
       refProperties.inboundBearing = inboundBearing(line, lineLength, i * (lineLength / segmentCount));
     }
-    
+
     var lrCoord;
-    
+
     if(i == 0)
       lrCoord = getStartCoord(line);
-    else if(i == segmentCount) 
+    else if(i == segmentCount)
       lrCoord = getEndCoord(line);
     else {
       var pos = i * (lineLength / segmentCount);
@@ -353,9 +359,12 @@ export function backReference(
     formOfWay?: number|string,
   } = {},
 ): SharedStreetsReference {
-    var reversedLine = JSON.parse(JSON.stringify(line))
+    var geomId = geometryId(line);
+    var reversedLine = JSON.parse(JSON.stringify(line));
     reversedLine.geometry.coordinates.reverse();
-    return forwardReference(reversedLine,  options);
+    var ref = forwardReference(reversedLine,  options);
+    ref.geometryId = geomId;
+    return ref;
 }
 
 /**
@@ -442,9 +451,9 @@ export function metadata(
  * if line is less than 20 meters long bearing is from start to end of line
  * outboundBearing; // => 208
  */
-export function outboundBearing(line: Feature<LineString>, len:number, dist:number): number {  
+export function outboundBearing(line: Feature<LineString>, len:number, dist:number): number {
   // LRs describe the compass bearing of the street geometry for the 20 meters immediately following the LR.
-  if(len > 20) { 
+  if(len > 20) {
     const start = along(line, dist, {units: "meters"});
     const end = along(line, dist + 20, {units: "meters"});
     // Calculate outbound & inbound
@@ -478,14 +487,14 @@ export function inboundBearing(line: Feature<LineString>, len:number, dist:numbe
     const end = along(line, dist, {units: "meters"});
 
     return bearingToAzimuth(Math.round(bearing(start, end)));
-  } 
+  }
   else  {
     const start = along(line, 0, {units: "meters"});
     const end = along(line, len, {units: "meters"});
 
     return bearingToAzimuth(Math.round(bearing(start, end)));
   }
-  
+
 }
 
 /**

@@ -1,0 +1,9 @@
+{
+"type": "FeatureCollection",
+"name": "line_side_of_street_bidirectional",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "row_number": 4911, "id": 12533, "objectid": 549301.0, "city": "MT", "deleted": "FALSE", "bylawno_ol": "(M.T. 21)", "bylawno": null, "chapter": "950", "schedule": "14", "schedule_n": "No Stopping", "col1c": "Spadina Road", "col2c": "Both", "col3c": "Dupont Street and Macpherson Avenue", "col4c": "Anytime", "col5c": null, "col6c": null, "gis": "2019\/01\/15", "anomalies": null, "symbol_id": "950_14", "legend_id": "950_14", "last_update": "2019\/01\/14" }, "geometry": { "type": "LineString", "coordinates": [ [ -79.407373334821187, 43.675810785454104 ], [ -79.407083955008758, 43.67508519714265 ], [ -79.407027581278513, 43.674937952690733 ] ] } },
+{ "type": "Feature", "properties": { "row_number": 4912, "id": 12533, "objectid": 549301.0, "city": "MT", "deleted": "FALSE", "bylawno_ol": "(M.T. 21)", "bylawno": null, "chapter": "950", "schedule": "14", "schedule_n": "No Stopping", "col1c": "Spadina Road", "col2c": "Both", "col3c": "Dupont Street and Macpherson Avenue", "col4c": "Anytime", "col5c": null, "col6c": null, "gis": "2019\/01\/15", "anomalies": null, "symbol_id": "950_14", "legend_id": "950_14", "last_update": "2019\/01\/14" }, "geometry": { "type": "LineString", "coordinates": [ [ -79.40754873226237, 43.675811422517427 ], [ -79.40753578485554, 43.675779079301734 ], [ -79.407261433481082, 43.675094099551536 ], [ -79.407197394223246, 43.674931339686729 ] ] } }
+]
+}

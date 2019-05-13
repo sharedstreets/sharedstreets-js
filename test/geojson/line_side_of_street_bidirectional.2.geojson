@@ -1,0 +1,9 @@
+{
+"type": "FeatureCollection",
+"name": "line_side_of_street_bidirectional",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "GEO_ID": 14020386, "LFN_ID": 3584, "LF_NAME": "Grenville St", "ADDRESS_L": "9-25", "ADDRESS_R": "14-32", "OE_FLAG_L": "O", "OE_FLAG_R": "E", "LONUML": 9, "HINUM_L": 25, "LONUMR": 14, "HINUM_R": 32, "FNODE": 14020388, "TNODE": 14020387, "ONE_WAY_DI": 0, "DIR_CODE_D": "Not One-Way", "FCODE": 201500, "FCODE_DESC": "Local", "JURIS_CODE": "CITY OF TORONTO", "OBJECTID": 55474.0 }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ -79.384022436, 43.662005971 ], [ -79.385361657, 43.661721383 ] ] ] } },
+{ "type": "Feature", "properties": { "GEO_ID": 14020385, "LFN_ID": 3584, "LF_NAME": "Grenville St", "ADDRESS_L": "1-7", "ADDRESS_R": "10-10", "OE_FLAG_L": "O", "OE_FLAG_R": "E", "LONUML": 1, "HINUM_L": 7, "LONUMR": 10, "HINUM_R": 10, "FNODE": 13464794, "TNODE": 14020388, "ONE_WAY_DI": 0, "DIR_CODE_D": "Not One-Way", "FCODE": 201500, "FCODE_DESC": "Local", "JURIS_CODE": "CITY OF TORONTO", "OBJECTID": 128910.0 }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ -79.383421798, 43.662136087 ], [ -79.384022436, 43.662005971 ] ] ] } }
+]
+}

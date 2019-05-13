@@ -1,0 +1,8 @@
+{
+"type": "FeatureCollection",
+"name": "roundabout",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "OBJECTID": 1019, "ROAD": "80161", "DIR": "NW", "NAME": "NEWPORT AVE", "ALT_DIR": "NW", "ALT_NAME": "TRAFFIC CIRCLE #24", "LABEL": "NEWPORT AVE", "OWNER": "City of Bend", "SURFACE": "AC", "CLASS": "City Arterial", "CR_NUM": 0, "ROW_WIDTH": 0, "ESTDATE": null, "ROW_SOURCE": null, "LID": null, "SRD": null, "LENGTH_MI": 0.015, "OID_COPY": 15211, "MAINTENANC": "City of Bend", "ALT_CLASS": "City Arterial", "AUTODATE": "2010\/02\/25", "AUTOWHO": "JOHNA", "HOME_OWNER": null, "SHAPE_STLe": 80.079999732199994 }, "geometry": { "type": "LineString", "coordinates": [ [ -121.324799451415373, 44.062398676625129 ], [ -121.324790553214456, 44.062375127655727 ], [ -121.324776416061738, 44.06235295099362 ], [ -121.324757423324357, 44.062332748010441 ], [ -121.324734090038504, 44.062315066556458 ], [ -121.324707048942557, 44.062300386104354 ], [ -121.324677033318892, 44.062289104747599 ], [ -121.324644857109391, 44.06228152840535 ], [ -121.324611392843792, 44.062277862526905 ], [ -121.324577547979672, 44.062278206520688 ] ] } }
+]
+}
