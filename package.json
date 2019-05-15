@@ -6,6 +6,9 @@
   "bin": {
     "shst": "./bin/run"
   },
+  "engines": {
+    "node": ">=11.0.0"
+  },
   "files": [
     "/oclif.manifest.json",
     "/build",
