@@ -148,7 +148,6 @@
 
         $(document).ready(function() {   
             
-            $("#typeSelector").hide();
             $("#downloadJson").hide();
             $("#loadingData").hide();
             $("#chartContainer").hide();
@@ -298,7 +297,7 @@
                 "source": "rankData",
                 "paint": {
                       'line-width': 5,
-                      'line-opacity': ['rank'],
+                      'line-opacity': ['get', 'rank'],
                       'line-color': [
                                     'match',
                                     ['get', 'type'],

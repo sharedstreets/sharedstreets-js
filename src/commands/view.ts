@@ -15,6 +15,7 @@ import turfBboxPolygon from '@turf/bbox-polygon';
 
 import { SharedStreetsGeometry } from 'sharedstreets-pbf/proto/sharedstreets';
 import envelope from '@turf/envelope';
+import { Stream } from 'stream';
 
 const linearProto = require('../proto/linear.js');
 const fs = require('fs');
@@ -216,6 +217,15 @@ async function server(dirPath:string) {
         path:'/api/bins',
         handler:async function(request,h) {
 
+            class ResponseStream extends Stream.PassThrough {
+                _compressor;
+                setCompressor(compressor) {
+                    this._compressor = compressor;
+                }
+            }
+        
+            const stream = new ResponseStream();  
+        
             var extent;
             if(request.query.bbox)
                 extent = bboxToPolygon(request.query.bbox);
@@ -225,9 +235,25 @@ async function server(dirPath:string) {
             var typeFilters = typeFilterParser(request.query.typeFilter);
             var periodFilter = periodFilterParser(request.query.periodFilter);
             var weeks = weekFilterParser(request.query.weeks);
-            var bins = await eventData.getBins(extent, weeks, typeFilters, periodFilter);
-            return bins;
 
+            const binDataIterator = eventData.getBins(extent, weeks, typeFilters, periodFilter);
+
+            (async function () { 
+                stream.write('{"type": "FeatureCollection","features": [');
+                
+                var firstLine = true;
+                for await (var bin of binDataIterator) {
+                    if(!firstLine) 
+                        stream.write(',');
+                    stream.write(JSON.stringify(bin));
+                    firstLine = false;
+                }
+                stream.write(']}');
+
+                stream.end(); 
+            })();
+
+            return h.response(stream).type('application/json');
         }
     });
 
@@ -241,6 +267,15 @@ async function server(dirPath:string) {
 
         handler: async function(request,h) {
 
+            class ResponseStream extends Stream.PassThrough {
+                _compressor;
+                setCompressor(compressor) {
+                    this._compressor = compressor;
+                }
+            }
+        
+            const stream = new ResponseStream();  
+
             var extent;
             if(request.query.bbox)
                 extent = bboxToPolygon(request.query.bbox);
@@ -250,9 +285,25 @@ async function server(dirPath:string) {
             var typeFilters = typeFilterParser(request.query.typeFilter);
             var periodFilter = periodFilterParser(request.query.periodFilter);
             var weeks = weekFilterParser(request.query.weeks);
-            var rank = await eventData.getRank(extent, weeks, typeFilters, periodFilter);
+           
+            const rankDataIterator = eventData.getRank(extent, weeks, typeFilters, periodFilter);
 
-            return rank;
+            (async function () { 
+                stream.write('{"type": "FeatureCollection","features": [');
+                
+                var firstLine = true;
+                for await (var edge of rankDataIterator) {
+                    if(!firstLine) 
+                        stream.write(',');
+                    stream.write(JSON.stringify(edge));
+                    firstLine = false;
+                }
+                stream.write(']}');
+
+                stream.end(); 
+            })();
+
+            return h.response(stream).type('application/json');
         }
     });
 
@@ -287,3 +338,4 @@ async function server(dirPath:string) {
 
     console.log('Server running at: http://localhost:3000/'); // server.info.uri
 }
+

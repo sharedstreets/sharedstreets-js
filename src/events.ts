@@ -29,6 +29,8 @@ const tileHierarchy:number = 6;
 const tileSource:string = 'osm';
 const tileBuild:string = 'planet-180430';
 
+const MIN_COUNT = 5;
+
 //const TIMEZONE = 'America/New_York';
 
 
@@ -237,7 +239,6 @@ export class WeeklySharedStreetsLinearBins extends SharedStreetsLinearBins {
     }
 }
 
-
 class BinReferenceData {
     geometry;
     refLength;
@@ -376,7 +377,7 @@ export class EventData {
         return [...this.summary.keys()];
     }
 
-    async getRank(extent:turfHelpers.Feature<Polygon>, weeks:string[], typeFilter, periodFilter:Set<number>) {
+    async *getRank(extent:turfHelpers.Feature<Polygon>, weeks:string[], typeFilter, periodFilter:Set<number>) {
         
         var results = turfHelpers.featureCollection([]);
            
@@ -413,10 +414,9 @@ export class EventData {
                             }
                         }
 
-                        if(edgeCount > 2) {
+                        if(edgeCount > MIN_COUNT) {
                             var geom = this.tileIndex.referenceToOffsetLine(refId, offset, ReferenceSideOfStreet.RIGHT);
                             geom.properties['edgeCount'] = edgeCount / refLength;
-                            //geom.properties['edgeCount'] = edgeCount / refLength;
                             
                             if(type['type'])
                                 geom.properties['type'] = type['type'];
@@ -463,65 +463,17 @@ export class EventData {
             var sortedEdgeCounts = edgeCounts.sort();
             for(var unfilteredEdge of edgeCollection.features) {
                 var rank:number = quantileRankSorted(sortedEdgeCounts, unfilteredEdge.properties['edgeCount']);
-                unfilteredEdge.properties['rank'] = Math.round(rank * 100) / 100;
-                //delete unfilteredEdge.properties['edgeCount'];
-
-                //if(unfilteredEdge.properties['rank'] > 0.75) {
-                    results.features.push(unfilteredEdge);
-                //}
+                if(rank > 0.5) {
+                    unfilteredEdge.properties['rank'] = Math.round(rank * 100) / 100;
+                    delete unfilteredEdge.properties['edgeCount'];
+                    yield unfilteredEdge;
+                }
             }
         }
-
-        return results;
-            //         var refData = cache.idIndex[linearBin.referenceId];
-            //         var geomData = cache.idIndex[refData.geometryId];
-            //         var refLength = getReferenceLength(refData);
-
-            //         var direction = ReferenceDirection.FORWARD;
-            //         if(linearBin.referenceId === geomData.backReferenceId)
-            //             direction = ReferenceDirection.BACKWARD;
-
-        
-            //         var edgeTotal = linearBin.getCountForEdge(typeFilter, periodFilter);
-
-            //         if(normalizeByLength) 
-            //             edgeTotal = edgeTotal / refLength;
-
-            //         edgeCounts.push(edgeTotal);
-
-            //         if(edgeTotal > 0) {
-
-            //             var curbGeom;
-
-            //             if(direction === ReferenceDirection.FORWARD)
-            //                 curbGeom = lineOffset(geomData.feature, offset, {units: 'meters'});
-            //             else {
-            //                 var reverseGeom = geomUtils.reverseLineString(geomData.feature);
-            //                 curbGeom = lineOffset(reverseGeom, offset, {units: 'meters'});
-            //             }
-                    
-            //             curbGeom.properties.edgeTotal = edgeTotal;
-                
-            //             unfilteredResults.features.push(curbGeom);
-            //         }   
-            //     }
-            // }
-            
-            // var sortedEdgeCounts = edgeCounts.sort();
-
-            // for(var edge of unfilteredResults.features) {
-            //     var rank:number = quantileRankSorted(sortedEdgeCounts, edge.properties.edgeTotal);
-            //     edge.properties['rank'] = Math.round(rank * 100) / 100;
-            //     delete edge.properties['edgeTotal'];
-
-            //     if(edge.properties['rank'] > 0.5) {
-            //         results.features.push(edge);
-            //     }
-            // }    
     }
 
 
-    async getBins(extent:turfHelpers.Feature<Polygon>, weeks:string[], typeFilter, periodFilter:Set<number>) {
+    async *getBins(extent:turfHelpers.Feature<Polygon>, weeks:string[], typeFilter, periodFilter:Set<number>) {
 
         var totalCount:Map<string,number> = new Map();
 
@@ -582,7 +534,7 @@ export class EventData {
                             }
                         }   
 
-                        if(binCount ) {
+                        if(binCount > MIN_COUNT) {
                             var periodAverageCount =  binCount / (periodFilter.size * weeks.length);
                             // reduce decimal precision for transport
                             periodAverageCount= Math.round(periodAverageCount * 10000) / 10000;
@@ -613,29 +565,33 @@ export class EventData {
         for(var geom of geoms.features) {
 
             if(!lineInsidePolygon(<turfHelpers.Feature<turfHelpers.LineString>>geom, extent))
-                    continue;
+                continue;
 
             var shstGeom = <SharedStreetsGeometry>this.tileIndex.objectIndex.get(geom.properties.id);
             
             if(shstGeom.forwardReferenceId) {
                 
                 var bins = getBinsForRefId(shstGeom.forwardReferenceId);
-                if(bins)
-                    binPointCollection.features = binPointCollection.features.concat(bins.features);
+                if(bins) {
+                    for(var bin of bins.features) {
+                        yield bin;
+                    }
+                } 
             }
 
             if(shstGeom.backReferenceId) {
                 var bins = getBinsForRefId(shstGeom.backReferenceId);
-                if(bins)
-                    binPointCollection.features = binPointCollection.features.concat(bins.features);
+                if(bins) {
+                    for(var bin of bins.features) {
+                        yield bin;
+                    }
+                }
             }
         }
 
         for(var type of totalCount.keys()) {
             console.log(' ' + type + ': ' + totalCount.get(type))
         }  
-
-        return binPointCollection;
     }
 
     async getSummary(extent:turfHelpers.Feature<Polygon>, weeks, typeFilter, periodFilter) {

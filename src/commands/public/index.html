@@ -148,7 +148,6 @@
 
         $(document).ready(function() {   
             
-            $("#typeSelector").hide();
             $("#downloadJson").hide();
             $("#loadingData").hide();
             $("#chartContainer").hide();
@@ -188,7 +187,7 @@
             container: 'map',
             style: 'mapbox://styles/mapbox/light-v10',
             zoom: 13,
-            center: [-79.9959, 40.4406]  
+            center: [-79.3832, 43.6532]  //-79.3832, 43.6532  -77.0369, 38.9072
         });
 
         var polygon = null;
@@ -298,7 +297,7 @@
                 "source": "rankData",
                 "paint": {
                       'line-width': 5,
-                      'line-opacity': ['rank'],
+                      'line-opacity': ['get', 'rank'],
                       'line-color': [
                                     'match',
                                     ['get', 'type'],
