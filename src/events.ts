@@ -460,7 +460,7 @@ export class EventData {
                 }
             }
 
-            var sortedEdgeCounts = edgeCounts.sort();
+            var sortedEdgeCounts = edgeCounts.sort(function(a,b) { return a - b; });       
             for(var unfilteredEdge of edgeCollection.features) {
                 var rank:number = quantileRankSorted(sortedEdgeCounts, unfilteredEdge.properties['edgeCount']);
                 if(rank > 0.5) {
