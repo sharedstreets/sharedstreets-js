@@ -1,6 +1,7 @@
 import destination from '@turf/destination';
 import envelope from '@turf/envelope';
 import * as turfHelpers from '@turf/helpers';
+import bbox from '@turf/bbox';
 
 
 export function envelopeBufferFromPoint(point, radius):turfHelpers.Feature<turfHelpers.Polygon> {
@@ -8,6 +9,11 @@ export function envelopeBufferFromPoint(point, radius):turfHelpers.Feature<turfH
     var sePoint = destination(point, radius, 135, {'units':'meters'});
     return envelope(turfHelpers.featureCollection([nwPoint, sePoint]));
 }   
+
+export function bboxFromPolygon(polygon) {
+	var bboxCoords = bbox(polygon)
+	return {"minX": bboxCoords[0], "minY": bboxCoords[1], "maxX":bboxCoords[2], "maxY":bboxCoords[3]}
+}
 
 function cleanProperties(og_props:{}) {
 	var  new_props:{} = {};

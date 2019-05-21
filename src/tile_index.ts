@@ -12,14 +12,15 @@ import lineSliceAlong from '@turf/line-slice-along';
 import distance from '@turf/distance';
 import lineOffset from '@turf/line-offset';
 
-import geojsonRbush, { RBush } from 'geojson-rbush';
+import  RBush from 'rbush';
 
 import { SharedStreetsIntersection, SharedStreetsGeometry, SharedStreetsReference, SharedStreetsMetadata } from 'sharedstreets-types';
 
 import { lonlatsToCoords } from '../src/index';
 import { TilePath, getTile, TileType, TilePathGroup, getTileIdsForPolygon, TilePathParams, getTileIdsForPoint } from './tiles';
 import { Graph, ReferenceSideOfStreet } from './graph';
-import { reverseLineString } from './geom';
+import { reverseLineString, bboxFromPolygon } from './geom';
+import { featureCollection } from '@turf/helpers';
 
 const SHST_ID_API_URL = 'https://api.sharedstreets.io/v0.1.0/id/';
 
@@ -57,8 +58,8 @@ export class TileIndex {
     osmWayIndex:Map<string, any>;
     binIndex:Map<string, turfHelpers.Feature<turfHelpers.MultiPoint>>;
 
-    intersectionIndex:RBush<turfHelpers.Geometry, turfHelpers.Properties>;
-    geometryIndex:RBush<turfHelpers.Geometry, turfHelpers.Properties>;
+    intersectionIndex:RBush;
+    geometryIndex:RBush;
 
     additionalTileTypes:TileType[] = [];
 
@@ -73,8 +74,8 @@ export class TileIndex {
         this.osmWayIndex = new Map();
         this.binIndex = new Map();
 
-        this.intersectionIndex = geojsonRbush(9);
-        this.geometryIndex = geojsonRbush(9);
+        this.intersectionIndex = new RBush(9);
+        this.geometryIndex = new RBush(9);
     }
 
     addTileType(tileType:TileType) {
@@ -111,8 +112,10 @@ export class TileIndex {
                 if(!this.objectIndex.has(geometry.id)) {
                     this.objectIndex.set(geometry.id, geometry);  
                     var geometryFeature = createGeometry(geometry);      
-                    this.featureIndex.set(geometry.id, geometryFeature)          
-                    geometryFeatures.push(geometryFeature);    
+                    this.featureIndex.set(geometry.id, geometryFeature)  
+                    var bboxCoords = bboxFromPolygon(geometryFeature);
+                    bboxCoords['id'] = geometry.id;
+                    geometryFeatures.push(bboxCoords);    
                 }
             }           
             this.geometryIndex.load(geometryFeatures); 
@@ -125,7 +128,9 @@ export class TileIndex {
                     var intesectionFeature = createIntersectionGeometry(intersection);
                     this.featureIndex.set(intersection.id, intesectionFeature);
                     this.osmNodeIntersectionIndex.set(intersection.nodeId, intersection);
-                    intersectionFeatures.push(intesectionFeature);    
+                    var bboxCoords = bboxFromPolygon(intesectionFeature); 
+                    bboxCoords['id'] = intersection.id;
+                    intersectionFeatures.push(bboxCoords);    
                 }
             } 
             this.intersectionIndex.load(intersectionFeatures);
@@ -188,12 +193,25 @@ export class TileIndex {
 
         await this.indexTilesByPathGroup(tilePaths);
 
-        var data:turfHelpers.FeatureCollection<turfHelpers.Geometry> 
+        var data:turfHelpers.FeatureCollection<turfHelpers.Geometry> = featureCollection([]);
         
-        if(searchType === TileType.GEOMETRY)
-            data = this.geometryIndex.search(polygon);
-        else if(searchType === TileType.INTERSECTION)
-            data = this.intersectionIndex.search(polygon);
+        if(searchType === TileType.GEOMETRY){
+            var bboxCoords = bboxFromPolygon(polygon);
+            var rbushMatches = this.geometryIndex.search(bboxCoords);
+
+            for(var rbushMatch of rbushMatches) {
+                var matchedGeom = this.featureIndex.get(rbushMatch.id);
+                data.features.push(matchedGeom);
+            }
+        }   
+        else if(searchType === TileType.INTERSECTION) {
+            var bboxCoords = bboxFromPolygon(polygon);
+            var rbushMatches = this.intersectionIndex.search(bboxCoords);
+            for(var rbushMatch of rbushMatches) {
+                var matchedGeom = this.featureIndex.get(rbushMatch.id);
+                data.features.push(matchedGeom);
+            }
+        }
         
         return data;
     }
@@ -218,12 +236,26 @@ export class TileIndex {
         await this.indexTilesByPathGroup(tilePaths);
 
         var bufferedPoint:turfHelpers.Feature<turfHelpers.Polygon> = buffer(point, searchRadius, {'units':'meters'});
-        var data:turfHelpers.FeatureCollection<turfHelpers.Geometry> 
-        
-        if(searchType === TileType.GEOMETRY)
-            data = this.geometryIndex.search(bufferedPoint);
-        else if(searchType === TileType.INTERSECTION)
-            data = this.intersectionIndex.search(bufferedPoint);
+        var data:turfHelpers.FeatureCollection<turfHelpers.Geometry> = featureCollection([]);
+
+        if(searchType === TileType.GEOMETRY){
+            var bboxCoords = bboxFromPolygon(bufferedPoint);
+            var rbushMatches = this.geometryIndex.search(bboxCoords);
+
+            for(var rbushMatch of rbushMatches) {
+                var matchedGeom = this.featureIndex.get(rbushMatch.id);
+                data.features.push(matchedGeom);
+            }
+        }
+        else if(searchType === TileType.INTERSECTION) {
+            var bboxCoords = bboxFromPolygon(bufferedPoint);
+            var rbushMatches = this.intersectionIndex.search(bboxCoords);
+
+            for(var rbushMatch of rbushMatches) {
+                var matchedGeom = this.featureIndex.get(rbushMatch.id);
+                data.features.push(matchedGeom);
+            }
+        }
 
         return data;
     
