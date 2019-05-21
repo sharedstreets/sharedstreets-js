@@ -18,7 +18,7 @@ Usage:
 shst <command> [options ... ]
 ```
 
-For detailed examples of how to use this tool, see the [SharedStreets blog](www.medium.com/sharedstreets).
+For detailed examples of how to use this tool, see the [SharedStreets blog](http://www.medium.com/sharedstreets).
 
 ## Install
 
