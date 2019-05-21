@@ -6,7 +6,7 @@
 Node.js & JavaScript implementation of [SharedStreets Reference System](https://github.com/sharedstreets/sharedstreets-ref-system).
 
 # Command Line Interface (CLI) 
-![SharedStreets CLI Matcher]{docs/cli_matcher.png}
+![SharedStreets CLI Matcher](docs/cli_matcher.png)
 
 ## Description
 
