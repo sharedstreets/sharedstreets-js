@@ -1,6 +1,6 @@
 import * as turfHelpers from '@turf/helpers';
 import { TilePathParams, TilePathGroup, TileType } from './tiles';
-import { existsSync, mkdirSync, open, createWriteStream, rmdirSync } from 'fs';
+import { existsSync, mkdirSync, open, createWriteStream, rmdirSync, watch } from 'fs';
 import { LevelUp } from 'levelup';
 import { TileIndex } from './tile_index';
 import { lonlatsToCoords } from './index';
@@ -57,7 +57,7 @@ function getOSRMDirectory() {
         return path.join(yarnModules.getDirectory(), 'sharedstreets/node_modules/osrm/');
     }
     else {
-        var npmGlobalRoot = execSync('npm root -g');
+        var npmGlobalRoot = execSync('npm root -g').toString('utf8').trim();
 
         if(fs.existsSync(path.join(npmGlobalRoot, 'sharedstreets/node_modules/osrm/'))) {
             return path.join(npmGlobalRoot, 'sharedstreets/node_modules/osrm/');
