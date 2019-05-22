@@ -53,7 +53,7 @@ Output is given as a GeoJSON file:
 
 #### Usage:
 ```sh
-shst extract <input polygon> [options]
+shst extract <path/to/input_polygon.geojson> [options]
 ```
 
 ### help
@@ -72,7 +72,7 @@ The following options may be appended to the command:
 
 #### Example:
 ```sh
-shst intersects ~/Desktop/project/city_boundary.geojson --out=streets_in_city.geojson
+shst extract ~/Desktop/project/city_boundary.geojson --out=streets_in_city.geojson
 ```
 
 
@@ -86,7 +86,7 @@ Output is given as up to three GeoJSON files:
 
 #### Usage:
 ```sh
-shst match <input data> [options]
+shst match <path/to/input_data.geojson> [options]
 ```
 
 #### Options:
