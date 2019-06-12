@@ -33,7 +33,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sharedstreets/sharedstreets.js.git"
+    "url": "git+https://github.com/sharedstreets/sharedstreets-js.git"
   },
   "keywords": [
     "sharedstreets",
@@ -49,9 +49,9 @@
   ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/sharedstreets/sharedstreets.js/issues"
+    "url": "https://github.com/sharedstreets/sharedstreets-js/issues"
   },
-  "homepage": "https://github.com/sharedstreets/sharedstreets.js#readme",
+  "homepage": "https://github.com/sharedstreets/sharedstreets-js#readme",
   "devDependencies": {
     "@oclif/dev-cli": "^1.21.3",
     "@types/benchmark": "*",
