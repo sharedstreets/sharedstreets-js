@@ -123,15 +123,19 @@ export default class Match extends Command {
     params.tileHierarchy = flags['tile-hierarchy']
 
     if(data.features[0].geometry.type  === 'LineString' || data.features[0].geometry.type  === 'MultiLineString') {
-      await matchLines(outFile, params, data, flags);
+      await matchLinesWriteToFile(outFile, params, data, flags);
     }
     else if(data.features[0].geometry.type === 'Point') {
-      await matchPoints(outFile, params, data, flags);
+      await matchPointsWriteToFile(outFile, params, data, flags);
     }
   } 
 }
 
-async function matchPoints(outFile, params, points, flags) {
+async function matchPointsWriteToFile(outFile, params, points, flags) {
+  return matchPoints(params, points, flags, outFile);
+};
+
+export async function matchPoints(params, points, flags, outFile = null) {
 
   console.log(chalk.bold.keyword('green')('  ✨  Matching ' + points.features.length + ' points...'));
   // test matcher point candidates
@@ -276,38 +280,64 @@ async function matchPoints(outFile, params, points, flags) {
     clusteredPoints = Object.keys(clusteredPointMap).map(key => clusteredPointMap[key]);
   }
 
+  var outputObject = {};
+
   if(matchedPoints.length) {
-    console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + matchedPoints.length + ' matched points: ' + outFile + ".matched.geojson"));
     var matchedFeatureCollection:turfHelpers.FeatureCollection<turfHelpers.Point> = turfHelpers.featureCollection(matchedPoints);
-    var matchedJsonOut = JSON.stringify(matchedFeatureCollection);
-    writeFileSync(outFile + ".matched.geojson", matchedJsonOut);
+    if (outFile) {
+      console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + matchedPoints.length + ' matched points: ' + outFile + ".matched.geojson"));
+      var matchedJsonOut = JSON.stringify(matchedFeatureCollection);
+      writeFileSync(outFile + ".matched.geojson", matchedJsonOut);
+    } else {
+      outputObject['matchedPoints'] = matchedFeatureCollection;
+    }
   }
 
   if(clusteredPoints.length) {
-    console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + clusteredPoints.length + ' clustered points: ' + outFile + ".clustered.geojson"));
     var clusteredPointsFeatureCollection:turfHelpers.FeatureCollection<turfHelpers.Point> = turfHelpers.featureCollection(clusteredPoints);
-    var clusteredJsonOut = JSON.stringify(clusteredPointsFeatureCollection);
-    writeFileSync(outFile + ".clustered.geojson", clusteredJsonOut);
+    if (outFile) {
+      console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + clusteredPoints.length + ' clustered points: ' + outFile + ".clustered.geojson"));
+      var clusteredJsonOut = JSON.stringify(clusteredPointsFeatureCollection);
+      writeFileSync(outFile + ".clustered.geojson", clusteredJsonOut);
+    } else {
+      outputObject['clusteredPoints'] = clusteredPointsFeatureCollection;
+    }
   }
 
   if(intersectionClusteredPoints.length) {
-    console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + intersectionClusteredPoints.length + ' intersection clustered points: ' + outFile + ".intersection_clustered.geojson"));
     var intersectionClusteredPointsFeatureCollection:turfHelpers.FeatureCollection<turfHelpers.Point> = turfHelpers.featureCollection(intersectionClusteredPoints);
-    var intersectionClusteredJsonOut = JSON.stringify(intersectionClusteredPointsFeatureCollection);
-    writeFileSync(outFile + ".intersection_clustered.geojson", intersectionClusteredJsonOut);
+    if (outFile) {
+      console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + intersectionClusteredPoints.length + ' intersection clustered points: ' + outFile + ".intersection_clustered.geojson"));
+      var intersectionClusteredJsonOut = JSON.stringify(intersectionClusteredPointsFeatureCollection);
+      writeFileSync(outFile + ".intersection_clustered.geojson", intersectionClusteredJsonOut);
+    } else {
+      outputObject['intersectionClusteredPoints'] = intersectionClusteredPointsFeatureCollection;
+    }
   }
 
   if(unmatchedPoints.length ) {
-    console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + unmatchedPoints.length + ' unmatched points: ' + outFile + ".unmatched.geojson"));
     var unmatchedFeatureCollection:turfHelpers.FeatureCollection<turfHelpers.Point> = turfHelpers.featureCollection(unmatchedPoints);
-    var unmatchedJsonOut = JSON.stringify(unmatchedFeatureCollection);
-    writeFileSync(outFile + ".unmatched.geojson", unmatchedJsonOut);
+    if (outFile) {
+      console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + unmatchedPoints.length + ' unmatched points: ' + outFile + ".unmatched.geojson"));
+      var unmatchedJsonOut = JSON.stringify(unmatchedFeatureCollection);
+      writeFileSync(outFile + ".unmatched.geojson", unmatchedJsonOut);
+    } else {
+      outputObject['unmatchedPoints'] = unmatchedFeatureCollection;
+    }
   }
 
   if(cleanPoints.invalid  && cleanPoints.invalid.length > 0 ) {
-    console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + cleanPoints.invalid.length + ' invalid points: ' + outFile + ".invalid.geojson"));
-    var invalidJsonOut = JSON.stringify(cleanPoints.invalid );
-    writeFileSync(outFile + ".unmatched.geojson", invalidJsonOut);
+    if (outFile) {
+      console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + cleanPoints.invalid.length + ' invalid points: ' + outFile + ".invalid.geojson"));
+      var invalidJsonOut = JSON.stringify(cleanPoints.invalid );
+      writeFileSync(outFile + ".unmatched.geojson", invalidJsonOut);
+    } else {
+      outputObject['invalidPoints'] = cleanPoints.invalid;
+    }
+  }
+
+  if (!outFile) {
+    return outputObject;
   }
 }
 
@@ -318,7 +348,11 @@ enum MatchDirection {
   BEST
 }
 
-async function matchLines(outFile, params, lines, flags) {
+async function matchLinesWriteToFile(outFile, params, lines, flags) {
+  return matchLines(params, lines, flags, outFile);
+};
+
+export async function matchLines(params, lines, flags, outFile = null) {
 
   var cleanedlines = new CleanedLines(lines);
   
@@ -558,26 +592,43 @@ async function matchLines(outFile, params, lines, flags) {
   }
   bar1.stop();
 
+  var outputObject = {};
 
   if(matchedLines && matchedLines.length) {
-    console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + matchedLines.length + ' matched edges: ' + outFile + ".matched.geojson"));
     var matchedFeatureCollection:turfHelpers.FeatureCollection<turfHelpers.LineString> = turfHelpers.featureCollection(matchedLines);
-    var matchedJsonOut = JSON.stringify(matchedFeatureCollection);
-    writeFileSync(outFile + ".matched.geojson", matchedJsonOut);
+    if (outFile) {
+      console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + matchedLines.length + ' matched edges: ' + outFile + ".matched.geojson"));
+      var matchedJsonOut = JSON.stringify(matchedFeatureCollection);
+      writeFileSync(outFile + ".matched.geojson", matchedJsonOut);
+    } else {
+      outputObject['matchedLines'] = matchedFeatureCollection;
+    }
   }
 
   if(unmatchedLines && unmatchedLines.length ) {
-    console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + unmatchedLines.length + ' unmatched lines: ' + outFile + ".unmatched.geojson"));
     var unmatchedFeatureCollection:turfHelpers.FeatureCollection<turfHelpers.LineString> = turfHelpers.featureCollection(unmatchedLines);
-    var unmatchedJsonOut = JSON.stringify(unmatchedFeatureCollection);
-    writeFileSync(outFile + ".unmatched.geojson", unmatchedJsonOut);
+    if (outFile) {
+      console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + unmatchedLines.length + ' unmatched lines: ' + outFile + ".unmatched.geojson"));
+      var unmatchedJsonOut = JSON.stringify(unmatchedFeatureCollection);
+      writeFileSync(outFile + ".unmatched.geojson", unmatchedJsonOut);
+    } else {
+      outputObject['unmatchedLines'] = unmatchedFeatureCollection;
+    }
   }
 
   if(cleanedlines.invalid && cleanedlines.invalid.length ) {
-    console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + cleanedlines.invalid + ' in lines: ' + outFile + ".invalid.geojson"));
     var invalidFeatureCollection:turfHelpers.FeatureCollection<turfHelpers.LineString> = turfHelpers.featureCollection(cleanedlines.invalid);
-    var invalidJsonOut = JSON.stringify(invalidFeatureCollection);
-    writeFileSync(outFile + ".unmatched.geojson", invalidJsonOut);
+    if (outFile) {
+      console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + cleanedlines.invalid + ' in lines: ' + outFile + ".invalid.geojson"));
+      var invalidJsonOut = JSON.stringify(invalidFeatureCollection);
+      writeFileSync(outFile + ".unmatched.geojson", invalidJsonOut);
+    } else {
+      outputObject['invalidLines'] = unmatchedFeatureCollection;
+    }
+  }
+
+  if (!outFile) {
+    return outputObject;
   }
 
 }
