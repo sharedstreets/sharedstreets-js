@@ -1,4 +1,5 @@
 import Command from "@oclif/command";
+import bodyParser from 'body-parser';
 import express from 'express';
 import Path from 'path';
 import { matchLines } from "./match";
@@ -21,11 +22,17 @@ async function server() {
     };
 
     const app = express(); 
+    app.use(bodyParser.text());
     app.post("/match/geoms", (req, res) => {
         console.log("POST match/geoms,\nrequest:")
-        console.log(req);
+        // console.log(req.query);
+        // console.log(req.body);
+        const query = req.query;
+        const body = JSON.parse(req.body);
+        console.log(query);
+        console.log(body);
         // console.log(h);
-        matchLines(null, null, null, null);
+        matchLines({}, body, query);
     });
     app.listen(3001, () =>  {
         console.log('Server running at: http://localhost:3001/');
