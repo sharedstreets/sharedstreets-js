@@ -23,18 +23,46 @@ For detailed examples of how to use this tool, see the [SharedStreets blog](http
 
 ## Install
 
-The CLI can be easily installed using either `npm` or `yarn`.
+The CLI requires Node v10+ on MacOS or Linux. Windows is not currently supported. On supported platforms it can be installed using either `npm` or `yarn`, or follow using Docker for unsupported environments.
 
+
+#### NPM
 To install using `npm`:
 
 ```sh
-npm install -g sharedstreets@next
+npm install -g sharedstreets
 ```
+
+#### Yarn
 To install using `yarn`:
 ```sh
-yarn global add sharedstreets@next
+yarn global add sharedstreets
 ```
 This will install the CLI as `shst`.
+
+#### Docker
+To install using Docker create the following Dockerfile:
+
+```
+FROM node:11
+
+ENV NPM_CONFIG_PREFIX=/home/node/.npm-global
+ENV PATH=$PATH:/home/node/.npm-global/bin
+
+USER node
+RUN npm install -g sharedstreets
+```
+
+Docker image build:
+```
+docker build --tag shst-image .
+```
+
+Run match on local data file:
+```
+docker run -it -v [/path/to/data/on/host/]:/data/  --rm  shst-image shst match /data/[input_file.geojson] --out=/data/output.geojson
+```
+
 
 ## Available commands
 
@@ -53,7 +81,7 @@ Output is given as a GeoJSON file:
 
 #### Usage:
 ```sh
-shst extract <input polygon> [options]
+shst extract <path/to/input_polygon.geojson> [options]
 ```
 
 ### help
@@ -72,7 +100,7 @@ The following options may be appended to the command:
 
 #### Example:
 ```sh
-shst intersects ~/Desktop/project/city_boundary.geojson --out=streets_in_city.geojson
+shst extract ~/Desktop/project/city_boundary.geojson --out=streets_in_city.geojson
 ```
 
 
@@ -86,7 +114,7 @@ Output is given as up to three GeoJSON files:
 
 #### Usage:
 ```sh
-shst match <input data> [options]
+shst match <path/to/input_data.geojson> [options]
 ```
 
 #### Options:

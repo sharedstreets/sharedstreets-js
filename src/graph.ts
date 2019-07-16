@@ -1,6 +1,6 @@
 import * as turfHelpers from '@turf/helpers';
 import { TilePathParams, TilePathGroup, TileType } from './tiles';
-import { existsSync, mkdirSync, open, createWriteStream, rmdirSync } from 'fs';
+import { existsSync, mkdirSync, open, createWriteStream, rmdirSync, watch } from 'fs';
 import { LevelUp } from 'levelup';
 import { TileIndex } from './tile_index';
 import { lonlatsToCoords } from './index';
@@ -30,7 +30,7 @@ import { LineString } from '@turf/buffer/node_modules/@turf/helpers';
 
 const uuidHash = require('uuid-by-string');
 const nodeModules = require('global-modules');
-const yarnModules = require('yarn-global')
+const yarnModules = require('yarn-global');
 
 
 const DEFAULT_SEARCH_RADIUS = 10;
@@ -47,11 +47,26 @@ function getOSRMDirectory() {
     else if(fs.existsSync(path.join(nodeModules, 'osrm/'))) {
         return path.join(nodeModules, 'osrm/');
     }
+    else if(fs.existsSync(path.join(nodeModules, 'sharedstreets/node_modules/osrm/'))) {
+        return path.join(nodeModules, 'sharedstreets/node_modules/osrm/');
+    }
     else if(fs.existsSync(path.join(yarnModules.getDirectory(), 'osrm/'))) {
         return path.join(yarnModules.getDirectory(), 'osrm/');
     }
+    else if(fs.existsSync(path.join(yarnModules.getDirectory(), 'sharedstreets/node_modules/osrm/'))) {
+        return path.join(yarnModules.getDirectory(), 'sharedstreets/node_modules/osrm/');
+    }
     else {
-        return null
+        var npmGlobalRoot = execSync('npm root -g').toString('utf8').trim();
+
+        if(fs.existsSync(path.join(npmGlobalRoot, 'sharedstreets/node_modules/osrm/'))) {
+            return path.join(npmGlobalRoot, 'sharedstreets/node_modules/osrm/');
+        }
+        else if(fs.existsSync(path.join(npmGlobalRoot, 'osrm/'))) {
+            return path.join(npmGlobalRoot, 'osrm/');
+        }
+        else 
+            return null
     }
 }
 
