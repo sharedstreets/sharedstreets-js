@@ -341,7 +341,7 @@ export async function matchPoints(params, points, flags, outFile = null) {
   }
 }
 
-enum MatchDirection {
+export enum MatchDirection {
   FORWARD, 
   BACKWARD,
   BOTH,
