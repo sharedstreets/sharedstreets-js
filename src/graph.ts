@@ -253,7 +253,6 @@ class GraphNodeEdgeRelations {
     edgeIds:number[];
 }
 
-
 export class PathSegment {
 
 	referenceId:string;
@@ -423,6 +422,7 @@ export class Graph {
     snapIntersections = false;
     useHMM = true;
     useDirect = true;
+    includeStreetnames = true;
     bearingTolerance:number = DEFAULT_BEARING_TOLERANCE;
     tileParams;
 
@@ -433,6 +433,11 @@ export class Graph {
         this.tilePathGroup.addType(TileType.GEOMETRY);
         this.tilePathGroup.addType(TileType.REFERENCE);
 
+        if(this.includeStreetnames) {
+            this.tilePathGroup.addType(TileType.METADATA);
+            this.tilePathGroup.addType(TileType.INTERSECTION);
+        }
+        
         this.graphMode = graphMode;
 
         var paths:string[] = [];
@@ -773,6 +778,12 @@ export class Graph {
                     var pathSegment:PathSegment = new PathSegment();
                     pathSegment.geometryId = edgeGeom.id;
                     pathSegment.referenceId = edgeReferenceId;
+                    
+                    if(this.includeStreetnames) {
+                        pathSegment.fromStreetnames = await this.tileIndex.streetnamesForIntersectionId(pathSegment.fromIntersectionId, pathSegment.referenceId);	
+                        pathSegment.toStreetnames = await this.tileIndex.streetnamesForIntersectionId(pathSegment.toIntersectionId, pathSegment.referenceId);	
+                    }
+
                     // TODO calc directionality from graph edge trajectory possible...
                     pathCandidate.segments.push(pathSegment);
 
@@ -932,17 +943,24 @@ export class Graph {
                                 pathCandidate.segments[k].section = [0, pathCandidate.segments[k].referenceLength];
                             }
                         } 
-                        // put to/from on semgnet
+                        // put to/from on segment
 
                         if(edgeGeom.forwardReferenceId == pathCandidate.segments[k].referenceId) {
                             pathCandidate.segments[k].fromIntersectionId = edgeGeom.fromIntersectionId;
                             pathCandidate.segments[k].toIntersectionId = edgeGeom.toIntersectionId;
+                            pathCandidate.segments[k].direction = ReferenceDirection.FORWARD;
                         }
                         else {
                             // reverse to/from for back references
                             pathCandidate.segments[k].fromIntersectionId = edgeGeom.toIntersectionId;
                             pathCandidate.segments[k].toIntersectionId = edgeGeom.fromIntersectionId;
-                        }                              
+                            pathCandidate.segments[k].direction = ReferenceDirection.BACKWARD;
+                        } 
+                        
+                        if(this.includeStreetnames) {
+                            pathCandidate.segments[k].fromStreetnames = await this.tileIndex.streetnamesForIntersectionId(pathCandidate.segments[k].fromIntersectionId, pathCandidate.segments[k].referenceId);	
+                            pathCandidate.segments[k].toStreetnames = await this.tileIndex.streetnamesForIntersectionId(pathCandidate.segments[k].toIntersectionId, pathCandidate.segments[k].referenceId);	
+                        }
                     }
 
                     if(pathCandidate.startPoint.sideOfStreet == pathCandidate.endPoint.sideOfStreet)
@@ -1100,10 +1118,10 @@ export class Graph {
 			pointCandidate.referenceId = reference.id;
 			pointCandidate.roadClass = roadClassConverter(geometry.roadClass);
 
-			// if(this.includeStreetnames) {
-			// 	var metadata = await this.cache.metadataById(pointCandidate.geometryId);
-			// 	pointCandidate.streetname = metadata.name;
-			// }
+			if(this.includeStreetnames) {
+				var metadata = await this.tileIndex.metadataById(pointCandidate.geometryId);
+				pointCandidate.streetname = metadata.osmMetadata.name;
+			}
 
 			pointCandidate.direction = direction;
 			pointCandidate.referenceLength = refLength;
@@ -1137,7 +1155,7 @@ export class Graph {
 		return null;
 	}
 
-	getPointCandidateFromGeom(searchPoint:turfHelpers.Feature<turfHelpers.Point>, pointOnLine:turfHelpers.Feature<turfHelpers.Point>, candidateGeom:SharedStreetsGeometry, candidateGeomFeature:turfHelpers.Feature<LineString>,  searchBearing:number, direction:ReferenceDirection):PointCandidate {
+	async getPointCandidateFromGeom(searchPoint:turfHelpers.Feature<turfHelpers.Point>, pointOnLine:turfHelpers.Feature<turfHelpers.Point>, candidateGeom:SharedStreetsGeometry, candidateGeomFeature:turfHelpers.Feature<LineString>,  searchBearing:number, direction:ReferenceDirection):Promise<PointCandidate> {
 
 		if(pointOnLine.properties.dist < this.searchRadius) {
 
@@ -1185,10 +1203,10 @@ export class Graph {
 			pointCandidate.referenceId = reference.id;
 			pointCandidate.roadClass = roadClassConverter(candidateGeom.roadClass);
 
-			// if(this.includeStreetnames) {
-			// 	var metadata = await this.cache.metadataById(pointCandidate.geometryId);
-			// 	pointCandidate.streetname = metadata.name;
-			// }
+			if(this.includeStreetnames) {
+				var metadata = await this.tileIndex.metadataById(pointCandidate.geometryId);
+				pointCandidate.streetname = metadata.osmMetadata.name;
+			}
 
 			pointCandidate.direction = direction;
 			pointCandidate.referenceLength = refLength;
@@ -1223,7 +1241,13 @@ export class Graph {
 	}
 
 	async matchPoint(searchPoint:turfHelpers.Feature<turfHelpers.Point>, searchBearing:number, maxCandidates:number):Promise<PointCandidate[]> {
-		this.tileIndex.addTileType(TileType.REFERENCE);
+        this.tileIndex.addTileType(TileType.REFERENCE);
+        
+        if(this.includeStreetnames) {
+            this.tileIndex.addTileType(TileType.METADATA);
+            this.tileIndex.addTileType(TileType.INTERSECTION);
+        }
+
 		var candidateFeatures = await this.tileIndex.nearby(searchPoint, TileType.GEOMETRY, this.searchRadius, this.tileParams);
 
 		var candidates:PointCandidate[] = new Array();

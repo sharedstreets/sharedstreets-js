@@ -216,6 +216,54 @@ export class TileIndex {
         return data;
     }
 
+    async streetnamesForIntersectionId(intersectionId:string, filterRefId:string):Promise<string[]> {
+
+		var filterStreetname:string = null;
+        var filterRef:SharedStreetsReference = null;
+        
+		if(filterRefId) {
+			var filterRef = await <SharedStreetsReference>this.objectIndex.get(filterRefId);
+            var filterMetadata = await this.metadataById(filterRef.geometryId);
+            if(filterMetadata)
+			    filterStreetname = filterMetadata.osmMetadata.name;
+		}
+
+		var intersection = await <SharedStreetsIntersection>this.objectIndex.get(intersectionId);
+
+		if(!intersection) 
+			return null;
+
+		var intersectionGeometryIds:Set<string> = new Set();
+
+		for(var refId of intersection.inboundReferenceIds) {
+			var inboundRef = <SharedStreetsReference>this.objectIndex.get(refId);
+			intersectionGeometryIds.add(inboundRef.geometryId);
+		}
+
+		for(var refId of intersection.outboundReferenceIds) {
+			var inboundRef = <SharedStreetsReference>this.objectIndex.get(refId);
+			intersectionGeometryIds.add(inboundRef.geometryId);
+		}
+
+		var intersectionStreetnames:Set<string> = new Set();
+
+		for(var geomId of Array.from(intersectionGeometryIds)) {
+            var geomMetadata = await this.metadataById(geomId);
+            if(geomMetadata) {
+                var streetname = geomMetadata.osmMetadata.name;
+                if(!filterStreetname  || streetname !== filterStreetname) {
+                    intersectionStreetnames.add(streetname);
+                }
+            }
+		}
+		return  Array.from(intersectionStreetnames);
+	}
+
+    async metadataById(geometryId:string):Promise<SharedStreetsMetadata> {
+        var geomMetadata = await this.metadataIndex.get(geometryId);
+        return geomMetadata;
+    }
+    
     async nearby(point:turfHelpers.Feature<turfHelpers.Point>, searchType:TileType, searchRadius:number, params:TilePathParams) {
 
         var tilePaths = TilePathGroup.fromPoint(point, searchRadius * 2, params);
