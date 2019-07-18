@@ -263,7 +263,7 @@ export class PathSegment {
 	fromIntersectionId:string;
     toIntersectionId:string;
 
-	fromStreetnames:string[];
+   fromStreetnames:string[];
 	toStreetnames:string[];
 
 	referenceLength:number;
@@ -780,6 +780,9 @@ export class Graph {
                     pathSegment.referenceId = edgeReferenceId;
                     
                     if(this.includeStreetnames) {
+                        var metadata = await this.tileIndex.metadataById(pathSegment.geometryId);
+				        pathSegment.streetname = metadata.osmMetadata.name;
+                     
                         pathSegment.fromStreetnames = await this.tileIndex.streetnamesForIntersectionId(pathSegment.fromIntersectionId, pathSegment.referenceId);	
                         pathSegment.toStreetnames = await this.tileIndex.streetnamesForIntersectionId(pathSegment.toIntersectionId, pathSegment.referenceId);	
                     }
@@ -958,6 +961,9 @@ export class Graph {
                         } 
                         
                         if(this.includeStreetnames) {
+                            var metadata = await this.tileIndex.metadataById(pathCandidate.segments[k].geometryId);
+                            pathCandidate.segments[k].streetname = metadata.osmMetadata.name;
+                         
                             pathCandidate.segments[k].fromStreetnames = await this.tileIndex.streetnamesForIntersectionId(pathCandidate.segments[k].fromIntersectionId, pathCandidate.segments[k].referenceId);	
                             pathCandidate.segments[k].toStreetnames = await this.tileIndex.streetnamesForIntersectionId(pathCandidate.segments[k].toIntersectionId, pathCandidate.segments[k].referenceId);	
                         }
