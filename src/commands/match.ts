@@ -64,8 +64,16 @@ export default class Match extends Command {
     'match-motorway-only': flags.boolean({description: 'only match against motorway segments', default:false}),
     'match-surface-streets-only': flags.boolean({description: 'only match against surface street segments', default:false}),
     'offset-line': flags.integer({description: 'offset geometry based on direction of matched line (in meters)'}),
-    'cluster-points': flags.integer({description: 'aproximate sub-segment length for clustering points (in meters)'})
+    'cluster-points': flags.integer({description: 'aproximate sub-segment length for clustering points (in meters)'}),
+    
+    'buffer-points': flags.boolean({description: 'buffer points into segment-snapped line segments'}),
+    'buffer-points-length': flags.integer({description: 'length of buffered point (in meters)', default:5}),
+    'buffer-points-length-field': flags.string({description: 'name of property containing buffered points (in meters)', default:'length'}),
+    //'buffer-points-justify': flags.string({description: 'buffer point justifed from center|start|end', default:'center'}),
 
+    //'merge-points': flags.boolean({description: ''}),
+    //'intersection-offset': flags.boolean({description: 'snap line end-points to nearest intersection if closer than distance defined by search-radius ', default:false}),
+    
   }
 
   static args = [{name: 'file'}]
@@ -179,6 +187,7 @@ async function matchPoints(outFile, params, points, flags) {
   bar2.stop();
 
   var clusteredPoints = [];
+  var bufferedPoints = [];
   var intersectionClusteredPoints = [];
   if(flags['cluster-points']) {
     var clusteredPointMap = {};
@@ -276,6 +285,43 @@ async function matchPoints(outFile, params, points, flags) {
     clusteredPoints = Object.keys(clusteredPointMap).map(key => clusteredPointMap[key]);
   }
 
+  if(flags['buffer-points']) {
+    
+    const bufferPoint = async (matchedPoint) => {
+
+      var bufferLength = flags['buffer-points-length'];
+
+      var bufferStart = matchedPoint.properties['location'] - (bufferLength / 2);
+      var bufferEnd = matchedPoint.properties['location'] + (bufferLength / 2)
+
+      if(bufferStart < 0 ) {
+        bufferEnd += Math.abs(bufferStart);
+        bufferStart = 0;
+      }
+
+      if(bufferEnd > matchedPoint.properties['referenceLength']) {
+        bufferStart -= Math.abs(bufferEnd - matchedPoint.properties['referenceLength']);
+        bufferEnd = matchedPoint.properties['referenceLength'];
+
+        if(bufferStart < 0 ) {
+          bufferStart = 0;
+        }
+      }
+
+      console.log(JSON.stringify(matchedPoint))
+      var bufferedPoint = await graph.tileIndex.geom(matchedPoint.properties['referenceId'], bufferStart, bufferEnd, flags['offset-line'])
+      console.log(JSON.stringify(bufferedPoint))
+      bufferedPoint['properties'] = matchedPoint.properties;
+      return bufferedPoint;
+    }
+
+    for(var matchedPoint of matchedPoints) {
+      var bufferedPoint = await bufferPoint(matchedPoint);
+      bufferedPoints.push(bufferedPoint);
+    }
+
+  }
+
   if(matchedPoints.length) {
     console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + matchedPoints.length + ' matched points: ' + outFile + ".matched.geojson"));
     var matchedFeatureCollection:turfHelpers.FeatureCollection<turfHelpers.Point> = turfHelpers.featureCollection(matchedPoints);
@@ -288,6 +334,13 @@ async function matchPoints(outFile, params, points, flags) {
     var clusteredPointsFeatureCollection:turfHelpers.FeatureCollection<turfHelpers.Point> = turfHelpers.featureCollection(clusteredPoints);
     var clusteredJsonOut = JSON.stringify(clusteredPointsFeatureCollection);
     writeFileSync(outFile + ".clustered.geojson", clusteredJsonOut);
+  }
+
+  if(bufferedPoints.length) {
+    console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + bufferedPoints.length + ' buffered points: ' + outFile + ".buffered.geojson"));
+    var bufferedPointsFeatureCollection:turfHelpers.FeatureCollection<turfHelpers.LineString> = turfHelpers.featureCollection(bufferedPoints);
+    var bufferedJsonOut = JSON.stringify(bufferedPointsFeatureCollection);
+    writeFileSync(outFile + ".buffered.geojson", bufferedJsonOut);
   }
 
   if(intersectionClusteredPoints.length) {
