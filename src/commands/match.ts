@@ -291,6 +291,9 @@ async function matchPoints(outFile, params, points, flags) {
 
       var bufferLength = flags['buffer-points-length'];
 
+      if(flags['buffer-points-length-field'] && matchedPoint.properties['pp_' + flags['buffer-points-length-field']])
+        bufferLength = parseFloat(matchedPoint.properties['pp_' + flags['buffer-points-length-field']]);
+
       var bufferStart = matchedPoint.properties['location'] - (bufferLength / 2);
       var bufferEnd = matchedPoint.properties['location'] + (bufferLength / 2)
 
@@ -308,9 +311,8 @@ async function matchPoints(outFile, params, points, flags) {
         }
       }
 
-      console.log(JSON.stringify(matchedPoint))
       var bufferedPoint = await graph.tileIndex.geom(matchedPoint.properties['referenceId'], bufferStart, bufferEnd, flags['offset-line'])
-      console.log(JSON.stringify(bufferedPoint))
+      
       bufferedPoint['properties'] = matchedPoint.properties;
       return bufferedPoint;
     }
