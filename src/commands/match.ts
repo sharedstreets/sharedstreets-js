@@ -312,9 +312,11 @@ async function matchPoints(outFile, params, points, flags) {
       }
 
       var bufferedPoint = await graph.tileIndex.geom(matchedPoint.properties['referenceId'], bufferStart, bufferEnd, flags['offset-line'])
-      
+      if(!bufferedPoint && flags['offset-line']) {  
+        bufferedPoint = await graph.tileIndex.geom(matchedPoint.properties['referenceId'], bufferStart, bufferEnd, null);
+      }
       bufferedPoint['properties'] = matchedPoint.properties;
-      return bufferedPoint;
+      return bufferedPoint;      
     }
 
     for(var matchedPoint of matchedPoints) {
