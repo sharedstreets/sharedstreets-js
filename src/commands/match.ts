@@ -311,10 +311,36 @@ async function matchPoints(outFile, params, points, flags) {
         }
       }
 
-      var bufferedPoint = await graph.tileIndex.geom(matchedPoint.properties['referenceId'], bufferStart, bufferEnd, flags['offset-line'])
-      if(!bufferedPoint && flags['offset-line']) {  
+      matchedPoint.properties['bufferStartLocation'] = bufferStart;
+      matchedPoint.properties['bufferEndLocation'] = bufferEnd;
+
+      var offsetLine =  null;
+      if(flags['offset-line']) {
+        if(flags['left-side-driving']) {
+          if(matchedPoint.properties['sideOfStreet'] === ReferenceSideOfStreet.LEFT) {
+            offsetLine = flags['offset-line'];
+          }
+          else if(matchedPoint.properties['sideOfStreet'] === ReferenceSideOfStreet.RIGHT) {
+            offsetLine = 0 - flags['offset-line'];
+          }
+        }
+        else {
+          if(matchedPoint.properties['sideOfStreet'] === ReferenceSideOfStreet.RIGHT) {
+            offsetLine = flags['offset-line'];
+          }
+          else if(matchedPoint.properties['sideOfStreet'] === ReferenceSideOfStreet.LEFT) {
+            offsetLine = 0 - flags['offset-line'];
+          }
+        }
+      }
+
+      var bufferedPoint = await graph.tileIndex.geom(matchedPoint.properties['referenceId'], bufferStart, bufferEnd, offsetLine);
+
+
+      if(!bufferedPoint) {  
         bufferedPoint = await graph.tileIndex.geom(matchedPoint.properties['referenceId'], bufferStart, bufferEnd, null);
       }
+
       bufferedPoint['properties'] = matchedPoint.properties;
       return bufferedPoint;      
     }
