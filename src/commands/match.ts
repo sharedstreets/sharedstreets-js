@@ -59,7 +59,6 @@ export default class Match extends Command {
     'bearing-field': flags.string({description: 'name of optional point property containing bearing in decimal degrees', default:'bearing'}),
     'search-radius': flags.integer({description: 'search radius for for snapping points, lines and traces (in meters)', default:10}),
     'snap-intersections': flags.boolean({description: 'snap line end-points to nearest intersection if closer than distance defined by search-radius ', default:false}),
-    'snap-side-of-street': flags.boolean({description: 'snap line to side of street', default:false}),
     'left-side-driving': flags.boolean({description: 'snap line to side of street using left-side driving rules', default:false}),
     'match-car': flags.boolean({description: 'match using car routing rules', default:true}),
     'match-bike': flags.boolean({description: 'match using bike routing rules', default:false}),
@@ -86,8 +85,10 @@ export default class Match extends Command {
 
     this.log(chalk.bold.keyword('green')('  🌏  Loading geojson data...'));
 
-    var inFile = args.file;
+    var inFile = '/Users/kpw/workspace/tmp/sharedstreets-js/test/geojson/left-side.2.geojson'//args.file;
     var outFile = flags.out;
+    flags['offset-line'] = 2;
+    flags['left-side-driving'] = true;
 
     if(!inFile || !existsSync(inFile)) {
       this.log(chalk.bold.keyword('orange')('  💾  Input file not found...'));
@@ -596,27 +597,17 @@ async function matchLines(outFile, params, lines, flags) {
       segmentGeom.properties['sideOfStreet'] = path.sideOfStreet;
 
       if(flags['offset-line']) {
-        if(flags['snap-side-of-street']) {
-          if(flags['left-side-driving']) {
-            if(path.sideOfStreet == ReferenceSideOfStreet.RIGHT)
-              segmentGeom = lineOffset(segmentGeom, 0 - flags['offset-line'], {"units":"meters"})
-            else if(path.sideOfStreet == ReferenceSideOfStreet.LEFT)
-              segmentGeom = lineOffset(segmentGeom, flags['offset-line'], {"units":"meters"})
-          }
-          else {
-            if(path.sideOfStreet == ReferenceSideOfStreet.RIGHT)
-              segmentGeom = lineOffset(segmentGeom, flags['offset-line'], {"units":"meters"})
-            else if(path.sideOfStreet == ReferenceSideOfStreet.LEFT)
-              segmentGeom = lineOffset(segmentGeom, 0 - flags['offset-line'], {"units":"meters"})
-          }
+        if(flags['left-side-driving']) {
+          if(path.sideOfStreet == ReferenceSideOfStreet.RIGHT)
+            segmentGeom = lineOffset(segmentGeom, 0 - flags['offset-line'], {"units":"meters"})
+          else if(path.sideOfStreet == ReferenceSideOfStreet.LEFT)
+            segmentGeom = lineOffset(segmentGeom, flags['offset-line'], {"units":"meters"})
         }
         else {
-          if(flags['left-side-driving']) {
-            segmentGeom = lineOffset(segmentGeom, 0 - flags['offset-line'], {"units":"meters"});
-          }
-          else {
-            segmentGeom = lineOffset(segmentGeom, flags['offset-line'], {"units":"meters"});
-          }
+          if(path.sideOfStreet == ReferenceSideOfStreet.RIGHT)
+            segmentGeom = lineOffset(segmentGeom, flags['offset-line'], {"units":"meters"})
+          else if(path.sideOfStreet == ReferenceSideOfStreet.LEFT)
+            segmentGeom = lineOffset(segmentGeom, 0 - flags['offset-line'], {"units":"meters"})
         }
       }
         
@@ -809,5 +800,6 @@ async function matchLines(outFile, params, lines, flags) {
     var invalidJsonOut = JSON.stringify(invalidFeatureCollection);
     writeFileSync(outFile + ".unmatched.geojson", invalidJsonOut);
   }
-
 }
+
+Match.run();
