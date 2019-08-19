@@ -85,10 +85,9 @@ export default class Match extends Command {
 
     this.log(chalk.bold.keyword('green')('  🌏  Loading geojson data...'));
 
-    var inFile = '/Users/kpw/workspace/tmp/sharedstreets-js/test/geojson/left-side.2.geojson'//args.file;
+    var inFile = args.file;
     var outFile = flags.out;
-    flags['offset-line'] = 2;
-    flags['left-side-driving'] = true;
+    
 
     if(!inFile || !existsSync(inFile)) {
       this.log(chalk.bold.keyword('orange')('  💾  Input file not found...'));
@@ -801,5 +800,3 @@ async function matchLines(outFile, params, lines, flags) {
     writeFileSync(outFile + ".unmatched.geojson", invalidJsonOut);
   }
 }
-
-Match.run();
