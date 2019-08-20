@@ -470,30 +470,32 @@ export class TileIndex {
                 geomFeature.geometry.coordinates = geomFeature.geometry.coordinates.reverse()
             }
 
-            if(offset) {
-                geomFeature = lineOffset(geomFeature, offset, {units: 'meters'});
-            }
-
             if(p1 < 0)
                 p1 = 0;
             if(p2 < 0)
                 p2 = 0;
-
+            var finalFeature;
             if(p1 == null && p2 == null) {
-                return geomFeature;
+                finalFeature = geomFeature;
             }
             else if(p1 && p2 == null) {
-                return along(geomFeature, p1, {"units":"meters"});
+                finalFeature = along(geomFeature, p1, {"units":"meters"});
             } 
             else if(p1 != null && p2 != null) {
                 try {
-                    return lineSliceAlong(geomFeature, p1, p2, {"units":"meters"});
+                    finalFeature = lineSliceAlong(geomFeature, p1, p2, {"units":"meters"});
                 }
                 catch(e) {
                     //console.log(p1, p2)
                 }
                 
             }
+
+            if(offset) {
+                return lineOffset(finalFeature, offset, {units: 'meters'});
+            }
+            else 
+                return finalFeature;
         }
 
         // TODO find missing IDs via look up
