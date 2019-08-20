@@ -5,14 +5,14 @@
 
 Node.js & JavaScript implementation of [SharedStreets Reference System](https://github.com/sharedstreets/sharedstreets-ref-system).
 
-# Command Line Interface (CLI) 
+# Command Line Interface (CLI)
 ![SharedStreets CLI Matcher](docs/cli_matcher.png)
 
 ## Description
 
 The CLI is the primary tool for users to match GIS data to SharedStreets. The CLI is installed and run locally. Compared to the hosted API, the CLI can process much larger datasets and runs more quickly.
 
-The CLI is currently runs on macOS and Linux. It does not (yet) support Windows.
+The CLI is currently runs on macOS and Linux. It can also be used in a Windows environment through Docker.
 
 Usage:
 ```sh
@@ -23,7 +23,7 @@ For detailed examples of how to use this tool, see the [SharedStreets blog](http
 
 ## Install
 
-The CLI requires Node v10+ on MacOS or Linux. Windows is not currently supported. On supported platforms it can be installed using either `npm` or `yarn`, or follow using Docker for unsupported environments.
+The CLI requires Node v10+ on MacOS or Linux. Windows is not currently supported directly but can be used with Docker. On supported platforms it can be installed using either `npm` or `yarn`, or follow using Docker for unsupported environments.
 
 
 #### NPM
@@ -40,31 +40,29 @@ yarn global add sharedstreets
 ```
 This will install the CLI as `shst`.
 
-#### Docker
-To install using Docker create the following Dockerfile:
+#### Docker (required for Windows environments)
+The CLI uses OSRM, which is not directly supported on a Windows environment. So, to use the CLI on Windows, you'll need to use Docker. Here's how:
 
-```
-FROM node:11
+1. Download the Docker desktop app, available [here](https://hub.docker.com/editions/community/docker-ce-desktop-windows). Start the Docker application.
 
-ENV NPM_CONFIG_PREFIX=/home/node/.npm-global
-ENV PATH=$PATH:/home/node/.npm-global/bin
+2. Download the source code for this tool. Open a command line interface like PowerShell, navigate to your desired directory, and clone this repository.
 
-USER node
-RUN npm install -g sharedstreets
-```
+3. Install the CLI using Docker. In your command line environment, use this "Docker image build" command to unpack and install the SharedStreets CLI tools. This uses a Dockerfile that's included as part of this repo.
 
-Docker image build:
-```
+```sh
 docker build --tag shst-image .
 ```
 
-Run match on local data file:
-```
+4. You're ready to use the SharedStreets matching commands. The commands will be the same as documented in the instructions below, but with a "prefix". For example, here's how to match a local file to SharedStreets. The first half of the command is a prefix that you'll always need to add. The second half (starting with `shst match` is where the general command starts. You can modify this by adding any of the special parameters documented below.) Example:
+
+```sh
 docker run -it -v [/path/to/data/on/host/]:/data/  --rm  shst-image shst match /data/[input_file.geojson] --out=/data/output.geojson
 ```
 
 
 ## Available commands
+
+Please note the special instruction, above, for using the CLI in a Windows environment (through Docker).
 
 Available commands include:
 - **extract**: extracts SharedStreets streets using polygon boundary and returns GeoJSON output of all intersecting features (this includes features that are in but not fully contained by the polygon)
