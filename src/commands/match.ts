@@ -665,9 +665,6 @@ async function matchLines(outFile, params, lines, flags) {
 
   for(var line of cleanedlines.clean) {
 
-    if(line.properties['geo_id'] == 30107269)
-      console.log('30107269')
-
     var matchDirection:MatchDirection;
     if(flags['direction-field'] && line.properties[flags['direction-field'].toLocaleLowerCase()] != undefined) {
 
