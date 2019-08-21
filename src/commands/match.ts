@@ -597,9 +597,9 @@ async function matchLines(outFile, params, lines, flags) {
 
       if(flags['offset-line']) {
         if(flags['left-side-driving']) {
-          if(path.sideOfStreet == ReferenceSideOfStreet.RIGHT)
+          if(path.sideOfStreet == ReferenceSideOfStreet.LEFT)
             segmentGeom = lineOffset(segmentGeom, 0 - flags['offset-line'], {"units":"meters"})
-          else if(path.sideOfStreet == ReferenceSideOfStreet.LEFT)
+          else if(path.sideOfStreet == ReferenceSideOfStreet.RIGHT)
             segmentGeom = lineOffset(segmentGeom, flags['offset-line'], {"units":"meters"})
         }
         else {
