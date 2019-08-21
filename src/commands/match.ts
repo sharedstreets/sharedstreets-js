@@ -17,6 +17,9 @@ import lineOffset from '@turf/line-offset';
 
 import { getReferenceLength } from '../tile_index';
 import { generateBinId, getBinCountFromLength, getBinPositionFromLocation, getBinLength } from '../data';
+import { PathSegment } from '../graph';
+import { PointCandidate } from '../point_matcher';
+import { PathSearch } from '../routing';
 
 const chalk = require('chalk');
 const cliProgress = require('cli-progress');
@@ -56,7 +59,6 @@ export default class Match extends Command {
     'bearing-field': flags.string({description: 'name of optional point property containing bearing in decimal degrees', default:'bearing'}),
     'search-radius': flags.integer({description: 'search radius for for snapping points, lines and traces (in meters)', default:10}),
     'snap-intersections': flags.boolean({description: 'snap line end-points to nearest intersection if closer than distance defined by search-radius ', default:false}),
-    'snap-side-of-street': flags.boolean({description: 'snap line to side of street', default:false}),
     'left-side-driving': flags.boolean({description: 'snap line to side of street using left-side driving rules', default:false}),
     'match-car': flags.boolean({description: 'match using car routing rules', default:true}),
     'match-bike': flags.boolean({description: 'match using bike routing rules', default:false}),
@@ -64,8 +66,15 @@ export default class Match extends Command {
     'match-motorway-only': flags.boolean({description: 'only match against motorway segments', default:false}),
     'match-surface-streets-only': flags.boolean({description: 'only match against surface street segments', default:false}),
     'offset-line': flags.integer({description: 'offset geometry based on direction of matched line (in meters)'}),
-    'cluster-points': flags.integer({description: 'aproximate sub-segment length for clustering points (in meters)'})
-
+    'cluster-points': flags.integer({description: 'aproximate sub-segment length for clustering points (in meters)'}),
+    
+    'buffer-points': flags.boolean({description: 'buffer points into segment-snapped line segments'}),
+    'buffer-points-length': flags.integer({description: 'length of buffered point (in meters)', default:5}),
+    'buffer-points-length-field': flags.string({description: 'name of property containing buffered points (in meters)', default:'length'}),
+    'buffer-intersection-offset': flags.integer({description: 'offset buffered points from intersection (in meters)', default:0}),
+    'buffer-merge': flags.boolean({description: 'merge buffered points -- requires related buffer-merge-fields to be defined', default:false}),
+    'buffer-merge-match-fields': flags.string({description: 'comma seperated list of fields to match values when merging buffered points', default:''}),
+    'buffer-merge-group-fields': flags.string({description: 'comma seperated list of fields to group values when merging buffered points', default:''})
   }
 
   static args = [{name: 'file'}]
@@ -77,8 +86,8 @@ export default class Match extends Command {
     this.log(chalk.bold.keyword('green')('  🌏  Loading geojson data...'));
 
     var inFile = args.file;
-
     var outFile = flags.out;
+    
 
     if(!inFile || !existsSync(inFile)) {
       this.log(chalk.bold.keyword('orange')('  💾  Input file not found...'));
@@ -144,7 +153,6 @@ async function matchPoints(outFile, params, points, flags) {
     graph.tileIndex.addTileType(TileType.INTERSECTION);
   
   graph.searchRadius = flags['search-radius'];
-  var matchedPoints:turfHelpers.Feature<turfHelpers.Point>[] = [];
   var unmatchedPoints:turfHelpers.Feature<turfHelpers.Point>[] = [];
 
 
@@ -156,20 +164,23 @@ async function matchPoints(outFile, params, points, flags) {
  
   bar2.start(points.features.length, 0);
 
+  class MatchedPointType {originalFeature:turfHelpers.Feature<turfHelpers.Point>; matchedPoint:PointCandidate; bufferedPoint:PathSegment};
+
+  var matchedPoints:MatchedPointType[] = [];
+  
   for(var searchPoint of cleanPoints.clean) {
 
     var bearing:number =null;
     if(searchPoint.properties && searchPoint.properties[flags['bearing-field']])
       bearing = parseFloat(searchPoint.properties[flags['bearing-field']]);
 
-    var matches = await graph.matchPoint(searchPoint, bearing, 3);
+    var matches = await graph.matchPoint(searchPoint, bearing, 3, flags['left-side-driving']);
     if(matches.length > 0) {
-      var matchedFeature = matches[0].toFeature();
-      
-      if(!flags['skip-port-properties'])
-        mapOgProperties(searchPoint.properties, matchedFeature.properties);
-      
-        matchedPoints.push(matchedFeature);
+      var matchedPoint:MatchedPointType = new MatchedPointType(); 
+      matchedPoint.matchedPoint = matches[0];
+      matchedPoint.originalFeature = searchPoint;
+      matchedPoints.push(matchedPoint);
+
     }
     else {
       unmatchedPoints.push(searchPoint);
@@ -179,25 +190,29 @@ async function matchPoints(outFile, params, points, flags) {
   bar2.stop();
 
   var clusteredPoints = [];
+  var bufferedPoints = [];
+  var bufferedMergedPoints = [];
   var intersectionClusteredPoints = [];
+  var mergedPoints = [];
+
   if(flags['cluster-points']) {
     var clusteredPointMap = {};
     var intersectionClusteredPointMap = {};
     
-    const mergePointIntoCluster = (matchedPoint) => {
+    const mergePointIntoCluster = (matchedPoint:MatchedPointType) => {
 
       var pointGeom = null;
       if(flags['snap-intersections'] && 
-        ( matchedPoint.properties['location'] <= flags['search-radius'] ||
-          matchedPoint.properties['referenceLength'] - matchedPoint.properties['location'] <= flags['search-radius'])) {
+        ( matchedPoint.matchedPoint.location <= flags['search-radius'] ||
+          matchedPoint.matchedPoint.referenceLength - matchedPoint.matchedPoint.location <= flags['search-radius'])) {
           
-        var reference = <SharedStreetsReference>graph.tileIndex.objectIndex.get(matchedPoint.properties['referenceId']);
+        var reference = <SharedStreetsReference>graph.tileIndex.objectIndex.get(matchedPoint.matchedPoint.referenceId);
         var intersectionId;
 
-        if(matchedPoint.properties['location'] <= flags['search-radius']) {
+        if(matchedPoint.matchedPoint.location <= flags['search-radius']) {
           intersectionId = reference.locationReferences[0].intersectionId;
         }
-        else if(matchedPoint.properties['referenceLength'] - matchedPoint.properties['location'] <= flags['search-radius']) {
+        else if(matchedPoint.matchedPoint.referenceLength - matchedPoint.matchedPoint.location <= flags['search-radius']) {
           intersectionId = reference.locationReferences[reference.locationReferences.length-1].intersectionId;
         }
 
@@ -232,19 +247,19 @@ async function matchPoints(outFile, params, points, flags) {
       }
       else {
 
-        var binCount = getBinCountFromLength(matchedPoint.properties['referenceLength'], flags['cluster-points'])
-        var binPosition = getBinPositionFromLocation(matchedPoint.properties['referenceLength'], flags['cluster-points'], matchedPoint.properties['location']);
-        var binId = generateBinId(matchedPoint.properties['referenceId'], binCount, binPosition);
-        var binLength = getBinLength(matchedPoint.properties['referenceLength'], flags['cluster-points'])
+        var binCount = getBinCountFromLength(matchedPoint.matchedPoint.referenceLength, flags['cluster-points'])
+        var binPosition = getBinPositionFromLocation(matchedPoint.matchedPoint.referenceLength, flags['cluster-points'], matchedPoint.matchedPoint.location);
+        var binId = generateBinId(matchedPoint.matchedPoint.referenceId, binCount, binPosition);
+        var binLength = getBinLength(matchedPoint.matchedPoint.referenceLength, flags['cluster-points'])
 
         if(clusteredPointMap[binId]) {
           clusteredPointMap[binId].properties['count'] += 1;
         }
         else {
-          var bins = graph.tileIndex.referenceToBins(matchedPoint.properties['referenceId'], binCount, 2, ReferenceSideOfStreet.RIGHT);
+          var bins = graph.tileIndex.referenceToBins(matchedPoint.matchedPoint.referenceId, binCount, 2, ReferenceSideOfStreet.RIGHT);
           var binPoint = turfHelpers.point(bins.geometry.coordinates[binPosition - 0]);
           binPoint.properties['id'] = binId;
-          binPoint.properties['referenceId'] = matchedPoint.properties['referenceId'];
+          binPoint.properties['referenceId'] = matchedPoint.matchedPoint.referenceId;
           binPoint.properties['binPosition'] = binPosition;
           binPoint.properties['binCount'] = binCount;
           binPoint.properties['binLength'] = binLength;
@@ -255,14 +270,14 @@ async function matchPoints(outFile, params, points, flags) {
         pointGeom = clusteredPointMap[binId];
       }
 
-      for(var property of Object.keys(matchedPoint.properties)) {
+      for(var property of Object.keys(matchedPoint.originalFeature.properties)) {
         if(property.startsWith('pp_')) {
-          if(!isNaN(matchedPoint.properties[property])) { 
+          if(!isNaN(matchedPoint.originalFeature.properties[property])) { 
             var sumPropertyName = 'sum_' +  property;
             if(!pointGeom.properties[sumPropertyName]) {
               pointGeom.properties[sumPropertyName] = 0;
             }
-            pointGeom.properties[sumPropertyName] += matchedPoint.properties[property];
+            pointGeom.properties[sumPropertyName] += matchedPoint.originalFeature.properties[property];
           }
         }
       }
@@ -276,9 +291,210 @@ async function matchPoints(outFile, params, points, flags) {
     clusteredPoints = Object.keys(clusteredPointMap).map(key => clusteredPointMap[key]);
   }
 
+  if(flags['buffer-points']) {
+
+    class MergeBufferedPointsType {mergedPathSegments:PathSegment; matchedPoints:MatchedPointType[]};
+    
+    console.log(chalk.bold.keyword('green')('  ✨  Buffering ' + matchedPoints.length + ' matched points...'));
+  
+    var bufferLength = flags['buffer-points-length'];
+    console.log(chalk.bold.keyword('green')('        default buffer length: ' + bufferLength));
+
+    var bufferLengthFieldName = null;
+    if(flags['buffer-points-length-field']) {
+      bufferLengthFieldName = flags['buffer-points-length-field'].toLocaleLowerCase().trim().replace(/ /g, "_");
+      console.log(chalk.bold.keyword('green')('        buffer length fieldname: ' + bufferLengthFieldName));
+    }
+      bufferLengthFieldName = flags['buffer-points-length-field'].toLocaleLowerCase().trim().replace(/ /g, "_");
+
+    for(var matchedPoint of matchedPoints) {
+
+      var offsetLine:number = flags['offset-line'];
+      var leftSideDriving:boolean = flags['left-side-driving'];
+
+      if(offsetLine) {
+        if(leftSideDriving) {
+          if(matchedPoint.matchedPoint.sideOfStreet === ReferenceSideOfStreet.LEFT) {
+            offsetLine = offsetLine;
+          }
+          else if(matchedPoint.matchedPoint.sideOfStreet === ReferenceSideOfStreet.RIGHT) {
+            offsetLine = 0 - offsetLine;
+          }
+        }
+        else {
+          if(matchedPoint.matchedPoint.sideOfStreet === ReferenceSideOfStreet.RIGHT) {
+            offsetLine = offsetLine;
+          }
+          else if(matchedPoint.matchedPoint.sideOfStreet === ReferenceSideOfStreet.LEFT) {
+            offsetLine = 0 - offsetLine;
+          }
+        }
+      }
+
+      var pointBufferLength = bufferLength;
+
+      if(bufferLengthFieldName && matchedPoint.originalFeature.properties.hasOwnProperty(bufferLengthFieldName))
+        pointBufferLength = matchedPoint.originalFeature.properties[bufferLengthFieldName];
+
+      matchedPoint.bufferedPoint = await graph.bufferPoint(matchedPoint.matchedPoint, pointBufferLength, offsetLine);
+      var bufferedFeature = matchedPoint.bufferedPoint.toFeature();
+      mapOgProperties(matchedPoint.originalFeature.properties, bufferedFeature.properties);
+      bufferedPoints.push(bufferedFeature);
+    }  
+
+    if(flags['buffer-merge']) {
+
+      console.log(chalk.bold.keyword('green')('  ✨  Merging ' + bufferedPoints.length + ' buffered points...'));
+
+      var bufferedPreMergedPoints:Map<string,Array<MatchedPointType>> = new Map();
+
+      var mergeFields:string[] = [];
+      if(flags['buffer-merge-match-fields']) {
+        // split and clean property fields
+        mergeFields = flags['buffer-merge-match-fields'].split(",").map((f) =>{return f.toLocaleLowerCase().replace(/ /g, "_")});
+        mergeFields.sort();
+        console.log(chalk.bold.keyword('green')('        merging on fields: ' + mergeFields.join(', ')));
+      }
+      
+      var groupFields:string[] = [];
+      if(flags['buffer-merge-group-fields']) {
+        // split and clean property fields
+        groupFields = flags['buffer-merge-group-fields'].split(",").map((f) =>{return f.toLocaleLowerCase().replace(/ /g, "_")});
+        groupFields.sort();
+        console.log(chalk.bold.keyword('green')('        grouping on field values: ' + groupFields.join(', ')));
+      }
+      
+      for(var matchedPoint of matchedPoints) {
+
+        var fieldValues:string[] = [];
+        for(var mergeField of mergeFields) {
+          if(matchedPoint.originalFeature.properties.hasOwnProperty(mergeField)){
+            fieldValues.push((mergeField + ':' + matchedPoint.originalFeature.properties[mergeField]).toLocaleLowerCase().trim().replace(/ /g, "_")) 
+          }
+        }
+        var fieldValuesString = fieldValues.join(':');
+
+        var refSideHash = matchedPoint.bufferedPoint.referenceId + ':' + matchedPoint.bufferedPoint.sideOfStreet + ':' + fieldValuesString;
+      
+        if(!bufferedPreMergedPoints.has(refSideHash)) {
+          bufferedPreMergedPoints.set(refSideHash, new Array());
+        };
+
+        bufferedPreMergedPoints.get(refSideHash).push(matchedPoint);
+      
+      }
+
+      const mergeSegments = async (bufferedSegments:MatchedPointType[]):Promise<MergeBufferedPointsType[]> => {
+
+        var mergedSegment = new MergeBufferedPointsType();
+        var mergedSegments:MergeBufferedPointsType[] = [];
+  
+        bufferedSegments
+
+        bufferedSegments.sort((a:MatchedPointType, b:MatchedPointType):number => (a.bufferedPoint.section[0] > b.bufferedPoint.section[0]) ? 11 : -1);
+        
+        var segment1:MatchedPointType = bufferedSegments.pop();   
+
+        var mergedSegment = new MergeBufferedPointsType();
+        mergedSegment.mergedPathSegments = segment1.bufferedPoint;
+        mergedSegment.matchedPoints = [segment1];
+  
+        while(segment1 && bufferedSegments.length > 0) {
+          var segment2:MatchedPointType = bufferedSegments.pop();
+
+          if(segment2 && mergedSegment.mergedPathSegments.isIntersecting(segment2.bufferedPoint)) {
+
+            var offsetLine:number = flags['offset-line'];
+            var leftSideDriving:boolean = flags['left-side-driving'];
+
+            if(offsetLine) {
+              if(leftSideDriving) {
+                if(mergedSegment.mergedPathSegments.sideOfStreet === ReferenceSideOfStreet.LEFT) {
+                  offsetLine = offsetLine;
+                }
+                else if( mergedSegment.mergedPathSegments.sideOfStreet === ReferenceSideOfStreet.RIGHT) {
+                  offsetLine = 0 - offsetLine;
+                }
+              }
+              else {
+                if(mergedSegment.mergedPathSegments.sideOfStreet === ReferenceSideOfStreet.RIGHT) {
+                  offsetLine = offsetLine;
+                }
+                else if(mergedSegment.mergedPathSegments.sideOfStreet === ReferenceSideOfStreet.LEFT) {
+                  offsetLine = 0 - offsetLine;
+                }
+              }
+            }
+
+            mergedSegment.mergedPathSegments = await graph.union(mergedSegment.mergedPathSegments, segment2.bufferedPoint, offsetLine);
+            mergedSegment.matchedPoints.push(segment2);
+          }
+          else {
+            mergedSegments.push(mergedSegment);
+            if(segment2) {
+              segment1 = segment2;
+          
+              mergedSegment = new MergeBufferedPointsType()
+              mergedSegment.mergedPathSegments = segment1.bufferedPoint;
+              mergedSegment.matchedPoints = [segment1];
+            }
+            else {
+              mergedSegment = null;
+            }
+          } 
+        }
+        
+        if(mergedSegment)
+          mergedSegments.push(mergedSegment);
+        
+        return mergedSegments;
+      };
+
+      for(var refSide of bufferedPreMergedPoints.keys()) {
+        if(bufferedPreMergedPoints.get(refSide).length > 0) {
+          var mergedBuffers:MergeBufferedPointsType[] = await mergeSegments(bufferedPreMergedPoints.get(refSide));
+          for(var mergedBuffer of mergedBuffers) {
+            var outputBufferedFeature = mergedBuffer.mergedPathSegments.toFeature();           
+
+            for(var mergeField of mergeFields) {
+              if(mergedBuffer.matchedPoints[0].originalFeature.properties.hasOwnProperty(mergeField)){
+                outputBufferedFeature.properties['pp_' + mergeField] = mergedBuffer.matchedPoints[0].originalFeature.properties[mergeField];
+              }
+            }            
+
+            for(var groupField of groupFields) {
+              var groupedFieldValues = []
+              for( var point of mergedBuffer.matchedPoints) {          
+                if(point.originalFeature.properties.hasOwnProperty(groupField)){
+                  groupedFieldValues.push(point.originalFeature.properties[groupField]);
+                }
+              }
+              outputBufferedFeature.properties['pp_' + groupField] = groupedFieldValues;
+            } 
+            
+            outputBufferedFeature.properties['shst_merged_point_count'] = mergedBuffer.matchedPoints.length;
+            var mergedBufferLength = 0;
+            for( var point of mergedBuffer.matchedPoints) {
+              mergedBufferLength += point.bufferedPoint.section[1] - point.bufferedPoint.section[0];
+            }
+            outputBufferedFeature.properties['shst_merged_buffer_length'] = mergedBufferLength;
+
+            bufferedMergedPoints.push(outputBufferedFeature);
+          }
+          
+        }
+      }
+    }
+  }
+
   if(matchedPoints.length) {
     console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + matchedPoints.length + ' matched points: ' + outFile + ".matched.geojson"));
-    var matchedFeatureCollection:turfHelpers.FeatureCollection<turfHelpers.Point> = turfHelpers.featureCollection(matchedPoints);
+    var featureArray = []
+    for(var matchedPoint of matchedPoints) {
+      featureArray.push(matchedPoint.matchedPoint.toFeature());
+    }
+    
+    var matchedFeatureCollection:turfHelpers.FeatureCollection<turfHelpers.Point> = turfHelpers.featureCollection(featureArray);
     var matchedJsonOut = JSON.stringify(matchedFeatureCollection);
     writeFileSync(outFile + ".matched.geojson", matchedJsonOut);
   }
@@ -288,6 +504,20 @@ async function matchPoints(outFile, params, points, flags) {
     var clusteredPointsFeatureCollection:turfHelpers.FeatureCollection<turfHelpers.Point> = turfHelpers.featureCollection(clusteredPoints);
     var clusteredJsonOut = JSON.stringify(clusteredPointsFeatureCollection);
     writeFileSync(outFile + ".clustered.geojson", clusteredJsonOut);
+  }
+
+  if(bufferedPoints.length) {
+    console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + bufferedPoints.length + ' buffered points: ' + outFile + ".buffered.geojson"));
+    var bufferedPointsFeatureCollection:turfHelpers.FeatureCollection<turfHelpers.LineString> = turfHelpers.featureCollection(bufferedPoints);
+    var bufferedJsonOut = JSON.stringify(bufferedPointsFeatureCollection);
+    writeFileSync(outFile + ".buffered.geojson", bufferedJsonOut);
+  }
+
+  if(bufferedMergedPoints.length) {
+    console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + bufferedMergedPoints.length + ' buffered and merged points: ' + outFile + ".buffered.merged.geojson"));
+    var bufferedMergedPointsFeatureCollection:turfHelpers.FeatureCollection<turfHelpers.LineString> = turfHelpers.featureCollection(bufferedMergedPoints);
+    var bufferedMergedJsonOut = JSON.stringify(bufferedMergedPointsFeatureCollection);
+    writeFileSync(outFile + ".buffered.merged.geojson", bufferedMergedJsonOut);
   }
 
   if(intersectionClusteredPoints.length) {
@@ -366,27 +596,17 @@ async function matchLines(outFile, params, lines, flags) {
       segmentGeom.properties['sideOfStreet'] = path.sideOfStreet;
 
       if(flags['offset-line']) {
-        if(flags['snap-side-of-street']) {
-          if(flags['left-side-driving']) {
-            if(path.sideOfStreet == ReferenceSideOfStreet.RIGHT)
-              segmentGeom = lineOffset(segmentGeom, 0 - flags['offset-line'], {"units":"meters"})
-            else if(path.sideOfStreet == ReferenceSideOfStreet.LEFT)
-              segmentGeom = lineOffset(segmentGeom, flags['offset-line'], {"units":"meters"})
-          }
-          else {
-            if(path.sideOfStreet == ReferenceSideOfStreet.RIGHT)
-              segmentGeom = lineOffset(segmentGeom, flags['offset-line'], {"units":"meters"})
-            else if(path.sideOfStreet == ReferenceSideOfStreet.LEFT)
-              segmentGeom = lineOffset(segmentGeom, 0 - flags['offset-line'], {"units":"meters"})
-          }
+        if(flags['left-side-driving']) {
+          if(path.sideOfStreet == ReferenceSideOfStreet.LEFT)
+            segmentGeom = lineOffset(segmentGeom, 0 - flags['offset-line'], {"units":"meters"})
+          else if(path.sideOfStreet == ReferenceSideOfStreet.RIGHT)
+            segmentGeom = lineOffset(segmentGeom, flags['offset-line'], {"units":"meters"})
         }
         else {
-          if(flags['left-side-driving']) {
-            segmentGeom = lineOffset(segmentGeom, 0 - flags['offset-line'], {"units":"meters"});
-          }
-          else {
-            segmentGeom = lineOffset(segmentGeom, flags['offset-line'], {"units":"meters"});
-          }
+          if(path.sideOfStreet == ReferenceSideOfStreet.RIGHT)
+            segmentGeom = lineOffset(segmentGeom, flags['offset-line'], {"units":"meters"})
+          else if(path.sideOfStreet == ReferenceSideOfStreet.LEFT)
+            segmentGeom = lineOffset(segmentGeom, 0 - flags['offset-line'], {"units":"meters"})
         }
       }
         
@@ -444,9 +664,6 @@ async function matchLines(outFile, params, lines, flags) {
 
 
   for(var line of cleanedlines.clean) {
-
-    if(line.properties['geo_id'] == 30107269)
-      console.log('30107269')
 
     var matchDirection:MatchDirection;
     if(flags['direction-field'] && line.properties[flags['direction-field'].toLocaleLowerCase()] != undefined) {
@@ -579,5 +796,4 @@ async function matchLines(outFile, params, lines, flags) {
     var invalidJsonOut = JSON.stringify(invalidFeatureCollection);
     writeFileSync(outFile + ".unmatched.geojson", invalidJsonOut);
   }
-
 }

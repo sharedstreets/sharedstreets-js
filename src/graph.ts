@@ -26,7 +26,7 @@ const util = require('util');
 import * as fs from "fs";
 import Match from './commands/match';
 import { rmse, resolveHome } from './util';
-import { LineString } from '@turf/buffer/node_modules/@turf/helpers';
+import { Feature, LineString } from '@turf/helpers';
 
 const uuidHash = require('uuid-by-string');
 const nodeModules = require('global-modules');
@@ -253,7 +253,6 @@ class GraphNodeEdgeRelations {
     edgeIds:number[];
 }
 
-
 export class PathSegment {
 
 	referenceId:string;
@@ -264,16 +263,59 @@ export class PathSegment {
 	fromIntersectionId:string;
     toIntersectionId:string;
 
-	fromStreetnames:string[];
+   fromStreetnames:string[];
 	toStreetnames:string[];
 
 	referenceLength:number;
 	point:number;
-	section:number[];
+	section:number[] = [];
     direction:ReferenceDirection;
 
-    geometry;
+    sideOfStreet:ReferenceSideOfStreet;
+
+    geometry:turfHelpers.Feature<turfHelpers.LineString> ;
     
+    isIdentical(otherSegment:PathSegment):boolean {
+        if(this.referenceId === otherSegment.referenceId) {
+            if( (otherSegment.section[0] === this.section[0] && otherSegment.section[1] === this.section[1]))
+                return true;
+        }
+        return false;
+    }
+
+    isIntersecting(otherSegment:PathSegment):boolean {
+        if(this.referenceId === otherSegment.referenceId) {
+            if( (otherSegment.section[0] <= this.section[1] && otherSegment.section[0] >= this.section[0]) ||
+                (otherSegment.section[1] <= this.section[1] && otherSegment.section[1] >= this.section[0]))
+                return true;
+        }
+        return false;
+    }
+
+    toFeature():turfHelpers.Feature<turfHelpers.LineString> {
+
+		var feature:turfHelpers.Feature<turfHelpers.LineString> = turfHelpers.feature(this.geometry.geometry, {	
+
+			referenceLength: this.referenceLength,
+			geometryId:		this.geometryId,
+			referenceId:	this.referenceId,
+			direction:		this.direction,
+            sideOfStreet: 	this.sideOfStreet,
+            section:        this.section,
+
+	        roadClass:      this.roadClass,
+	        streetname:     this.streetname,
+
+            fromIntersectionId: this.fromIntersectionId,
+            toIntersectionId:   this.toIntersectionId,
+
+            fromStreetnames:    this.fromStreetnames,
+            toStreetnames:      this.toStreetnames,
+
+		});
+
+		return feature;
+	}
 }
 
 export class PathCandidate {
@@ -423,6 +465,7 @@ export class Graph {
     snapIntersections = false;
     useHMM = true;
     useDirect = true;
+    includeStreetnames = true;
     bearingTolerance:number = DEFAULT_BEARING_TOLERANCE;
     tileParams;
 
@@ -433,6 +476,11 @@ export class Graph {
         this.tilePathGroup.addType(TileType.GEOMETRY);
         this.tilePathGroup.addType(TileType.REFERENCE);
 
+        if(this.includeStreetnames) {
+            this.tilePathGroup.addType(TileType.METADATA);
+            this.tilePathGroup.addType(TileType.INTERSECTION);
+        }
+        
         this.graphMode = graphMode;
 
         var paths:string[] = [];
@@ -773,6 +821,15 @@ export class Graph {
                     var pathSegment:PathSegment = new PathSegment();
                     pathSegment.geometryId = edgeGeom.id;
                     pathSegment.referenceId = edgeReferenceId;
+                    
+                    if(this.includeStreetnames) {
+                        var metadata = await this.tileIndex.metadataById(pathSegment.geometryId);
+				        pathSegment.streetname = metadata.osmMetadata.name;
+                     
+                        pathSegment.fromStreetnames = await this.tileIndex.streetnamesForIntersectionId(pathSegment.fromIntersectionId, pathSegment.referenceId);	
+                        pathSegment.toStreetnames = await this.tileIndex.streetnamesForIntersectionId(pathSegment.toIntersectionId, pathSegment.referenceId);	
+                    }
+
                     // TODO calc directionality from graph edge trajectory possible...
                     pathCandidate.segments.push(pathSegment);
 
@@ -932,17 +989,27 @@ export class Graph {
                                 pathCandidate.segments[k].section = [0, pathCandidate.segments[k].referenceLength];
                             }
                         } 
-                        // put to/from on semgnet
+                        // put to/from on segment
 
                         if(edgeGeom.forwardReferenceId == pathCandidate.segments[k].referenceId) {
                             pathCandidate.segments[k].fromIntersectionId = edgeGeom.fromIntersectionId;
                             pathCandidate.segments[k].toIntersectionId = edgeGeom.toIntersectionId;
+                            pathCandidate.segments[k].direction = ReferenceDirection.FORWARD;
                         }
                         else {
                             // reverse to/from for back references
                             pathCandidate.segments[k].fromIntersectionId = edgeGeom.toIntersectionId;
                             pathCandidate.segments[k].toIntersectionId = edgeGeom.fromIntersectionId;
-                        }                              
+                            pathCandidate.segments[k].direction = ReferenceDirection.BACKWARD;
+                        } 
+                        
+                        if(this.includeStreetnames) {
+                            var metadata = await this.tileIndex.metadataById(pathCandidate.segments[k].geometryId);
+                            pathCandidate.segments[k].streetname = metadata.osmMetadata.name;
+                         
+                            pathCandidate.segments[k].fromStreetnames = await this.tileIndex.streetnamesForIntersectionId(pathCandidate.segments[k].fromIntersectionId, pathCandidate.segments[k].referenceId);	
+                            pathCandidate.segments[k].toStreetnames = await this.tileIndex.streetnamesForIntersectionId(pathCandidate.segments[k].toIntersectionId, pathCandidate.segments[k].referenceId);	
+                        }
                     }
 
                     if(pathCandidate.startPoint.sideOfStreet == pathCandidate.endPoint.sideOfStreet)
@@ -1006,7 +1073,7 @@ export class Graph {
                     if(segment.section[0] == segment.section[1]) 
                         continue;
 
-                    segment.geometry = await this.tileIndex.geom(segment.referenceId, segment.section[0],  segment.section[1]);   
+                    segment.geometry = <Feature<LineString>>await this.tileIndex.geom(segment.referenceId, segment.section[0],  segment.section[1]);   
                     if(segment.geometry) {
                         cleanedPath.push(segment);
                         segCoords.push(segment.geometry.geometry.coordinates)
@@ -1100,10 +1167,10 @@ export class Graph {
 			pointCandidate.referenceId = reference.id;
 			pointCandidate.roadClass = roadClassConverter(geometry.roadClass);
 
-			// if(this.includeStreetnames) {
-			// 	var metadata = await this.cache.metadataById(pointCandidate.geometryId);
-			// 	pointCandidate.streetname = metadata.name;
-			// }
+			if(this.includeStreetnames) {
+				var metadata = await this.tileIndex.metadataById(pointCandidate.geometryId);
+				pointCandidate.streetname = metadata.osmMetadata.name;
+			}
 
 			pointCandidate.direction = direction;
 			pointCandidate.referenceLength = refLength;
@@ -1137,7 +1204,7 @@ export class Graph {
 		return null;
 	}
 
-	getPointCandidateFromGeom(searchPoint:turfHelpers.Feature<turfHelpers.Point>, pointOnLine:turfHelpers.Feature<turfHelpers.Point>, candidateGeom:SharedStreetsGeometry, candidateGeomFeature:turfHelpers.Feature<LineString>,  searchBearing:number, direction:ReferenceDirection):PointCandidate {
+	async getPointCandidateFromGeom(searchPoint:turfHelpers.Feature<turfHelpers.Point>, pointOnLine:turfHelpers.Feature<turfHelpers.Point>, candidateGeom:SharedStreetsGeometry, candidateGeomFeature:turfHelpers.Feature<LineString>,  searchBearing:number, direction:ReferenceDirection):Promise<PointCandidate> {
 
 		if(pointOnLine.properties.dist < this.searchRadius) {
 
@@ -1185,10 +1252,10 @@ export class Graph {
 			pointCandidate.referenceId = reference.id;
 			pointCandidate.roadClass = roadClassConverter(candidateGeom.roadClass);
 
-			// if(this.includeStreetnames) {
-			// 	var metadata = await this.cache.metadataById(pointCandidate.geometryId);
-			// 	pointCandidate.streetname = metadata.name;
-			// }
+			if(this.includeStreetnames) {
+				var metadata = await this.tileIndex.metadataById(pointCandidate.geometryId);
+				pointCandidate.streetname = metadata.osmMetadata.name;
+			}
 
 			pointCandidate.direction = direction;
 			pointCandidate.referenceLength = refLength;
@@ -1220,10 +1287,70 @@ export class Graph {
 		}
 
 		return null;
-	}
+    }
+    
+    async bufferPoint(point:PointCandidate, bufferLength:number, offsetLine:number=null):Promise<PathSegment> {
 
-	async matchPoint(searchPoint:turfHelpers.Feature<turfHelpers.Point>, searchBearing:number, maxCandidates:number):Promise<PointCandidate[]> {
+      var bufferStart = point.location - (bufferLength / 2);
+      var bufferEnd = point.location + (bufferLength / 2)
+
+      if(bufferStart < 0 ) {
+        bufferEnd += Math.abs(bufferStart);
+        bufferStart = 0;
+      }
+
+      if(bufferEnd > point.referenceLength) {
+        bufferStart -= Math.abs(bufferEnd - point.referenceLength);
+        bufferEnd = point.referenceLength;
+
+        if(bufferStart < 0 ) {
+          bufferStart = 0;
+        }
+      }
+
+      var bufferedPoint:PathSegment = new PathSegment();
+      bufferedPoint.section[0] = bufferStart;
+      bufferedPoint.section[1] = bufferEnd;
+      bufferedPoint.geometryId = point.geometryId;
+      bufferedPoint.referenceId = point.referenceId;
+      bufferedPoint.referenceLength = point.referenceLength;
+      bufferedPoint.sideOfStreet = point.sideOfStreet;
+
+      bufferedPoint.geometry = <Feature<LineString>>await this.tileIndex.geom(bufferedPoint.referenceId, bufferedPoint.section[0],  bufferedPoint.section[1], offsetLine); 
+
+      if(!bufferedPoint.geometry) {  
+        bufferedPoint.geometry = <Feature<LineString>>await this.tileIndex.geom(bufferedPoint.referenceId, bufferedPoint.section[0],  bufferedPoint.section[1]);
+      }
+
+      return bufferedPoint;
+
+    }
+
+    async union(pathSegment:PathSegment, otherSegment:PathSegment, offsetLine:number):Promise<PathSegment> {
+        
+        if(pathSegment.isIntersecting(otherSegment)) {
+            pathSegment.section[0] = Math.min(pathSegment.section[0], otherSegment.section[0]);
+            pathSegment.section[1] = Math.max(pathSegment.section[1], otherSegment.section[1]);
+            pathSegment.referenceLength = pathSegment.section[1] - pathSegment.section[0];
+        }
+
+        pathSegment.geometry = <Feature<LineString>>await this.tileIndex.geom(pathSegment.referenceId, pathSegment.section[0],  pathSegment.section[1], offsetLine); 
+
+        if(!pathSegment.geometry) {  
+            pathSegment.geometry = <Feature<LineString>>await this.tileIndex.geom(pathSegment.referenceId, pathSegment.section[0],  pathSegment.section[1]);
+        }
+
+        return pathSegment;
+    }
+
+	async matchPoint(searchPoint:turfHelpers.Feature<turfHelpers.Point>, searchBearing:number, maxCandidates:number, leftSideDrive:boolean=false):Promise<PointCandidate[]> {
 		this.tileIndex.addTileType(TileType.REFERENCE);
+    
+    if(this.includeStreetnames) {
+        this.tileIndex.addTileType(TileType.METADATA);
+        this.tileIndex.addTileType(TileType.INTERSECTION);
+    }
+    
 		var candidateFeatures = await this.tileIndex.nearby(searchPoint, TileType.GEOMETRY, this.searchRadius, this.tileParams);
 
 		var candidates:PointCandidate[] = new Array();
@@ -1308,7 +1435,24 @@ export class Graph {
 
 		var sortedCandidates = candidates.sort((p1, p2) => {
 			p1.calcScore();
-			p2.calcScore();
+            p2.calcScore();
+            
+            if(p1.score === p2.score){
+                if(leftSideDrive) {
+                    if(p1.sideOfStreet === ReferenceSideOfStreet.LEFT && p2.sideOfStreet === ReferenceSideOfStreet.RIGHT)
+                        return -1;
+                    else if(p2.sideOfStreet === ReferenceSideOfStreet.LEFT && p1.sideOfStreet === ReferenceSideOfStreet.RIGHT)
+                        return 1;
+                }
+                else {
+                    if(p1.sideOfStreet === ReferenceSideOfStreet.RIGHT && p2.sideOfStreet === ReferenceSideOfStreet.LEFT)
+                        return -1;
+                    else if(p2.sideOfStreet === ReferenceSideOfStreet.RIGHT && p1.sideOfStreet === ReferenceSideOfStreet.LEFT)
+                        return 1;
+                }
+                
+            }
+
 			if(p1.score > p2.score) {
 				return 1;
 			}

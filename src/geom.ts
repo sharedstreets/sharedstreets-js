@@ -18,7 +18,7 @@ export function bboxFromPolygon(polygon) {
 function cleanProperties(og_props:{}) {
 	var  new_props:{} = {};
 	for(var prop of Object.keys(og_props)) {
-	  new_props[prop.toLocaleLowerCase().replace(" ", "_")] = og_props[prop];
+	  new_props[prop.toLocaleLowerCase().trim().replace(/ /g, "_")] = og_props[prop];
 	}
 	return new_props;
   }
