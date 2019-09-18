@@ -57,6 +57,9 @@ export default class Match extends Command {
     'search-radius': flags.integer({description: 'search radius for for snapping points, lines and traces (in meters)', default:10}),
     'snap-intersections': flags.boolean({description: 'snap line end-points to nearest intersection if closer than distance defined by search-radius ', default:false}),
     'snap-side-of-street': flags.boolean({description: 'snap line to side of street', default:false}),
+    'side-of-street-field': flags.string({description: 'name of optional property defining side of street relative to direction of travel'}),
+    'right-side-of-street-value': flags.string({description: 'value of "side-of-street-field" for right side features', default:'right'}),
+    'left-side-of-street-value': flags.string({description: 'value of "side-of-street-field" for left side features', default:'left'}),
     'left-side-driving': flags.boolean({description: 'snap line to side of street using left-side driving rules', default:false}),
     'match-car': flags.boolean({description: 'match using car routing rules', default:true}),
     'match-bike': flags.boolean({description: 'match using bike routing rules', default:false}),
@@ -364,6 +367,19 @@ async function matchLines(outFile, params, lines, flags) {
       segmentGeom.properties['endSideOfStreet'] = path.endPoint.sideOfStreet;
 
       segmentGeom.properties['sideOfStreet'] = path.sideOfStreet;
+
+      if(flags['side-of-street-field'] && path.originalFeature.properties[flags['side-of-street-field']]) {
+        var sideOfStreetValue = path.originalFeature.properties[flags['side-of-street-field']].toLocaleLowerCase();
+        if(flags['left-side-of-street'].toLocaleLowerCase() === sideOfStreetValue) {
+          path.sideOfStreet = ReferenceSideOfStreet.LEFT;
+        }
+        else if(flags['right-side-of-street'].toLocaleLowerCase() === sideOfStreetValue) {
+          path.sideOfStreet = ReferenceSideOfStreet.RIGHT;
+        }
+        else {
+          path.sideOfStreet = ReferenceSideOfStreet.UNKNOWN;
+        }
+      }
 
       if(flags['offset-line']) {
         if(flags['snap-side-of-street']) {
