@@ -172,7 +172,8 @@ export enum ReferenceDirection {
 export enum ReferenceSideOfStreet {
 
 	RIGHT = "right",
-	LEFT = "left",
+    LEFT = "left",
+    CENTER = "center",
 	UNKNOWN = "unknown"
 
 }
