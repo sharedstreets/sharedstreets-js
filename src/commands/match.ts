@@ -79,7 +79,6 @@ export default class Match extends Command {
     const {args, flags} = this.parse(Match)
 
     this.log(chalk.bold.keyword('green')('  🌏  Loading geojson data...'));
-
     var inFile = args.file;
 
     var outFile = flags.out;
@@ -367,8 +366,6 @@ async function matchLines(outFile, params, lines, flags) {
       segmentGeom.properties['startSideOfStreet'] = path.startPoint.sideOfStreet;
       segmentGeom.properties['endSideOfStreet'] = path.endPoint.sideOfStreet;
 
-      segmentGeom.properties['sideOfStreet'] = path.sideOfStreet;
-
       if(flags['side-of-street-field'] && path.originalFeature.properties[flags['side-of-street-field']]) {
         var sideOfStreetValue = path.originalFeature.properties[flags['side-of-street-field']].toLocaleLowerCase();
         if(flags['left-side-of-street-value'].toLocaleLowerCase() === sideOfStreetValue) {
@@ -411,6 +408,7 @@ async function matchLines(outFile, params, lines, flags) {
       }
         
 
+      segmentGeom.properties['sideOfStreet'] = path.sideOfStreet;
       segmentGeom.properties['score'] = path.score;
       segmentGeom.properties['matchType'] = path.matchType;
 
