@@ -14,6 +14,7 @@ import { Graph, GraphMode } from "./src/graph";
 import { getTileIdsForPolygon, getTileIdsForPoint, getTile } from "./src/tiles"
 import { CleanedPoints, CleanedLines } from "./src/geom";
 
+
 import { execSync } from 'child_process';
 
 const test = require('tape');
@@ -25,63 +26,23 @@ const pt3 = [-74.004107, 40.63406];
 
 const BUILD_TEST_OUPUT = false;
 
-const nodeModules = require('global-modules');
-const yarnModules = require('yarn-global');
-
 test("sharedstreets -- test osrm install", (t:any) => {
 
+  const osrmPath =  require.resolve('osrm');
+  t.comment('osrmPath: ' + osrmPath);
+  const osrmLibPath = path.dirname(osrmPath);
+  const osrmBinPath = path.join(osrmLibPath, './binding');
+
+  t.comment('osrmBinPath: ' + osrmBinPath);
+  if(fs.existsSync(osrmBinPath)) {
+    t.comment('osrmBinPath found');
+  }
+  else
+    t.comment('osrmBinPath not found');
+
   
-
-  if(fs.existsSync('node_modules/osrm/'))
-    t.comment('found: node_modules/osrm/');
-  else 
-    t.comment('not found: node_modules/osrm/');
-
-  if(fs.existsSync(path.join(nodeModules, 'osrm/'))) {
-    t.comment('found: ' + path.join(nodeModules, 'osrm/'));
-      
-  }
-  else 
-     t.comment('not found: ' + path.join(nodeModules, 'osrm/'));
-
-
-  if(fs.existsSync(path.join(nodeModules, 'sharedstreets/node_modules/osrm/'))) {
-    t.comment('found: ' + path.join(nodeModules, 'sharedstreets/node_modules/osrm/'));
-  }
-  else{
-    t.comment('not found: ' + path.join(nodeModules, 'sharedstreets/node_modules/osrm/'));
-  }
-  
-  if(fs.existsSync(path.join(yarnModules.getDirectory(), 'osrm/'))) {
-    t.comment('found: ' + path.join(yarnModules.getDirectory(), 'osrm/'));
-  }
-  else {
-    t.comment('not found: ' + path.join(yarnModules.getDirectory(), 'osrm/'));
-  }
-  
-  if(fs.existsSync(path.join(yarnModules.getDirectory(), 'sharedstreets/node_modules/osrm/'))) {
-    t.comment('found: ' +path.join(yarnModules.getDirectory(), 'sharedstreets/node_modules/osrm/')); 
-  }
-  else {
-    t.comment('not found: ' +path.join(yarnModules.getDirectory(), 'sharedstreets/node_modules/osrm/')); 
-  }
-  
-  var npmGlobalRoot = execSync('npm root -g').toString('utf8').trim();
-
-    if(fs.existsSync(path.join(npmGlobalRoot, 'sharedstreets/node_modules/osrm/'))) {
-        t.comment('found: ' + path.join(npmGlobalRoot, 'sharedstreets/node_modules/osrm/')); 
-        
-    }
-    else {
-      t.comment('not found: ' + path.join(npmGlobalRoot, 'sharedstreets/node_modules/osrm/')); 
-    }
-    if(fs.existsSync(path.join(npmGlobalRoot, 'osrm/'))) {
-      t.comment('found: ' + path.join(npmGlobalRoot, 'osrm/')); 
-    }
-    else  {
-      t.comment('not found: ' + path.join(npmGlobalRoot, 'osrm/')); 
-    }
   t.end();
+
 });
 
 // core library tests

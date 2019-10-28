@@ -14,6 +14,11 @@ import along from '@turf/along';
 import bearing from '@turf/bearing';
 import nearestPointOnLine from '@turf/nearest-point-on-line';
 
+import * as fs from "fs";
+import Match from './commands/match';
+import { rmse, resolveHome } from './util';
+import { LineString } from '@turf/buffer/node_modules/@turf/helpers';
+
 const { exec } = require('child_process');
 const OSRM = require("osrm");
 const xml = require('xml');
@@ -23,15 +28,8 @@ const leveldown = require('leveldown');
 const chalk = require('chalk');
 const path = require('path');
 const util = require('util');
-import * as fs from "fs";
-import Match from './commands/match';
-import { rmse, resolveHome } from './util';
-import { LineString } from '@turf/buffer/node_modules/@turf/helpers';
 
 const uuidHash = require('uuid-by-string');
-const nodeModules = require('global-modules');
-const yarnModules = require('yarn-global');
-
 
 const DEFAULT_SEARCH_RADIUS = 10;
 const MIN_CONFIDENCE = 0.5;
@@ -41,33 +39,16 @@ const SHST_GRAPH_CACHE_DIR = resolveHome('~/.shst/cache/graphs/');
 
 
 function getOSRMDirectory() {
-    if(fs.existsSync('node_modules/osrm/')) {
-        return  'node_modules/osrm/';
-    }
-    else if(fs.existsSync(path.join(nodeModules, 'osrm/'))) {
-        return path.join(nodeModules, 'osrm/');
-    }
-    else if(fs.existsSync(path.join(nodeModules, 'sharedstreets/node_modules/osrm/'))) {
-        return path.join(nodeModules, 'sharedstreets/node_modules/osrm/');
-    }
-    else if(fs.existsSync(path.join(yarnModules.getDirectory(), 'osrm/'))) {
-        return path.join(yarnModules.getDirectory(), 'osrm/');
-    }
-    else if(fs.existsSync(path.join(yarnModules.getDirectory(), 'sharedstreets/node_modules/osrm/'))) {
-        return path.join(yarnModules.getDirectory(), 'sharedstreets/node_modules/osrm/');
-    }
-    else {
-        var npmGlobalRoot = execSync('npm root -g').toString('utf8').trim();
+    
+    const osrmPath =  require.resolve('osrm');
+    const osrmLibPath = path.dirname(osrmPath);
+    const osrmBinPath = path.join(osrmLibPath, './binding');
 
-        if(fs.existsSync(path.join(npmGlobalRoot, 'sharedstreets/node_modules/osrm/'))) {
-            return path.join(npmGlobalRoot, 'sharedstreets/node_modules/osrm/');
-        }
-        else if(fs.existsSync(path.join(npmGlobalRoot, 'osrm/'))) {
-            return path.join(npmGlobalRoot, 'osrm/');
-        }
-        else 
-            return null
+    if(fs.existsSync(osrmBinPath)) {
+        return osrmBinPath
     }
+    else 
+        return null
 }
 
 const OSRM_DIR = getOSRMDirectory();
