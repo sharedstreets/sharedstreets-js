@@ -31,7 +31,7 @@ test("sharedstreets -- test osrm install", (t:any) => {
   const osrmPath =  require.resolve('osrm');
   t.comment('osrmPath: ' + osrmPath);
   const osrmLibPath = path.dirname(osrmPath);
-  const osrmBinPath = path.join(osrmLibPath, './binding');
+  const osrmBinPath = path.join(osrmLibPath, '..');
 
   t.comment('osrmBinPath: ' + osrmBinPath);
   if(fs.existsSync(osrmBinPath)) {

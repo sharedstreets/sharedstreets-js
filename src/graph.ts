@@ -42,10 +42,10 @@ function getOSRMDirectory() {
     
     const osrmPath =  require.resolve('osrm');
     const osrmLibPath = path.dirname(osrmPath);
-    const osrmBinPath = path.join(osrmLibPath, './binding');
+    const osrmDirPath = path.join(osrmLibPath, '..');
 
-    if(fs.existsSync(osrmBinPath)) {
-        return osrmBinPath
+    if(fs.existsSync(osrmDirPath)) {
+        return osrmDirPath
     }
     else 
         return null
