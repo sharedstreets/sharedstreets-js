@@ -356,6 +356,9 @@ async function matchLines(outFile, params, lines, flags) {
       segmentGeom.properties['shstFromIntersectionId'] = segment.fromIntersectionId;
       segmentGeom.properties['shstToIntersectionId'] = segment.toIntersectionId;
 
+      segmentGeom.properties['referenceLength'] = segment.referenceLength;
+      segmentGeom.properties['section'] = segment.section;
+
       segmentGeom.properties['gisReferenceId'] = ref.id;
       segmentGeom.properties['gisGeometryId'] = ref.geometryId;
       segmentGeom.properties['gisTotalSegments'] = path.segments.length
@@ -599,3 +602,4 @@ async function matchLines(outFile, params, lines, flags) {
   }
 
 }
+
