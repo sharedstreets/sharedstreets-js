@@ -12,8 +12,7 @@ import { CleanedLines, reverseLineString, CleanedPoints } from '../geom';
 import  envelope from '@turf/envelope';
 
 import { forwardReference, backReference } from '../index';
-import { PathSegment } from '../graph';
-import { PointCandidate } from '../point_matcher';
+import { PathSegment, PointCandidate } from '../graph';
 import { PathSearch } from '../routing';
 
 import { SharedStreetsReference, SharedStreetsIntersection } from 'sharedstreets-types';
@@ -185,7 +184,7 @@ async function matchPoints(outFile, params, points, flags) {
     if(searchPoint.properties && searchPoint.properties[flags['bearing-field']])
       bearing = parseFloat(searchPoint.properties[flags['bearing-field']]);
 
-    var matches = await graph.matchPoint(searchPoint, bearing, 3, flags['left-side-driving']);
+    var matches:PointCandidate[] = await graph.matchPoint(searchPoint, bearing, 3, flags['left-side-driving']);
     if(matches.length > 0) {
       var matchedPoint:MatchedPointType = new MatchedPointType(); 
       matchedPoint.matchedPoint = matches[0];
@@ -546,17 +545,51 @@ async function matchPoints(outFile, params, points, flags) {
       for(let matchedPoint of matchedPoints) {
         if(!currSegment) {
           currSegment = new JoinedPointsType();
-          currSegment.matchedPoints = []
+          currSegment.matchedPoints = [];
           if(parseInt(matchedPoint.originalFeature.properties[flags['join-point-sequence-field']]) === 1) {
             currSegment.matchedPoints.push(matchedPoint)
           }
-          if(parseInt(matchedPoint.originalFeature.properties[flags['join-point-sequence-field']]) > 1) {
+          else if(parseInt(matchedPoint.originalFeature.properties[flags['join-point-sequence-field']]) > 1) {
             let startPoint:MatchedPointType = JSON.parse(JSON.stringify(matchedPoint));
             startPoint.matchedPoint.location = 0;
             currSegment.matchedPoints.push(startPoint)
+
+            currSegment.matchedPoints.push(matchedPoint);
+           
+            if(parseInt(matchedPoint.originalFeature.properties[flags['join-point-sequence-field']]) === 3){
+              currSegment.joinedPath = await graph.joinPoints(currSegment.matchedPoints[0].matchedPoint, currSegment.matchedPoints[currSegment.matchedPoints.length].matchedPoint, offsetLine);
+              joinedSegments.push(currSegment);
+              currSegment = null;
+            }
           } 
         }
+        else if(parseInt(matchedPoint.originalFeature.properties[flags['join-point-sequence-field']]) > 1) {
+          let startPoint:MatchedPointType = JSON.parse(JSON.stringify(matchedPoint));
+          startPoint.matchedPoint.location = 0;
+          currSegment.matchedPoints.push(startPoint)
+
+          currSegment.matchedPoints.push(matchedPoint);
+         
+          if(parseInt(matchedPoint.originalFeature.properties[flags['join-point-sequence-field']]) === 3){
+                
+    
+            currSegment.joinedPath = await graph.joinPoints(currSegment.matchedPoints[0].matchedPoint, currSegment.matchedPoints[currSegment.matchedPoints.length].matchedPoint, offsetLine);
+            joinedSegments.push(currSegment);
+            currSegment = null;
+          }
+        } 
       }
+
+      if(currSegment) {
+
+        let endPoint:MatchedPointType = JSON.parse(JSON.stringify(currSegment.matchedPoints[currSegment.matchedPoints.length]));
+        endPoint.matchedPoint.location = endPoint.matchedPoint.referenceLength;
+        currSegment.matchedPoints.push(endPoint)
+        
+        currSegment.joinedPath = await graph.joinPoints(currSegment.matchedPoints[0].matchedPoint, currSegment.matchedPoints[currSegment.matchedPoints.length].matchedPoint, offsetLine);
+        joinedSegments.push(currSegment);
+        currSegment = null;
+      } 
 
       return joinedSegments;
     };

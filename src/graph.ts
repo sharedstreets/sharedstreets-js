@@ -255,7 +255,7 @@ export class PathSegment {
 
     sideOfStreet:ReferenceSideOfStreet;
 
-    geometry:turfHelpers.Feature<turfHelpers.LineString> ;
+    geometry ;
     
     isIdentical(otherSegment:PathSegment):boolean {
         if(this.referenceId === otherSegment.referenceId) {
@@ -1036,7 +1036,10 @@ export class Graph {
                     if(segment.section[0] == segment.section[1]) 
                         continue;
 
-                    segment.geometry = await this.tileIndex.geom(segment.referenceId, segment.section[0],  segment.section[1]);   
+                    segment.geometry = await this.tileIndex.geom(segment.referenceId, segment.section[0],  segment.section[1]);
+                
+
+                    
                     if(segment.geometry) {
                         cleanedPath.push(segment);
                         segCoords.push(segment.geometry.geometry.coordinates)
@@ -1252,6 +1255,29 @@ export class Graph {
 		return null;
     }
     
+    async joinPoints(startPoint:PointCandidate, endPoint:PointCandidate,offsetLine:number=null):Promise<PathSegment> {
+
+        let segmentStart = startPoint.location;
+        let segmentEnd = endPoint.location;
+  
+        var joinedPoint:PathSegment = new PathSegment();
+        joinedPoint.section[0] = segmentStart;
+        joinedPoint.section[1] = segmentEnd;
+        joinedPoint.geometryId = startPoint.geometryId;
+        joinedPoint.referenceId = startPoint.referenceId;
+        joinedPoint.referenceLength = startPoint.referenceLength;
+        joinedPoint.sideOfStreet = startPoint.sideOfStreet;
+  
+        joinedPoint.geometry = <Feature<LineString>>await this.tileIndex.geom(joinedPoint.referenceId, joinedPoint.section[0],  joinedPoint.section[1], offsetLine); 
+  
+        if(!joinedPoint.geometry) {  
+            joinedPoint.geometry = <Feature<LineString>>await this.tileIndex.geom(joinedPoint.referenceId, joinedPoint.section[0],  joinedPoint.section[1]);
+        }
+  
+        return joinedPoint;
+  
+    }
+
     async bufferPoint(point:PointCandidate, bufferLength:number, offsetLine:number=null):Promise<PathSegment> {
 
         var bufferStart = point.location - (bufferLength / 2);
@@ -1304,7 +1330,7 @@ export class Graph {
           }
   
           return pathSegment;
-      }
+    }
 
     async matchPoint(searchPoint:turfHelpers.Feature<turfHelpers.Point>, searchBearing:number, maxCandidates:number, leftSideDrive:boolean=false):Promise<PointCandidate[]> {
 		this.tileIndex.addTileType(TileType.REFERENCE);
