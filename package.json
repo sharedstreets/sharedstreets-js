@@ -2,7 +2,7 @@
   "name": "sharedstreets",
   "version": "0.13.8",
   "description": "SharedStreets, a 'digital commons' for the street",
-  "main": "build/src/index.js",
+  "main": "src/index.ts",
   "bin": {
     "shst": "./bin/run"
   },
@@ -16,7 +16,7 @@
     "/src"
   ],
   "oclif": {
-    "commands": "./build/src/commands",
+    "commands": "./src/commands",
     "bin": "shst",
     "plugins": [
       "@oclif/plugin-help"
