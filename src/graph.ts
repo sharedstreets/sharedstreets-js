@@ -13,11 +13,10 @@ import lineSliceAlong from '@turf/line-slice-along';
 import along from '@turf/along';
 import bearing from '@turf/bearing';
 import nearestPointOnLine from '@turf/nearest-point-on-line';
+import { Feature, LineString } from '@turf/helpers';
 
 import * as fs from "fs";
-import Match from './commands/match';
 import { rmse, resolveHome } from './util';
-import { LineString } from '@turf/buffer/node_modules/@turf/helpers';
 
 const { exec } = require('child_process');
 const OSRM = require("osrm");
@@ -246,16 +245,59 @@ export class PathSegment {
 	fromIntersectionId:string;
     toIntersectionId:string;
 
-	fromStreetnames:string[];
+   fromStreetnames:string[];
 	toStreetnames:string[];
 
 	referenceLength:number;
 	point:number;
-	section:number[];
+	section:number[] = [];
     direction:ReferenceDirection;
 
-    geometry;
+    sideOfStreet:ReferenceSideOfStreet;
+
+    geometry:turfHelpers.Feature<turfHelpers.LineString> ;
     
+    isIdentical(otherSegment:PathSegment):boolean {
+        if(this.referenceId === otherSegment.referenceId) {
+            if( (otherSegment.section[0] === this.section[0] && otherSegment.section[1] === this.section[1]))
+                return true;
+        }
+        return false;
+    }
+
+    isIntersecting(otherSegment:PathSegment):boolean {
+        if(this.referenceId === otherSegment.referenceId) {
+            if( (otherSegment.section[0] <= this.section[1] && otherSegment.section[0] >= this.section[0]) ||
+                (otherSegment.section[1] <= this.section[1] && otherSegment.section[1] >= this.section[0]))
+                return true;
+        }
+        return false;
+    }
+
+    toFeature():turfHelpers.Feature<turfHelpers.LineString> {
+
+		var feature:turfHelpers.Feature<turfHelpers.LineString> = turfHelpers.feature(this.geometry.geometry, {	
+
+			referenceLength: this.referenceLength,
+			geometryId:		this.geometryId,
+			referenceId:	this.referenceId,
+			direction:		this.direction,
+            sideOfStreet: 	this.sideOfStreet,
+            section:        this.section,
+
+	        roadClass:      this.roadClass,
+	        streetname:     this.streetname,
+
+            fromIntersectionId: this.fromIntersectionId,
+            toIntersectionId:   this.toIntersectionId,
+
+            fromStreetnames:    this.fromStreetnames,
+            toStreetnames:      this.toStreetnames,
+
+		});
+
+		return feature;
+	}
 }
 
 export class PathCandidate {
@@ -405,6 +447,7 @@ export class Graph {
     snapIntersections = false;
     useHMM = true;
     useDirect = true;
+    includeStreetnames = true;
     bearingTolerance:number = DEFAULT_BEARING_TOLERANCE;
     tileParams;
 
@@ -414,6 +457,11 @@ export class Graph {
         this.tilePathGroup = TilePathGroup.fromPolygon(extent, 1000, tileParams);
         this.tilePathGroup.addType(TileType.GEOMETRY);
         this.tilePathGroup.addType(TileType.REFERENCE);
+
+        if(this.includeStreetnames) {
+            this.tilePathGroup.addType(TileType.METADATA);
+            this.tilePathGroup.addType(TileType.INTERSECTION);
+        }
 
         this.graphMode = graphMode;
 
@@ -1202,9 +1250,63 @@ export class Graph {
 		}
 
 		return null;
-	}
+    }
+    
+    async bufferPoint(point:PointCandidate, bufferLength:number, offsetLine:number=null):Promise<PathSegment> {
 
-	async matchPoint(searchPoint:turfHelpers.Feature<turfHelpers.Point>, searchBearing:number, maxCandidates:number):Promise<PointCandidate[]> {
+        var bufferStart = point.location - (bufferLength / 2);
+        var bufferEnd = point.location + (bufferLength / 2)
+  
+        if(bufferStart < 0 ) {
+          bufferEnd += Math.abs(bufferStart);
+          bufferStart = 0;
+        }
+  
+        if(bufferEnd > point.referenceLength) {
+          bufferStart -= Math.abs(bufferEnd - point.referenceLength);
+          bufferEnd = point.referenceLength;
+  
+          if(bufferStart < 0 ) {
+            bufferStart = 0;
+          }
+        }
+  
+        var bufferedPoint:PathSegment = new PathSegment();
+        bufferedPoint.section[0] = bufferStart;
+        bufferedPoint.section[1] = bufferEnd;
+        bufferedPoint.geometryId = point.geometryId;
+        bufferedPoint.referenceId = point.referenceId;
+        bufferedPoint.referenceLength = point.referenceLength;
+        bufferedPoint.sideOfStreet = point.sideOfStreet;
+  
+        bufferedPoint.geometry = <Feature<LineString>>await this.tileIndex.geom(bufferedPoint.referenceId, bufferedPoint.section[0],  bufferedPoint.section[1], offsetLine); 
+  
+        if(!bufferedPoint.geometry) {  
+          bufferedPoint.geometry = <Feature<LineString>>await this.tileIndex.geom(bufferedPoint.referenceId, bufferedPoint.section[0],  bufferedPoint.section[1]);
+        }
+  
+        return bufferedPoint;
+  
+      }
+  
+      async union(pathSegment:PathSegment, otherSegment:PathSegment, offsetLine:number):Promise<PathSegment> {
+          
+          if(pathSegment.isIntersecting(otherSegment)) {
+              pathSegment.section[0] = Math.min(pathSegment.section[0], otherSegment.section[0]);
+              pathSegment.section[1] = Math.max(pathSegment.section[1], otherSegment.section[1]);
+              pathSegment.referenceLength = pathSegment.section[1] - pathSegment.section[0];
+          }
+  
+          pathSegment.geometry = <Feature<LineString>>await this.tileIndex.geom(pathSegment.referenceId, pathSegment.section[0],  pathSegment.section[1], offsetLine); 
+  
+          if(!pathSegment.geometry) {  
+              pathSegment.geometry = <Feature<LineString>>await this.tileIndex.geom(pathSegment.referenceId, pathSegment.section[0],  pathSegment.section[1]);
+          }
+  
+          return pathSegment;
+      }
+
+    async matchPoint(searchPoint:turfHelpers.Feature<turfHelpers.Point>, searchBearing:number, maxCandidates:number, leftSideDrive:boolean=false):Promise<PointCandidate[]> {
 		this.tileIndex.addTileType(TileType.REFERENCE);
 		var candidateFeatures = await this.tileIndex.nearby(searchPoint, TileType.GEOMETRY, this.searchRadius, this.tileParams);
 
@@ -1290,7 +1392,24 @@ export class Graph {
 
 		var sortedCandidates = candidates.sort((p1, p2) => {
 			p1.calcScore();
-			p2.calcScore();
+            p2.calcScore();
+            
+            if(p1.score === p2.score){
+                if(leftSideDrive) {
+                    if(p1.sideOfStreet === ReferenceSideOfStreet.LEFT && p2.sideOfStreet === ReferenceSideOfStreet.RIGHT)
+                        return -1;
+                    else if(p2.sideOfStreet === ReferenceSideOfStreet.LEFT && p1.sideOfStreet === ReferenceSideOfStreet.RIGHT)
+                        return 1;
+                }
+                else {
+                    if(p1.sideOfStreet === ReferenceSideOfStreet.RIGHT && p2.sideOfStreet === ReferenceSideOfStreet.LEFT)
+                        return -1;
+                    else if(p2.sideOfStreet === ReferenceSideOfStreet.RIGHT && p1.sideOfStreet === ReferenceSideOfStreet.LEFT)
+                        return 1;
+                }
+                
+            }
+
 			if(p1.score > p2.score) {
 				return 1;
 			}
