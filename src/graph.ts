@@ -1268,6 +1268,9 @@ export class Graph {
         joinedPoint.referenceLength = startPoint.referenceLength;
         joinedPoint.sideOfStreet = startPoint.sideOfStreet;
   
+        if(joinedPoint.sideOfStreet == ReferenceSideOfStreet.LEFT)
+            offsetLine = 0 - offsetLine;
+
         joinedPoint.geometry = <Feature<LineString>>await this.tileIndex.geom(joinedPoint.referenceId, joinedPoint.section[0],  joinedPoint.section[1], offsetLine); 
   
         if(!joinedPoint.geometry) {  
@@ -1304,6 +1307,9 @@ export class Graph {
         bufferedPoint.referenceId = point.referenceId;
         bufferedPoint.referenceLength = point.referenceLength;
         bufferedPoint.sideOfStreet = point.sideOfStreet;
+
+        if(bufferedPoint.sideOfStreet == ReferenceSideOfStreet.LEFT)
+            offsetLine = 0 - offsetLine;
   
         bufferedPoint.geometry = <Feature<LineString>>await this.tileIndex.geom(bufferedPoint.referenceId, bufferedPoint.section[0],  bufferedPoint.section[1], offsetLine); 
   

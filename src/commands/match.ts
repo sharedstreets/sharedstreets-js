@@ -302,6 +302,7 @@ async function matchPoints(outFile, params, points, flags) {
     clusteredPoints = Object.keys(clusteredPointMap).map(key => clusteredPointMap[key]);
   }
 
+  var offsetLine:number = flags['offset-line'];
   if(flags['buffer-points']) {
 
     class MergeBufferedPointsType {mergedPathSegments:PathSegment; matchedPoints:MatchedPointType[]};
@@ -320,7 +321,6 @@ async function matchPoints(outFile, params, points, flags) {
 
     for(var matchedPoint of matchedPoints) {
 
-      var offsetLine:number = flags['offset-line'];
       var leftSideDriving:boolean = flags['left-side-driving'];
 
       if(offsetLine) {
@@ -557,36 +557,33 @@ async function matchPoints(outFile, params, points, flags) {
             currSegment.matchedPoints.push(matchedPoint);
            
             if(parseInt(matchedPoint.originalFeature.properties[flags['join-point-sequence-field']]) === 3){
-              currSegment.joinedPath = await graph.joinPoints(currSegment.matchedPoints[0].matchedPoint, currSegment.matchedPoints[currSegment.matchedPoints.length].matchedPoint, offsetLine);
+              currSegment.joinedPath = await graph.joinPoints(currSegment.matchedPoints[0].matchedPoint, currSegment.matchedPoints[currSegment.matchedPoints.length - 1].matchedPoint, offsetLine);
               joinedSegments.push(currSegment);
               currSegment = null;
             }
           } 
         }
         else if(parseInt(matchedPoint.originalFeature.properties[flags['join-point-sequence-field']]) > 1) {
-          let startPoint:MatchedPointType = JSON.parse(JSON.stringify(matchedPoint));
-          startPoint.matchedPoint.location = 0;
-          currSegment.matchedPoints.push(startPoint)
-
+  
           currSegment.matchedPoints.push(matchedPoint);
          
           if(parseInt(matchedPoint.originalFeature.properties[flags['join-point-sequence-field']]) === 3){
                 
     
-            currSegment.joinedPath = await graph.joinPoints(currSegment.matchedPoints[0].matchedPoint, currSegment.matchedPoints[currSegment.matchedPoints.length].matchedPoint, offsetLine);
+            currSegment.joinedPath = await graph.joinPoints(currSegment.matchedPoints[0].matchedPoint, currSegment.matchedPoints[currSegment.matchedPoints.length - 1].matchedPoint, offsetLine);
             joinedSegments.push(currSegment);
             currSegment = null;
           }
         } 
       }
 
-      if(currSegment) {
+      if(currSegment  && currSegment.matchedPoints.length > 0) {
 
-        let endPoint:MatchedPointType = JSON.parse(JSON.stringify(currSegment.matchedPoints[currSegment.matchedPoints.length]));
+        let endPoint:MatchedPointType = JSON.parse(JSON.stringify(currSegment.matchedPoints[currSegment.matchedPoints.length - 1]));
         endPoint.matchedPoint.location = endPoint.matchedPoint.referenceLength;
         currSegment.matchedPoints.push(endPoint)
         
-        currSegment.joinedPath = await graph.joinPoints(currSegment.matchedPoints[0].matchedPoint, currSegment.matchedPoints[currSegment.matchedPoints.length].matchedPoint, offsetLine);
+        currSegment.joinedPath = await graph.joinPoints(currSegment.matchedPoints[0].matchedPoint, currSegment.matchedPoints[currSegment.matchedPoints.length - 1].matchedPoint, offsetLine);
         joinedSegments.push(currSegment);
         currSegment = null;
       } 
@@ -661,6 +658,13 @@ async function matchPoints(outFile, params, points, flags) {
     var unmatchedFeatureCollection:turfHelpers.FeatureCollection<turfHelpers.Point> = turfHelpers.featureCollection(unmatchedPoints);
     var unmatchedJsonOut = JSON.stringify(unmatchedFeatureCollection);
     writeFileSync(outFile + ".unmatched.geojson", unmatchedJsonOut);
+  }
+
+  if(joinedPoints.length ) {
+    console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + joinedPoints.length + ' joined points: ' + outFile + ".joined.geojson"));
+    var joinedPointFeatureCollection:turfHelpers.FeatureCollection<turfHelpers.LineString> = turfHelpers.featureCollection(joinedPoints);
+    var joinedPointJson= JSON.stringify(joinedPointFeatureCollection);
+    writeFileSync(outFile + ".joined.geojson", joinedPointJson);
   }
 
   if(cleanPoints.invalid  && cleanPoints.invalid.length > 0 ) {
@@ -958,4 +962,3 @@ async function matchLines(outFile, params, lines, flags) {
   }
 
 }
-
