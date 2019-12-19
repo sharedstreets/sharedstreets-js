@@ -245,7 +245,7 @@ export class PathSegment {
 	fromIntersectionId:string;
     toIntersectionId:string;
 
-   fromStreetnames:string[];
+    fromStreetnames:string[];
 	toStreetnames:string[];
 
 	referenceLength:number;
@@ -1255,10 +1255,33 @@ export class Graph {
 		return null;
     }
     
-    async joinPoints(startPoint:PointCandidate, endPoint:PointCandidate,offsetLine:number=null):Promise<PathSegment> {
+    async joinPoints(startPoint:PointCandidate, endPoint:PointCandidate, intersectionBuffer:number, offsetLine:number):Promise<PathSegment> {
 
         let segmentStart = startPoint.location;
         let segmentEnd = endPoint.location;
+
+        let segmentLength = segmentEnd - segmentStart;
+
+        if (intersectionBuffer * 2 < startPoint.referenceLength) {
+            if(segmentStart < intersectionBuffer)  {
+                segmentStart = intersectionBuffer;
+                if(segmentStart > segmentEnd) {
+                    segmentEnd = segmentStart + segmentLength; 
+                    if(segmentEnd > startPoint.referenceLength) {
+                        segmentEnd = startPoint.referenceLength - intersectionBuffer;
+                    }
+                }
+            }
+                
+            if(startPoint.referenceLength - segmentEnd < intersectionBuffer) 
+                segmentEnd = startPoint.referenceLength - intersectionBuffer;
+                if(segmentStart > segmentEnd) {
+                    segmentStart = segmentEnd - segmentLength;
+                    if(segmentStart < 0)
+                        segmentStart = intersectionBuffer;
+                }
+                    
+        }
   
         var joinedPoint:PathSegment = new PathSegment();
         joinedPoint.section[0] = segmentStart;
@@ -1321,12 +1344,20 @@ export class Graph {
   
       }
   
-      async union(pathSegment:PathSegment, otherSegment:PathSegment, offsetLine:number):Promise<PathSegment> {
+      async union(pathSegment:PathSegment, otherSegment:PathSegment, bufferIntersectionRaidus:number, offsetLine:number):Promise<PathSegment> {
           
           if(pathSegment.isIntersecting(otherSegment)) {
-              pathSegment.section[0] = Math.min(pathSegment.section[0], otherSegment.section[0]);
-              pathSegment.section[1] = Math.max(pathSegment.section[1], otherSegment.section[1]);
-              pathSegment.referenceLength = pathSegment.section[1] - pathSegment.section[0];
+            pathSegment.section[0] = Math.min(pathSegment.section[0], otherSegment.section[0]);
+            pathSegment.section[1] = Math.max(pathSegment.section[1], otherSegment.section[1]);
+
+            if(bufferIntersectionRaidus * 2 < pathSegment.referenceLength) {
+                if(pathSegment.section[0] < bufferIntersectionRaidus)
+                    pathSegment.section[0] = bufferIntersectionRaidus;
+                if(pathSegment.referenceLength - pathSegment.section[1] < bufferIntersectionRaidus)
+                    pathSegment.section[1] = pathSegment.referenceLength - bufferIntersectionRaidus;
+            }
+
+            pathSegment.referenceLength = pathSegment.section[1] - pathSegment.section[0];
           }
   
           pathSegment.geometry = <Feature<LineString>>await this.tileIndex.geom(pathSegment.referenceId, pathSegment.section[0],  pathSegment.section[1], offsetLine); 

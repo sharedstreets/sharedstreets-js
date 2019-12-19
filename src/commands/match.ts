@@ -58,7 +58,9 @@ export default class Match extends Command {
     'two-way-value': flags.string({description: 'name of optional value of "direction-field" indicating a two-way street'}),
     'bearing-field': flags.string({description: 'name of optional point property containing bearing in decimal degrees', default:'bearing'}),
     'search-radius': flags.integer({description: 'search radius for for snapping points, lines and traces (in meters)', default:10}),
-    'snap-intersections': flags.boolean({description: 'snap line end-points to nearest intersection if closer than distance defined by search-radius ', default:false}),
+    'snap-intersections': flags.boolean({description: 'snap line end-points to nearest intersection if closer than distance defined by snap-intersections-radius ', default:false}),
+    'snap-intersections-radius': flags.integer({description: 'snap radius for intersections (in meters) used when snap-intersections is set', default:10}),
+    
     'snap-side-of-street': flags.boolean({description: 'snap line to side of street', default:false}),
     'side-of-street-field': flags.string({description: 'name of optional property defining side of street relative to direction of travel'}),
     'right-side-of-street-value': flags.string({description: 'value of "side-of-street-field" for right side features', default:'right'}),
@@ -76,7 +78,6 @@ export default class Match extends Command {
     'buffer-points': flags.boolean({description: 'buffer points into segment-snapped line segments'}),
     'buffer-points-length': flags.integer({description: 'length of buffered point (in meters)', default:5}),
     'buffer-points-length-field': flags.string({description: 'name of property containing buffered points (in meters)', default:'length'}),
-    'buffer-intersection-offset': flags.integer({description: 'offset buffered points from intersection (in meters)', default:0}),
     'buffer-merge': flags.boolean({description: 'merge buffered points -- requires related buffer-merge-match-fields to be defined', default:false}),
     'buffer-merge-match-fields': flags.string({description: 'comma seperated list of fields to match values when merging buffered points', default:''}),
     'buffer-merge-group-fields': flags.string({description: 'comma seperated list of fields to group values when merging buffered points', default:''}),
@@ -84,7 +85,8 @@ export default class Match extends Command {
     'join-points': flags.boolean({description: 'joins points into segment-snapped line segments -- requires related join-points-match-fields to be defined'}),
     'join-points-match-fields': flags.string({description: 'comma seperated list of fields to match values when joining points', default:''}),
     'join-point-sequence-field': flags.string({description: 'name of field containing point sequence (e.g. 1=start, 2=middle, 3=terminus)', default:'point_sequence'}),
-    
+   
+    'buffer-intersections-radius': flags.integer({description: 'buffer radius for intersections in buffer and / join operations (in meters)', default:0})
   }
 
   static args = [{name: 'file'}]
@@ -105,6 +107,7 @@ export default class Match extends Command {
 
     if(!outFile) 
       outFile = inFile;
+
 
     if(outFile.toLocaleLowerCase().endsWith(".geojson"))
       outFile = outFile.split(".").slice(0, -1).join(".");
@@ -214,16 +217,16 @@ async function matchPoints(outFile, params, points, flags) {
 
       var pointGeom = null;
       if(flags['snap-intersections'] && 
-        ( matchedPoint.matchedPoint.location <= flags['search-radius'] ||
-          matchedPoint.matchedPoint.referenceLength - matchedPoint.matchedPoint.location <= flags['search-radius'])) {
+        ( matchedPoint.matchedPoint.location <= flags['snap-intersections-radius'] ||
+          matchedPoint.matchedPoint.referenceLength - matchedPoint.matchedPoint.location <= flags['snap-intersections-radius'])) {
           
         var reference = <SharedStreetsReference>graph.tileIndex.objectIndex.get(matchedPoint.matchedPoint.referenceId);
         var intersectionId;
 
-        if(matchedPoint.matchedPoint.location <= flags['search-radius']) {
+        if(matchedPoint.matchedPoint.location <= flags['snap-intersections-radius']) {
           intersectionId = reference.locationReferences[0].intersectionId;
         }
-        else if(matchedPoint.matchedPoint.referenceLength - matchedPoint.matchedPoint.location <= flags['search-radius']) {
+        else if(matchedPoint.matchedPoint.referenceLength - matchedPoint.matchedPoint.location <= flags['snap-intersections-radius']) {
           intersectionId = reference.locationReferences[reference.locationReferences.length-1].intersectionId;
         }
 
@@ -320,7 +323,7 @@ async function matchPoints(outFile, params, points, flags) {
       bufferLengthFieldName = flags['buffer-points-length-field'].toLocaleLowerCase().trim().replace(/ /g, "_");
 
     for(var matchedPoint of matchedPoints) {
-
+            
       var leftSideDriving:boolean = flags['left-side-driving'];
 
       if(offsetLine) {
@@ -354,6 +357,8 @@ async function matchPoints(outFile, params, points, flags) {
     }  
 
     if(flags['buffer-merge']) {
+
+      const bufferIntersectionRaidus:number = flags['buffer-intersections-radius'];
 
       console.log(chalk.bold.keyword('green')('  ✨  Merging ' + bufferedPoints.length + ' buffered points...'));
 
@@ -436,7 +441,7 @@ async function matchPoints(outFile, params, points, flags) {
               }
             }
 
-            mergedSegment.mergedPathSegments = await graph.union(mergedSegment.mergedPathSegments, segment2.bufferedPoint, offsetLine);
+            mergedSegment.mergedPathSegments = await graph.union(mergedSegment.mergedPathSegments, segment2.bufferedPoint, bufferIntersectionRaidus, offsetLine);
             mergedSegment.matchedPoints.push(segment2);
           }
           else {
@@ -533,6 +538,8 @@ async function matchPoints(outFile, params, points, flags) {
     
     }
 
+    const bufferIntersectionRaidus:number = flags['buffer-intersections-radius'];
+
     const mergePoints = async (matchedPoints:MatchedPointType[]):Promise<JoinedPointsType[]> => {
 
       // sort matched points along line
@@ -553,11 +560,10 @@ async function matchPoints(outFile, params, points, flags) {
             let startPoint:MatchedPointType = JSON.parse(JSON.stringify(matchedPoint));
             startPoint.matchedPoint.location = 0;
             currSegment.matchedPoints.push(startPoint)
-
             currSegment.matchedPoints.push(matchedPoint);
            
             if(parseInt(matchedPoint.originalFeature.properties[flags['join-point-sequence-field']]) === 3){
-              currSegment.joinedPath = await graph.joinPoints(currSegment.matchedPoints[0].matchedPoint, currSegment.matchedPoints[currSegment.matchedPoints.length - 1].matchedPoint, offsetLine);
+              currSegment.joinedPath = await graph.joinPoints(currSegment.matchedPoints[0].matchedPoint, currSegment.matchedPoints[currSegment.matchedPoints.length - 1].matchedPoint, bufferIntersectionRaidus, offsetLine);
               joinedSegments.push(currSegment);
               currSegment = null;
             }
@@ -568,9 +574,7 @@ async function matchPoints(outFile, params, points, flags) {
           currSegment.matchedPoints.push(matchedPoint);
          
           if(parseInt(matchedPoint.originalFeature.properties[flags['join-point-sequence-field']]) === 3){
-                
-    
-            currSegment.joinedPath = await graph.joinPoints(currSegment.matchedPoints[0].matchedPoint, currSegment.matchedPoints[currSegment.matchedPoints.length - 1].matchedPoint, offsetLine);
+            currSegment.joinedPath = await graph.joinPoints(currSegment.matchedPoints[0].matchedPoint, currSegment.matchedPoints[currSegment.matchedPoints.length - 1].matchedPoint, bufferIntersectionRaidus, offsetLine);
             joinedSegments.push(currSegment);
             currSegment = null;
           }
@@ -583,7 +587,7 @@ async function matchPoints(outFile, params, points, flags) {
         endPoint.matchedPoint.location = endPoint.matchedPoint.referenceLength;
         currSegment.matchedPoints.push(endPoint)
         
-        currSegment.joinedPath = await graph.joinPoints(currSegment.matchedPoints[0].matchedPoint, currSegment.matchedPoints[currSegment.matchedPoints.length - 1].matchedPoint, offsetLine);
+        currSegment.joinedPath = await graph.joinPoints(currSegment.matchedPoints[0].matchedPoint, currSegment.matchedPoints[currSegment.matchedPoints.length - 1].matchedPoint, bufferIntersectionRaidus, offsetLine);
         joinedSegments.push(currSegment);
         currSegment = null;
       } 
