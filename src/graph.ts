@@ -445,6 +445,7 @@ export class Graph {
     // options
     searchRadius = DEFAULT_SEARCH_RADIUS;
     snapIntersections = false;
+    snapIntersectionsRadius = DEFAULT_SEARCH_RADIUS;
     useHMM = true;
     useDirect = true;
     includeStreetnames = true;
@@ -1011,20 +1012,20 @@ export class Graph {
                 var segment = bestPathCandidate.segments[i];
                 
                 // adding fudge factor for decimal precision issues
-                if(segment.section[0] < segment.section[1] + this.searchRadius &&  segment.section[1] <= segment.referenceLength + this.searchRadius &&  segment.section[0] + this.searchRadius >= 0) {
+                if(segment.section[0] < segment.section[1] + this.snapIntersectionsRadius &&  segment.section[1] <= segment.referenceLength + this.searchRadius &&  segment.section[0] + this.snapIntersectionsRadius >= 0) {
                     
-                    if(this.snapIntersections && (totalPathLength > this.searchRadius)) {
+                    if(this.snapIntersections && (totalPathLength > this.snapIntersectionsRadius)) {
                         
-                        if(i == 0 && segment.referenceLength - segment.section[0] < this.searchRadius)
+                        if(i == 0 && segment.referenceLength - segment.section[0] < this.snapIntersectionsRadius)
                             continue;
                         
-                        if(i == 0 && segment.section[0] < this.searchRadius)
+                        if(i == 0 && segment.section[0] < this.snapIntersectionsRadius)
                             segment.section[0] = 0;
 
-                        if(i == bestPathCandidate.segments.length -1 && segment.section[1] < this.searchRadius)
+                        if(i == bestPathCandidate.segments.length -1 && segment.section[1] < this.snapIntersectionsRadius)
                             continue;
 
-                        if(i == bestPathCandidate.segments.length -1 && segment.referenceLength - segment.section[1] < this.searchRadius)
+                        if(i == bestPathCandidate.segments.length -1 && segment.referenceLength - segment.section[1] < this.snapIntersectionsRadius)
                             segment.section[1] = segment.referenceLength;
 
                         if( i > 0 && i < bestPathCandidate.segments.length -1) {
