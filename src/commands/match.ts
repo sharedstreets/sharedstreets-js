@@ -55,6 +55,7 @@ export default class Match extends Command {
     'direction-field': flags.string({description: 'name of optional line properity describing segment directionality, use the related "one-way-*-value" and "two-way-value" properties'}),
     'one-way-with-direction-value': flags.string({description: 'name of optional value of "direction-field" indicating a one-way street with line direction'}),
     'one-way-against-direction-value': flags.string({description: 'name of optional value of "direction-field" indicating a one-way street against line direction'}),
+    'one-way-without-direction-value': flags.string({description: 'name of optional value of "direction-field" indicating a one-way street without specified line direction. Only matches one direction based on best score.'}),
     'two-way-value': flags.string({description: 'name of optional value of "direction-field" indicating a two-way street'}),
     'bearing-field': flags.string({description: 'name of optional point property containing bearing in decimal degrees', default:'bearing'}),
     'search-radius': flags.integer({description: 'search radius for for snapping points, lines and traces (in meters)', default:10}),
@@ -114,7 +115,7 @@ export default class Match extends Command {
 
 
     if(flags['direction-field'])
-      console.log(chalk.bold.keyword('green')('       Filtering one-way and two-way streets using field "' + flags['direction-field'] + '" with values: ' + ' "' + flags['one-way-with-direction-value'] + '", "' + flags['one-way-against-direction-value'] + '", "' +  flags['two-way-value'] + '"'));
+      console.log(chalk.bold.keyword('green')('       Filtering one-way and two-way streets using field "' + flags['direction-field'] + '" with values: ' + ' "' + flags['one-way-with-direction-value'] + '", "' + flags['one-way-against-direction-value'] + '", "' +flags['one-way-without-direction-value'] + '", "' +  flags['two-way-value'] + '"'));
     
     if(flags['match-bike'] || flags['match-pedestrian']) {
       if(flags['match-bike']) {
@@ -847,6 +848,9 @@ async function matchLines(outFile, params, lines, flags) {
       else if(lineDirectionValue == '' + flags['two-way-value']) {
         matchDirection = MatchDirection.BOTH;
       } 
+      else if(lineDirectionValue == '' + flags['one-way-without-direction-value']) {
+        matchDirection = MatchDirection.BEST;
+      }
       else {
         // TODO handle lines that don't match rules
         matchDirection = MatchDirection.BOTH;
