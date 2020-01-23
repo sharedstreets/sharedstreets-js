@@ -86,7 +86,7 @@ export default class Match extends Command {
     'join-points-match-fields': flags.string({description: 'comma seperated list of fields to match values when joining points', default:''}),
     'join-point-sequence-field': flags.string({description: 'name of field containing point sequence (e.g. 1=start, 2=middle, 3=terminus)', default:'point_sequence'}),
    
-    'buffer-intersections-radius': flags.integer({description: 'buffer radius for intersections in buffer and / join operations (in meters)', default:0})
+    'trim-intersections-radius': flags.integer({description: 'buffer and clip radius for intersections in point buffer and point join operations (in meters)', default:0})
   }
 
   static args = [{name: 'file'}]
@@ -358,7 +358,7 @@ async function matchPoints(outFile, params, points, flags) {
 
     if(flags['buffer-merge']) {
 
-      const bufferIntersectionRaidus:number = flags['buffer-intersections-radius'];
+      const bufferIntersectionRaidus:number = flags['trim-intersections-radius'];
 
       console.log(chalk.bold.keyword('green')('  ✨  Merging ' + bufferedPoints.length + ' buffered points...'));
 
@@ -538,7 +538,7 @@ async function matchPoints(outFile, params, points, flags) {
     
     }
 
-    const bufferIntersectionRaidus:number = flags['buffer-intersections-radius'];
+    const bufferIntersectionRaidus:number = flags['trim-intersections-radius'];
 
     const mergePoints = async (matchedPoints:MatchedPointType[]):Promise<JoinedPointsType[]> => {
 
