@@ -159,7 +159,7 @@ async function matchPoints(outFile, params, points, flags) {
   
   var cleanPoints = new CleanedPoints(points)
 
-  var graph:Graph = new Graph(null, params);
+  var graph:Graph = new Graph(null, null, params);
 
   if(flags['snap-intersections'])
     graph.tileIndex.addTileType(TileType.INTERSECTION);
@@ -808,7 +808,7 @@ async function matchLines(outFile, params, lines, flags) {
   else 
     graphMode = GraphMode.CAR_ALL;
 
-  var matcher = new Graph(extent, params, graphMode);
+  var matcher = new Graph(null, extent, params, graphMode);
   await matcher.buildGraph();
 
   if(flags['search-radius'])
