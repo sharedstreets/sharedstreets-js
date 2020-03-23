@@ -19,6 +19,7 @@ import { CleanedPoints, CleanedLines } from "./src/geom";
 import { execSync } from 'child_process';
 
 const test = require('tape');
+const osrm = require('osrm');
 
 const pt1 = [110, 45];
 const pt2 = [-74.003388, 40.634538];

@@ -47,7 +47,6 @@ export enum GraphMode {
     BIKE = 'bike',
     PEDESTRIAN = 'ped'
 }
-
 // interface typecheck for SharedStreetsGeometry
 function geomInstance(object: any): object is SharedStreetsGeometry {
     return 'forwardReferenceId' in object;
@@ -60,6 +59,19 @@ function getReferenceLength(ref:SharedStreetsReference) {
             length += lr.distanceToNextRef;
     }
     return length / 100;
+}
+
+function getOSRMDirectory(osrmModule) {
+    
+    const osrmPath =  require.resolve(osrmModule);
+    const osrmLibPath = path.dirname(osrmPath);
+    const osrmDirPath = path.join(osrmLibPath, '..');
+
+    if(fs.existsSync(osrmDirPath)) {
+        return osrmDirPath
+    }
+    else 
+        return null
 }
 
 const DEFAULT_LENGTH_TOLERANCE = 0.1;
@@ -424,6 +436,9 @@ export class Graph {
     tileIndex:TileIndex;
     graphMode:GraphMode;
 
+    osrmGraph = null; // optional OSRM graph
+    osrmModule = null;
+
     // options
     searchRadius = DEFAULT_SEARCH_RADIUS;
     snapIntersections = false;
@@ -433,9 +448,9 @@ export class Graph {
     bearingTolerance:number = DEFAULT_BEARING_TOLERANCE;
     tileParams;
 
-    constructor(osrm:OSRM, extent:turfHelpers.Feature<turfHelpers.Polygon>, tileParams:TilePathParams, graphMode:GraphMode=GraphMode.CAR_ALL, existingTileIndex:TileIndex=null, ) {
+    constructor(osrmModule, extent:turfHelpers.Feature<turfHelpers.Polygon>, tileParams:TilePathParams, graphMode:GraphMode=GraphMode.CAR_ALL, existingTileIndex:TileIndex=null, ) {
       
-        this.osrm = osrm;
+        this.osrmModule = osrmModule;
         this.tileParams = tileParams;
         this.tilePathGroup = TilePathGroup.fromPolygon(extent, 1000, tileParams);
         this.tilePathGroup.addType(TileType.GEOMETRY);
@@ -627,33 +642,35 @@ export class Graph {
     async buildGraph() {
 
         // check if graph is already built;
-        if(this.osrm)
+        if(this.osrmGraph)
             return;
         try {
             var graphPath = path.join(SHST_GRAPH_CACHE_DIR, this.id);
             var dbPath = path.join(graphPath, '/db');
 
+            const osrmDir = getOSRMDirectory(this.osrmModule);
+
             await this.tileIndex.indexTilesByPathGroup(this.tilePathGroup)
 
             if(USE_LOCAL_CACHE && existsSync(dbPath)) {
-                var osrmPath = path.join(graphPath, '/graph.xml.osrm');
+                var osrmGraphPath = path.join(graphPath, '/graph.xml.osrm');
                 console.log(chalk.keyword('lightgreen')("     loading pre-built " + this.graphMode + " graph from: " + osrmPath));
                 this.db = new LevelDB(dbPath);
                 if(OPTIMIZE_GRAPH)
-                    this.osrm = new OSRM({path:osrmPath});
+                    this.osrmGraph = new this.osrmModule({path:osrmGraphPath});
                 else
-                    this.osrm = new OSRM({path:osrmPath, algorithm:"MLD"});
+                    this.osrmGraph = new this.osrmModule({path:osrmGraphPath, algorithm:"MLD"});
             }
             else {
 
-                if(!OSRM_DIR) {
+                if(!osrmDir) {
                     console.log("unable to locate OSRM module.")
                     throw "unable to locate OSRM module."
                 }
 
 
                 // TODO before building, check if this graph is a subset of an existing graph
-                console.log(chalk.keyword('lightgreen')("     building graph using OSRM from: " + OSRM_DIR));
+                console.log(chalk.keyword('lightgreen')("     building graph using OSRM from: " + osrmDir));
 
 
                 mkdirSync(dbPath, {recursive:true});
@@ -668,26 +685,26 @@ export class Graph {
                 var profile;
 
                 if(this.graphMode === GraphMode.CAR_ALL || this.graphMode === GraphMode.CAR_SURFACE_ONLY || this.graphMode === GraphMode.CAR_MOTORWAY_ONLY)
-                    profile = path.join(OSRM_DIR, 'profiles/car.lua');
+                    profile = path.join(osrmDir, 'profiles/car.lua');
                 else if(this.graphMode === GraphMode.BIKE)
-                    profile = path.join(OSRM_DIR, 'profiles/bicycle.lua');
+                    profile = path.join(osrmDir, 'profiles/bicycle.lua');
                 else if(this.graphMode === GraphMode.PEDESTRIAN)
-                    profile = path.join(OSRM_DIR, 'profiles/foot.lua');
+                    profile = path.join(osrmDir, 'profiles/foot.lua');
 
-                execSync(path.join(OSRM_DIR, 'lib/binding/osrm-extract') + ' ' + xmlPath + ' -p ' + profile);
+                execSync(path.join(osrmDir, 'lib/binding/osrm-extract') + ' ' + xmlPath + ' -p ' + profile);
 
                 var osrmPath:any = xmlPath + '.osrm';
 
                 if(OPTIMIZE_GRAPH) {
                     console.log(chalk.keyword('lightgreen')("     optimizing graph..."));
-                    execSync(path.join(OSRM_DIR, 'lib/binding/osrm-contract') + ' ' + osrmPath);
-                    this.osrm = new OSRM({path:osrmPath});
+                    execSync(path.join(osrmDir, 'lib/binding/osrm-contract') + ' ' + osrmPath);
+                    this.osrmGraph = new this.osrmModule({path:osrmPath});
                 }
                 else {
-                    execSync(path.join(OSRM_DIR, 'lib/binding/osrm-partition') + ' ' + osrmPath);
-                    execSync(path.join(OSRM_DIR, 'lib/binding/osrm-customize') + ' ' + osrmPath);
+                    execSync(path.join(osrmDir, 'lib/binding/osrm-partition') + ' ' + osrmPath);
+                    execSync(path.join(osrmDir, 'lib/binding/osrm-customize') + ' ' + osrmPath);
                     console.log(chalk.keyword('lightgreen')("     skipping graph optimization..."));
-                    this.osrm = new OSRM({path:osrmPath, algorithm:"MLD"});
+                    this.osrmGraph = new this.osrmModule({path:osrmPath, algorithm:"MLD"});
                 }
             }
         }
@@ -700,7 +717,7 @@ export class Graph {
     async matchTrace(feature:turfHelpers.Feature<turfHelpers.LineString>) {
 
               // fall back to hmm for probabilistic path discovery
-            if(!this.osrm)
+            if(!this.osrmGraph)
                 throw "Graph not buit. call buildGraph() before running queries."
 
             var hmmOptions = {
@@ -712,7 +729,7 @@ export class Graph {
 
             try {
                 var matches = await new Promise((resolve, reject) => {
-                    this.osrm.match(hmmOptions, function(err, response) {
+                    this.osrmGraph.match(hmmOptions, function(err, response) {
                         if (err)
                             reject(err);
                         else
@@ -811,7 +828,7 @@ export class Graph {
         var pathCandidates:PathCandidate[] = [];
 
         // fall back to hmm for probabilistic path discovery
-        if(!this.osrm)
+        if(!this.osrmGraph)
             throw "Graph not buit. call buildGraph() before running queries."
 
 
@@ -824,7 +841,7 @@ export class Graph {
 
         try {
             var matches = await new Promise((resolve, reject) => {
-                this.osrm.match(hmmOptions, function(err, response) {
+                this.osrmGraph.match(hmmOptions, function(err, response) {
                     if (err)
                         reject(err);
                     else

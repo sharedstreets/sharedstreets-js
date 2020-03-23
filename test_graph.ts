@@ -5,7 +5,7 @@ import * as glob from "glob";
 import * as path from "path";
 import * as sharedstreetsPbf from "sharedstreets-pbf";
 import * as sharedstreets from "./src/index";
-import * as OSRM from "osrm"
+
 
 import * as turfHelpers from '@turf/helpers';
 import envelope from '@turf/envelope';
@@ -19,6 +19,7 @@ import { polygon } from "@turf/envelope/node_modules/@turf/helpers";
 import { Graph, GraphMode } from "./src/graph";
 
 const test = require('tape');
+const osrm = require('osrm');
 
 test("sharedstreets -- graph test", async (t:any) => {
 

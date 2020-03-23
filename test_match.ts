@@ -17,6 +17,7 @@ import { Graph, GraphMode } from "./src/index";
 import envelope from "@turf/envelope";
 
 const test = require('tape');
+const osrm = require('osrm')
 
 const BUILD_TEST_OUPUT = false;
 
