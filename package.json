@@ -1,6 +1,6 @@
 {
   "name": "sharedstreets",
-  "version": "0.14.3",
+  "version": "0.15.2",
   "description": "SharedStreets, a 'digital commons' for the street",
   "main": "build/src/index.js",
   "bin": {
