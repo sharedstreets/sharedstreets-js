@@ -2,7 +2,7 @@
   "name": "sharedstreets",
   "version": "0.14.3",
   "description": "SharedStreets, a 'digital commons' for the street",
-  "main": "build/src/index.ts",
+  "main": "build/src/index.js",
   "bin": {
     "shst": "./bin/run"
   },
@@ -53,19 +53,19 @@
   },
   "homepage": "https://github.com/sharedstreets/sharedstreets-js#readme",
   "devDependencies": {
-    "@oclif/dev-cli": "^1.21.3",
+    "@oclif/dev-cli": "^1.22.2",
     "@types/benchmark": "*",
     "@types/glob": "*",
     "@types/node": "*",
     "@types/tape": "*",
     "benchmark": "^2.1.4",
     "colortape": "^0.1.2",
-    "documentation": "^9.3.1",
-    "tap": "*",
+    "documentation": "^13.0.0",
+    "tap": "^14.10.7",
     "tape": "*",
     "ts-node": "^8.1.0",
     "tslint": "*",
-    "typescript": "*"
+    "typescript": "^3.9.2"
   },
   "dependencies": {
     "@mapbox/sphericalmercator": "^1.1.0",
