@@ -1,6 +1,6 @@
 import * as turfHelpers from '@turf/helpers';
 import { TilePathParams, TilePathGroup, TileType } from './tiles';
-import { existsSync, mkdirSync, open, createWriteStream, rmdirSync, watch } from 'fs';
+import { existsSync, mkdirSync, open, createWriteStream, rmdirSync, watch, unlinkSync } from 'fs';
 import { LevelUp } from 'levelup';
 import { TileIndex } from './tile_index';
 import { lonlatsToCoords } from './index';
@@ -481,6 +481,8 @@ export class Graph {
         this.id = uuidHash(this.graphMode + ' node-pair.sv1 ' + paths.join(" "));
     }
 
+
+
     async createGraphXml() {
 
         // build xml representation of graph + leveldb id map
@@ -488,17 +490,23 @@ export class Graph {
 
         var nextNodeId:number = 1;
         var nextEdgeId:number = 1;
+
         var xmlPath = path.join(graphPath, '/graph.xml');
 
         // create xml stream
         const pipeline = util.promisify(stream.pipeline);
-        var xmlStreamWriter = createWriteStream(xmlPath);
 
+        // Pushing to this object writes to the xmlBuilderStream
         var osmRootElem = xml.element({ _attr: { version: '0.6', generator: 'shst cli v1.0'} });
-       
-        var xmlStream = xml({ osm: osmRootElem }, { stream: true });
-        xmlStream.on('data', function (chunk) {xmlStreamWriter.write(chunk)});
-    
+
+        var xmlBuilderStream = xml({ osm: osmRootElem }, { stream: true });
+        var xmlFileWriteStream = createWriteStream(xmlPath);
+
+        var xmlPipeline = pipeline(
+          xmlBuilderStream,
+          xmlFileWriteStream
+        );
+
         const writeNode = async (lon:number, lat:number, shstIntersectionId:string=null):Promise<number> => {
             var nodeId:number;
 
@@ -521,8 +529,9 @@ export class Graph {
                 
                 await this.db.put('node:' + nodeId, JSON.stringify(newNode));
 
-                // write node xml
+                // write node xml to the xmlBuilderStream
                 osmRootElem.push({ node: [{_attr:{id:nodeId, lat:lat, lon:lon}}] });
+
                 nextNodeId++;
             }
             
@@ -545,11 +554,13 @@ export class Graph {
             if(geomInstance(obj)) {
 
                 if(obj.roadClass == 'Motorway') {
+                    // Motorways only included in CAR_ALL and CAR_MOTORWAY_ONLY graphs
                     if(this.graphMode != GraphMode.CAR_ALL && this.graphMode != GraphMode.CAR_MOTORWAY_ONLY) {
                         continue;
                     }
                 } 
                 else {
+                    // Any roadClass besides 'Motorway' is excluded from CAR_MOTORWAY_ONLY graph
                     if(this.graphMode == GraphMode.CAR_MOTORWAY_ONLY) {
                         continue;
                     }
@@ -627,18 +638,18 @@ export class Graph {
             }
         }
           
-        const writeFinished = new Promise((resolve, reject) => {
-            xmlStreamWriter.on('finish', () => {  
-                resolve(xmlPath);
-            });
-        });
-        
-
         osmRootElem.close();
-        xmlStreamWriter.close();
-        //xmlStream.end();
-      
-        return writeFinished;
+
+        // Wait until the xmlBuilderStream -> xmlFileWriteStream pipeline is complete
+        await xmlPipeline;
+
+        // If the Graph is empty, remove the xml file and return null to signify such
+        if (nextNodeId === 1 && nextEdgeId === 1) {
+          unlinkSync(xmlPath);
+          return null;
+        }
+
+        return xmlPath;
     }
 
     async buildGraph() {
@@ -677,7 +688,15 @@ export class Graph {
                 this.db = new LevelDB(dbPath)
 
                 console.log(chalk.keyword('lightgreen')("     building " + this.graphMode + " graph  xml..."));
+
                 var xmlPath = await this.createGraphXml();
+
+                // If given an empty graph, OSRM crashes with the following error message:
+                //   "Unable to build graph: TypeError: Required files are missing, cannot continue.  Have all the pre-processing steps been run?"
+                // Provide a more meaningful error message by throwing here.
+                if (xmlPath === null) {
+                  throw new Error("No road segments found for " + this.graphMode);
+                }
 
                 //extract 
                 console.log(chalk.keyword('lightgreen')("     building " + this.graphMode + " graph from: " + xmlPath));
@@ -718,7 +737,7 @@ export class Graph {
 
               // fall back to hmm for probabilistic path discovery
             if(!this.osrm)
-                throw "Graph not buit. call buildGraph() before running queries."
+                throw "Graph not built. call buildGraph() before running queries."
             
             var hmmOptions = {
                 coordinates: feature.geometry.coordinates,
