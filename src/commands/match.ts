@@ -674,7 +674,7 @@ async function matchPoints(outFile, params, points, flags) {
   if(cleanPoints.invalid  && cleanPoints.invalid.length > 0 ) {
     console.log(chalk.bold.keyword('blue')('  ✏️  Writing ' + cleanPoints.invalid.length + ' invalid points: ' + outFile + ".invalid.geojson"));
     var invalidJsonOut = JSON.stringify(cleanPoints.invalid );
-    writeFileSync(outFile + ".unmatched.geojson", invalidJsonOut);
+    writeFileSync(outFile + ".invalid.geojson", invalidJsonOut);
   }
 }
 
