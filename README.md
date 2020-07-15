@@ -9,7 +9,7 @@ Node.js & JavaScript implementation of [SharedStreets Reference System](https://
 
 This branch was set up to facilitate aggregation and merging of event data for the SharedStreets TNC pick-up and drop-off data pilot. You can read more about that [here](https://medium.com/sharedstreets/tnc-and-taxi-data-methodology-9c9b31d873bf) and [here](https://medium.com/sharedstreets/expanding-our-pick-up-drop-off-data-program-ccb0b1384abe).
 
-!(https://miro.medium.com/max/1100/1*6hJM6q-4axA0QWWhlZ84DA.png)
+![](https://miro.medium.com/max/1100/1*6hJM6q-4axA0QWWhlZ84DA.png)
 
 We've made this branch public in case others would like to take a similar approach to working with their own event data. Instructions for installing and using the tools are in following sections.
 
