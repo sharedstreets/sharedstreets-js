@@ -5,7 +5,7 @@
 
 Node.js & JavaScript implementation of [SharedStreets Reference System](https://github.com/sharedstreets/sharedstreets-ref-system).
 
-# Command Line Interface (CLI) 
+# Command Line Interface (CLI)
 ![SharedStreets CLI Matcher](docs/cli_matcher.png)
 
 ## Description
@@ -23,7 +23,7 @@ For detailed examples of how to use this tool, see the [SharedStreets blog](http
 
 ## Install
 
-The CLI requires Node v10+ on MacOS or Linux. Windows is not currently supported. On supported platforms it can be installed using either `npm` or `yarn`, or follow using Docker for unsupported environments.
+The CLI requires Node v11 on MacOS or Linux. Windows is not currently supported. On supported platforms it can be installed using either `npm` or `yarn`, or follow using Docker for unsupported environments.
 
 
 #### NPM
