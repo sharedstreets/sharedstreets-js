@@ -127,9 +127,19 @@ The following options may be appended to the command:
 - **-p, --skip-port-properties**: do not port input feature properties into the matched output (these are output fields normally preceeded by "pp_")
 - **--bearing-field=[bearing field]**: [default: bearing] name of optional point property containing bearing in decimal degrees. If converting from GIS, this is the name of the appropriate field in the attribute table. Example: `--bearing-field=degrees`.
 - **--best-direction**: only match one direction, based on best score
+- **--buffer-points**: used to snap points to the street and buffer them by a specified length (in meters), turning them into a street segment. For example, this could be used to transform a parking meter point into a parking space with a set length. This optional flag indicates that the points should be buffered, and the following flags provide additional information about how length is determined.
+- **--buffer-points-length=** [default: 5] the length (as in diameter) of the buffered point (in meters). This flag is used when all points in the dataset should be given the same length.
+- **--buffer-points-length-field=**: [default: length] name of property containing buffered points (in meters). This flag is used when points in the dataset should be given different, specified lengths. For example, this could be used for transforming single-space and multi-space parking meter points into parking spaces of different lengths.
+- **--buffer-merge**: When point data is buffered and transformed into street segments, there can be overlap between resulting segments. For example, a group of parking meter points may be buffered into parking spaces with given length. Overlap between resulting features may be undesirable. This flag will dissolve buffered length results that have the same specified attributes, producing one street length instead of many overlapping lengths. Requires related buffer-merge-match-fields to be defined
+- **--buffer-merge-match-fields=** a comma-seperated list of fields to *match* values when merging buffered points
+- **--buffer-merge-group-fields=** a comma-separated list of fields to *group* values when merging buffered points
+- **--center-of-street-value=** [default: center] value of "side-of-street-field" for center features
 - **--cluster-points=[number of meters]**: target sub-segment length for clustering points (in meters). Since road segments will rarely divide evenly into the target length, actual lengths may vary slightly from the target.
 - **--direction-field=[direction field]**: name of optional line property describing segment directionality. Use in conjunction with the related `one-way-*-value` and `two-way-value` properties
 - **--follow-line-direction**: only match using line direction
+- **--join-points** allows a series of points to be snapped to the street and transformed into a street segment. Requires the relationship between points to be defined using *join-points-sequence-field* and *join-points-match-field* 
+- **--join-point-sequence-field=**: [default: point_sequence] specifies the name of the field containing point sequence info (e.g. 1=start, 2=middle, 3=terminus)
+- **--join-points-match-fields=**: When turning points into line segments, there may be multiple sequences of points on one street. This flag tells the CLI hoow to sort like with like by specifying the fields that must match in order for points to considered part of the same segment and merged into a line. Expressed as a comma-separated list of fields to match values when joining points
 - **--left-side-driving**: directionality assumes left-side driving
 - **--match-bike**: match using bike routing rules in [OSRM](http://project-osrm.org/), which excludes motorways and includes features like off-street paths
 - **--match-car**: matching will use car routing rules in [OSRM](http://project-osrm.org/)
@@ -144,6 +154,7 @@ The following options may be appended to the command:
 - **--snap-side-of-street**: snap line to side of street
 - **--tile-hierarchy=[number]**: [default: 6] SharedStreets tile hierarchy, which refers to the [OSM data model](https://github.com/sharedstreets/sharedstreets-builder/blob/a554983e96010d32b71d7d23504fa88c6fbbad10/src/main/java/io/sharedstreets/tools/builder/osm/model/Way.java#L61). Level 6 includes unclassified roads and above. Level 7 includes service roads and above. Level 8 includes other features, like bike and pedestrian paths.
 - **--tile-source=[osm/planet-DATE]**: [default: osm/planet-181224] SharedStreets tile source, which is derived from OSM at the date specified (in `yymmdd` format). A new tile source is created roughly once a month and a list can be found [here](https://github.com/sharedstreets/sharedstreets-api_).
+- **--trim-intersections-radius** buffer radius of a given length (in meters) around each intersection, and trim these lengths off of the results.
 - **--two-way-value=[two-way-value]**: name of optional value of `direction-field` indicating a two-way street
 
 
