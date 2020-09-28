@@ -40,7 +40,7 @@ test("sharedstreets -- test osrm install", (t:any) => {
   else
     t.comment('osrmBinPath not found');
 
-  
+
   t.end();
 
 });
@@ -146,10 +146,10 @@ test("sharedstreets-pbf -- reference", (t:any) => {
         break;
 
       const {locationReferences, id, formOfWay} = reference;
-      
+
       const expectedId = sharedstreets.referenceId(locationReferences, formOfWay);
       const message = sharedstreets.referenceMessage(locationReferences, formOfWay);
-      
+
       t.equal(expectedId, id, `["${message}":  ${expectedId}] => ${id}`);
     }
   }
@@ -193,7 +193,7 @@ test("sharedstreets -- reference", (t:any) => {
   ];
   const formOfWay = 0; // => "Other"
   const ref = sharedstreets.reference(geom, locationReferences, formOfWay);
-  
+
   const refHash = sharedstreets.generateHash("Reference 0 -74.00482 40.74164 208 93 -74.00513 40.74085");
 
   t.equal(ref.id, refHash);
@@ -278,7 +278,7 @@ test("tiles -- generate tile ids ", (t:any) => {
 
   // test polygon (dc area)
   var poloygon:turfHelpers.Feature<turfHelpers.Polygon> = {
-    
+
         "type": "Feature",
         "properties": {},
         "geometry": {
@@ -296,10 +296,10 @@ test("tiles -- generate tile ids ", (t:any) => {
   // test tiles for polygon
   var tiles1 = getTileIdsForPolygon(poloygon);
   t.deepEqual(tiles1, ["12-1171-1566","12-1171-1567"]);
-  
+
   // test buffering
   var tiles2 = getTileIdsForPolygon(poloygon, 10000);
-  t.deepEqual(tiles2, ["12-1170-1566","12-1170-1567","12-1171-1566","12-1171-1567","12-1172-1566","12-1172-1567"]);  
+  t.deepEqual(tiles2, ["12-1170-1566","12-1170-1567","12-1171-1566","12-1171-1567","12-1172-1566","12-1172-1567"]);
 
   // test polygon (dc area)
   var point = turfHelpers.point([ -77.0511531829834, 38.88588861057251]);
@@ -308,10 +308,10 @@ test("tiles -- generate tile ids ", (t:any) => {
   var tiles3 = getTileIdsForPoint(point, 10);
   t.deepEqual(tiles3, ["12-1171-1567"]);
 
-  // test buffering  
+  // test buffering
   var tiles4 = getTileIdsForPoint(point, 10000);
-  t.deepEqual(tiles4, ["12-1170-1566","12-1170-1567","12-1170-1568","12-1171-1566","12-1171-1567","12-1171-1568","12-1172-1566","12-1172-1567","12-1172-1568"]);  
-  
+  t.deepEqual(tiles4, ["12-1170-1566","12-1170-1567","12-1170-1568","12-1171-1566","12-1171-1567","12-1171-1568","12-1172-1566","12-1172-1567","12-1172-1568"]);
+
   t.end();
 });
 
@@ -319,42 +319,42 @@ test("tiles -- generate tile ids ", (t:any) => {
 test("tiles -- build tile paths ", (t:any) => {
 
     var pathString =  'osm/planet-180430/12-1171-1566.geometry.6.pbf';
-    
-    // test path parsing 
+
+    // test path parsing
     var tilePath = new TilePath(pathString);
-    t.deepEqual(tilePath, {"tileId":"12-1171-1566","tileType":"geometry","source":"osm/planet-180430","tileHierarchy":6});
-    
+    t.deepEqual(JSON.stringify(tilePath), JSON.stringify({"tileId":"12-1171-1566","tileType":"geometry","source":"osm/planet-180430","tileHierarchy":6}));
+
     // test path string builder
     var pathString2 = tilePath.toPathString();
     t.equal(pathString, pathString2);
 
     // test path group
     var pathGroup = new TilePathGroup([tilePath]);
-    t.deepEqual(pathGroup, { source: 'osm/planet-180430', tileHierarchy: 6, tileTypes: ['geometry'], tileIds: ['12-1171-1566']});
+    t.deepEqual(JSON.stringify(pathGroup), JSON.stringify({ tileIds: ['12-1171-1566'], tileTypes: ['geometry'], source: 'osm/planet-180430', tileHierarchy: 6 }));
 
     // test path gruop eumeration
-    t.deepEqual([...pathGroup], [{ source: 'osm/planet-180430', tileHierarchy: 6, tileType: 'geometry', tileId: '12-1171-1566' }]);
+    t.deepEqual(JSON.stringify([...pathGroup]), JSON.stringify([{ source: 'osm/planet-180430', tileHierarchy: 6, tileId: '12-1171-1566', tileType: 'geometry' }]));
 
     t.end();
 
 });
 
-test("tiles -- fetch/parse protobuf filese", async (t:any) => { 
-  // get data 
+test("tiles -- fetch/parse protobuf filese", async (t:any) => {
+  // get data
   var tilePath = new TilePath('osm/planet-180430/12-1171-1566.geometry.6.pbf');
 
   var data = await getTile(tilePath);
   t.equal(data.length, 7352);
-  
+
   t.end();
 
 });
 
 
-test("cache -- load data", async (t:any) => { 
+test("cache -- load data", async (t:any) => {
    // test polygon (dc area)
    var polygon:turfHelpers.Feature<turfHelpers.Polygon> = {
-    
+
     "type": "Feature",
     "properties": {},
     "geometry": {
@@ -370,7 +370,7 @@ test("cache -- load data", async (t:any) => {
   };
 
   var tilesIds = getTileIdsForPolygon(polygon);
-  
+
   var params = new TilePathParams();
   params.source = 'osm/planet-180430';
   params.tileHierarchy = 6;
@@ -396,11 +396,11 @@ test("cache -- load data", async (t:any) => {
 });
 
 
-test("tileIndex -- point data", async (t:any) => { 
+test("tileIndex -- point data", async (t:any) => {
   // test polygon (dc area)
   const content = fs.readFileSync('test/geojson/points_1.in.geojson');
   var points:turfHelpers.FeatureCollection<turfHelpers.Point> = JSON.parse(content.toLocaleString());
-  
+
   var params = new TilePathParams();
   params.source = 'osm/planet-180430';
   params.tileHierarchy = 6;
@@ -418,22 +418,22 @@ test("tileIndex -- point data", async (t:any) => {
   t.end();
 });
 
-test("match points", async (t:any) => { 
+test("match points", async (t:any) => {
 
     // test polygon (dc area)
     const content = fs.readFileSync('test/geojson/points_1.in.geojson');
     var pointsIn:turfHelpers.FeatureCollection<turfHelpers.Point> = JSON.parse(content.toLocaleString());
     var cleanedPoints = new CleanedPoints(pointsIn);
-    
+
     var points:turfHelpers.FeatureCollection<turfHelpers.Point> = turfHelpers.featureCollection(cleanedPoints.clean);
- 
+
     var params = new TilePathParams();
     params.source = 'osm/planet-180430';
     params.tileHierarchy = 6;
- 
+
    // test matcher point candidates
    var matcher = new Graph(null, params);
-   
+
    var matchedPoints:turfHelpers.Feature<turfHelpers.Point>[] = [];
    for(let searchPoint of points.features) {
      let matches = await matcher.matchPoint(searchPoint, null, 3);
@@ -442,74 +442,74 @@ test("match points", async (t:any) => {
      }
    }
    const matchedPointFeatureCollection_1a:turfHelpers.FeatureCollection<turfHelpers.Point> = turfHelpers.featureCollection(matchedPoints);
-   
+
    const expected_1a_file = 'test/geojson/points_1a.out.geojson';
    if(BUILD_TEST_OUPUT) {
      var expected_1a_out:string = JSON.stringify(matchedPointFeatureCollection_1a);
      fs.writeFileSync(expected_1a_file, expected_1a_out);
    }
- 
+
    const expected_1a_in = fs.readFileSync(expected_1a_file);
    const expected_1a:turfHelpers.FeatureCollection<turfHelpers.Point> = JSON.parse(expected_1a_in.toLocaleString());
-   
+
    t.deepEqual(expected_1a, matchedPointFeatureCollection_1a);
- 
+
    matcher.searchRadius = 1000;
- 
+
    var matchedPoints:turfHelpers.Feature<turfHelpers.Point>[] = [];
    let matches = await matcher.matchPoint(points.features[0], null, 10);
- 
+
    for(let match of matches) {
      matchedPoints.push(match.toFeature());
    }
    const matchedPointFeatureCollection_1b:turfHelpers.FeatureCollection<turfHelpers.Point> = turfHelpers.featureCollection(matchedPoints);
-   
+
    const expected_1b_file = 'test/geojson/points_1b.out.geojson';
- 
+
    if(BUILD_TEST_OUPUT) {
-     var expected_1b_out:{} = JSON.stringify(matchedPointFeatureCollection_1b);
+     var expected_1b_out = JSON.stringify(matchedPointFeatureCollection_1b);
      fs.writeFileSync(expected_1b_file, expected_1b_out);
    }
- 
+
    const expected_1b_in = fs.readFileSync(expected_1b_file);
    const expected_1b:{} = JSON.parse(expected_1b_in.toLocaleString());
-   
+
    t.deepEqual(expected_1b, matchedPointFeatureCollection_1b);
- 
-   
+
+
    t.end();
  });
- 
- 
- test("match lines 1", async (t:any) => { 
- 
+
+
+ test("match lines 1", async (t:any) => {
+
    // test polygon (dc area)
    const content = fs.readFileSync('test/geojson/sf_centerlines.sample.geojson');
    var linesIn:turfHelpers.FeatureCollection<turfHelpers.LineString> = JSON.parse(content.toLocaleString());
-   
-   var cleanedLines = new CleanedLines(linesIn);  
+
+   var cleanedLines = new CleanedLines(linesIn);
    var lines:turfHelpers.FeatureCollection<turfHelpers.LineString> = turfHelpers.featureCollection(cleanedLines.clean);
- 
+
    var params = new TilePathParams();
    params.source = 'osm/planet-180430';
    params.tileHierarchy = 6;
- 
+
   //test matcher point candidates
   var matcher = new Graph(envelope(lines), params);
   await matcher.buildGraph();
-  
+
   var matchedLines = turfHelpers.featureCollection([]);
   for(var line of lines.features) {
     var pathCandidate = await matcher.matchGeom(line);
     matchedLines.features.push(pathCandidate.matchedPath);
   }
-  
+
   const expected_1a_file = 'test/geojson/sf_centerlines.sample.out.geojson';
   if(BUILD_TEST_OUPUT) {
     var expected_1a_out:string = JSON.stringify(matchedLines);
     fs.writeFileSync(expected_1a_file, expected_1a_out);
   }
- 
+
   const expected_1a_in = fs.readFileSync(expected_1a_file);
   const expected_1a:{} = JSON.parse(expected_1a_in.toLocaleString());
   t.deepEqual(matchedLines, expected_1a);
@@ -517,13 +517,13 @@ test("match points", async (t:any) => {
   t.end();
  });
 
- test("match lines 2 -- snapping and directed edges", async (t:any) => { 
- 
+ test("match lines 2 -- snapping and directed edges", async (t:any) => {
+
   // test polygon (dc area)
   const content = fs.readFileSync('test/geojson/line-directed-test.in.geojson');
   var linesIn:turfHelpers.FeatureCollection<turfHelpers.LineString> = JSON.parse(content.toLocaleString());
 
-  var cleanedLines = new CleanedLines(linesIn);  
+  var cleanedLines = new CleanedLines(linesIn);
   var lines:turfHelpers.FeatureCollection<turfHelpers.LineString> = turfHelpers.featureCollection(cleanedLines.clean);
 
   var params = new TilePathParams();
@@ -536,7 +536,7 @@ test("match points", async (t:any) => {
 
  matcher.searchRadius = 20;
  matcher.snapIntersections = true;
- 
+
  var matchedLines = turfHelpers.featureCollection([]);
  for(var line of lines.features) {
    var pathCandidate = await matcher.matchGeom(line);
@@ -548,7 +548,7 @@ test("match points", async (t:any) => {
    var expected_1a_out:string = JSON.stringify(matchedLines);
    fs.writeFileSync(expected_1a_file, expected_1a_out);
  }
- 
+
 
  const expected_1a_in = fs.readFileSync(expected_1a_file);
  const expected_1a:{} = JSON.parse(expected_1a_in.toLocaleString());
