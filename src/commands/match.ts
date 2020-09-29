@@ -815,6 +815,7 @@ async function matchLines(outFile, params, lines, flags) {
     matcher.searchRadius = flags['search-radius'];
 
   matcher.snapIntersections = flags['snap-intersections'];
+  matcher.snapIntersectionsRadius = flags['snap-intersections-radius'];
 
   var matchedLines:turfHelpers.Feature<turfHelpers.LineString>[] = [];
   var unmatchedLines:turfHelpers.Feature<turfHelpers.LineString>[] = [];
