@@ -467,7 +467,7 @@ test("match points", async (t:any) => {
    const expected_1b_file = 'test/geojson/points_1b.out.geojson';
  
    if(BUILD_TEST_OUPUT) {
-     var expected_1b_out:{} = JSON.stringify(matchedPointFeatureCollection_1b);
+     var expected_1b_out:string = JSON.stringify(matchedPointFeatureCollection_1b);
      fs.writeFileSync(expected_1b_file, expected_1b_out);
    }
  
