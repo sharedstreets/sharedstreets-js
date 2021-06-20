@@ -39,14 +39,18 @@ export async function getTilesForId(id:string) {
 
 export function getTileIdsForPolygon(polygon:turfHelpers.Feature<turfHelpers.Polygon>, buffer:number=0):string[] {
 
-    var polyBound = bbox(polygon)
+    if (polygon === null) {
+        return [];
+    } else {
 
-    var nwPoint = destination([polyBound[0],polyBound[1]], buffer, 315, {'units':'meters'});
-    var sePoint = destination([polyBound[2],polyBound[3]], buffer, 135, {'units':'meters'});
-    let bounds = [nwPoint.geometry.coordinates[0], nwPoint.geometry.coordinates[1], sePoint.geometry.coordinates[0], sePoint.geometry.coordinates[1]];
-    
-    return getTileIdsForBounds(bounds, false);
-  
+        var polyBound = bbox(polygon)
+
+        var nwPoint = destination([polyBound[0],polyBound[1]], buffer, 315, {'units':'meters'});
+        var sePoint = destination([polyBound[2],polyBound[3]], buffer, 135, {'units':'meters'});
+        let bounds = [nwPoint.geometry.coordinates[0], nwPoint.geometry.coordinates[1], sePoint.geometry.coordinates[0], sePoint.geometry.coordinates[1]];
+        
+        return getTileIdsForBounds(bounds, false);
+    }
 }
 
 export function getTileIdsForPoint(point:turfHelpers.Feature<turfHelpers.Point>, buffer:number):string[] {
