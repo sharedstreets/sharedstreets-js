@@ -95,7 +95,7 @@
     "jkstra": "^0.0.6",
     "leveldown": "^5.0.0",
     "levelup": "^4.0.1",
-    "node-fetch": "^2.3.0",
+    "node-fetch": "^3.1.1",
     "osrm": "^5.22.0",
     "rbush": "^3.0.0",
     "sharedstreets-pbf": "^0.8.0",
